@@ -22,16 +22,15 @@ m = let expr = Meta.parse(parsed_args["m"])
 end
 M = maximum(m)
 
-# model="GaussianProcess/nuFixed"
-# quick=true
-# m=[1]
-# M = maximum(m)
+model="GaussianProcess/nuFixed"
+quick=true
+m=[1]
+M = maximum(m)
 
 using NeuralEstimators
 using NeuralEstimatorsGNN
 using GraphNeuralNetworks
 using CSV
-using Random: seed!
 using DataFrames
 
 include(joinpath(pwd(), "src/$model/Parameters.jl"))

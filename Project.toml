@@ -2,3 +2,12 @@ name = "NeuralEstimatorsGNN"
 uuid = "5a48417c-1015-43bb-abbb-b005543a3ffd"
 authors = ["Matthew Sainsbury-Dale <msdale@uow.edu.au>"]
 version = "0.1.0"
+
+[deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
+GraphNeuralNetworks = "cffab07f-9bc2-4db1-8861-388f63bf7694"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+NeuralEstimators = "38f6df31-6b4a-4144-b2af-7ace2da57606"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"

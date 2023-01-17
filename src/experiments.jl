@@ -31,7 +31,6 @@ using NeuralEstimators
 using NeuralEstimatorsGNN
 using GraphNeuralNetworks
 using CSV
-using Random: seed!
 
 include(joinpath(pwd(), "src/$model/Parameters.jl"))
 include(joinpath(pwd(), "src/$model/Simulation.jl"))

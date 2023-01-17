@@ -1,14 +1,17 @@
 module NeuralEstimatorsGNN
 
 using LinearAlgebra: diagind
-using GraphNeuralNetworks
 using Flux: @functor, glorot_uniform
+using GraphNeuralNetworks
 using GraphNeuralNetworks: check_num_nodes
+using Random: seed!
+export seed!
 
 export WeightedGraphConv
 export DeepSetPool
 export adjacencymatrix
 export reshapedataDNN, reshapedataGNN
+
 
 
 # ---- WeightedGraphConv ----
