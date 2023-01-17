@@ -1,0 +1,19 @@
+.Rproj.user
+.DS_Store
+.Rhistory
+Rplots.pdf
+
+# misc. files that I keep in the Dropbox folder but don't need to be tracked
+
+
+# Data files that are too large:
+
+
+# Auxilliary files that don't need to be tracked
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.blg
+*.dvi

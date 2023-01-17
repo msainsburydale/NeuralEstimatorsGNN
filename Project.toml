@@ -1,0 +1,4 @@
+name = "NeuralEstimatorsGNN"
+uuid = "5a48417c-1015-43bb-abbb-b005543a3ffd"
+authors = ["Matthew Sainsbury-Dale <msdale@uow.edu.au>"]
+version = "0.1.0"
