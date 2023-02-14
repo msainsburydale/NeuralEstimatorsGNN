@@ -10,12 +10,10 @@ using Distributions: Uniform
 	σ = Uniform(0.1, 1.0)
 )
 parameter_names = String.(collect(keys(Ω)))
-n = 900 # number of locations in each field
 ξ = (
 	parameter_names = parameter_names,
 	Ω = Ω,
 	p = length(Ω),
-	n = n,
 	ρ_idx = findfirst(parameter_names .== "ρ"),
 	ν_idx = findfirst(parameter_names .== "ν"),
 	σ_idx = findfirst(parameter_names .== "σ"),
