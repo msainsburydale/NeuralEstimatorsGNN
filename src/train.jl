@@ -7,7 +7,7 @@ arg_table = ArgParseSettings()
 		required = true
 	"--n"
 		help = "The number of observations in a single field."
-		arg_type = Integer
+		arg_type = Int
 	"--quick"
 		help = "A flag controlling whether or not a computationally inexpensive run should be done."
 		action = :store_true
