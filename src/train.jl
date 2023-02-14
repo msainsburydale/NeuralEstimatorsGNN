@@ -20,6 +20,7 @@ quick       = parsed_args["quick"]
 
 using NeuralEstimators
 using NeuralEstimatorsGNN
+using Distances: pairwise, Euclidean 
 using GraphNeuralNetworks
 using CSV
 
