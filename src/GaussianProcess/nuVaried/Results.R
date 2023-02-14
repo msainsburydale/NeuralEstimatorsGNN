@@ -9,7 +9,7 @@ img_path           <- paste("img", model, sep = "/")
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
 parameter_labels = c(
-  "σ"  = expression(sigma[epsilon]),
+  "τ"  = expression(tau),
   "ρ"  = expression(rho),
   "ν"  = expression(nu)
 )

@@ -7,7 +7,7 @@ img_path           <- paste("img", model, sep = "/")
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
 parameter_labels = c(
-  "σ"  = expression(sigma), # "σ"  = expression(sigma[epsilon]),
+  "τ"  = expression(tau),
   "ρ"  = expression(rho)
 )
 
@@ -32,8 +32,8 @@ plotlist <- lapply(unique(df$k), function(K) {
 
   # TODO force this to be square (but with diff)
   joint <- ggplot(df) +
-    geom_point(aes(estimate_σ, estimate_ρ, colour = estimator), alpha = 0.5) +
-    geom_point(aes(truth_σ, truth_ρ), col = "red", shape = "+", size = 8) +
+    geom_point(aes(estimate_τ, estimate_ρ, colour = estimator), alpha = 0.5) +
+    geom_point(aes(truth_τ, truth_ρ), col = "red", shape = "+", size = 8) +
     labs(colour = "",
          # x = parameter_labels[[1]], y = parameter_labels[[2]]
          x = as.expression(bquote(hat(.(parameter_labels[[1]])))),
@@ -47,14 +47,14 @@ plotlist <- lapply(unique(df$k), function(K) {
   df <- df %>%
     pivot_wider(names_from = estimator, values_from = paste("estimate", names(parameter_labels), sep = "_")) %>%
     as.data.frame
-  
+
   # joint difference
   parameters <- as.list(parameter_labels)
   estimators <- rev(names(estimator_labels))
   p <- length(parameter_labels)
   columns <- lapply(1:p, function(i) {
     paste("estimate", names(parameter_labels)[i], estimators, sep = "_")
-  }) 
+  })
   param1 <- df[, columns[[1]][2]] - df[, columns[[1]][1]]
   param2 <- df[, columns[[2]][2]] - df[, columns[[2]][1]]
   tmp <- data.frame(param1, param2)
@@ -63,13 +63,13 @@ plotlist <- lapply(unique(df$k), function(K) {
     labs(
       x = as.expression(bquote(hat(.(parameters[[1]]))[.(estimator_labels[2])] ~ "-" ~ hat(.(parameters[[1]]))[.(estimator_labels[1])])),
       y = as.expression(bquote(hat(.(parameters[[2]]))[.(estimator_labels[2])] ~ "-" ~ hat(.(parameters[[2]]))[.(estimator_labels[1])])),
-    ) + 
+    ) +
     geom_vline(xintercept = 0) + geom_hline(yintercept = 0) +
     theme_bw() +
-    theme(strip.background = element_blank(), strip.text.x = element_blank()) 
+    theme(strip.background = element_blank(), strip.text.x = element_blank())
 
   marginal <- lapply(1:p, function(i) {
-    
+
     columns <- paste("estimate", names(parameter_labels)[i], estimators, sep = "_")
     lmts <- range(df[, columns])
 

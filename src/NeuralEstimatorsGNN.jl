@@ -1,6 +1,8 @@
 module NeuralEstimatorsGNN
 
+using NeuralEstimators
 using LinearAlgebra: diagind
+using Flux
 using Flux: @functor, glorot_uniform
 using GraphNeuralNetworks
 using GraphNeuralNetworks: check_num_nodes
@@ -11,6 +13,7 @@ export WeightedGraphConv
 export DeepSetPool
 export adjacencymatrix
 export reshapedataDNN, reshapedataGNN
+export Parameters
 
 
 
@@ -33,7 +36,7 @@ where the aggregation type is selected by `aggr`.
 - `bias`: Add learnable bias.
 - `init`: Weights' initializer.
 """
-struct WeightedGraphConv{W<:AbstractMatrix,B,F,A, C} <: GNNLayer
+struct WeightedGraphConv{W<:AbstractMatrix,B,F,A,C} <: GNNLayer
     W1::W
     W2::W
     W3::C
@@ -184,5 +187,94 @@ function reshapedataGNN(Z, v::V) where {V <: AbstractVector{A}} where A
 end
 
 
+
+# ---- Parameters definitions and constructors ----
+
+# See here: https://discourse.julialang.org/t/filtering-keys-out-of-named-tuples/73564/8
+drop(nt::NamedTuple, key::Symbol) =  Base.structdiff(nt, NamedTuple{(key,)})
+drop(nt::NamedTuple, keys::NTuple{N,Symbol}) where {N} = Base.structdiff(nt, NamedTuple{keys})
+
+# This is concretely typed so that simulate(params::Parameters, ξ, m::R) is
+# type stable. Note that chol_idx[i] gives the Cholesky factor associated
+# with parameter configuration θ[:, i].
+struct Parameters{T, I} <: ParameterConfigurations
+	θ::Matrix{T}
+	chols::Array{Float64, 3}
+	chol_idx::Vector{I}
+end
+
+
+function Parameters(ξ, K::Integer; J::Integer = 1)
+
+	# All parameters not associated with the Gaussian process
+	θ = [rand(ϑ, K * J) for ϑ in drop(ξ.Ω, (:ρ, :ν, :σ))]
+
+	# Determine if we are estimating ν and σ
+	estimate_ν = "ν" ∈ ξ.parameter_names
+	estimate_σ = "σ" ∈ ξ.parameter_names
+
+	# Covariance parameters associated with the Gaussian process
+	ρ = rand(ξ.Ω.ρ, K)
+	ν = estimate_ν ? rand(ξ.Ω.ν, K) : fill([ξ.ν], K)
+	σ = estimate_σ ? rand(ξ.Ω.σ, K) : fill([ξ.σ], K)
+	chols = maternchols(ξ.D, ρ, ν, σ.^2)
+	ρ = repeat(ρ, inner = J)
+	ν = repeat(ν, inner = J)
+	σ = repeat(σ, inner = J)
+
+	# Now insert ρ (and possibly ν and σ) into θ.
+	θ₁ = θ[1:(ξ.ρ_idx-1)]
+	θ₂ = θ[ξ.ρ_idx:end] # Note that ρ and ν are not in θ, so we don't need to skip any indices.
+	if estimate_ν && estimate_σ
+		@assert (ξ.ν_idx == ξ.ρ_idx + 1) && (ξ.σ_idx == ξ.ν_idx + 1) "The code assumes that ρ, ν, and σ are stored continguously in θ and in that order, that is, that (ξ.ν_idx == ξ.ρ_idx + 1) && (ξ.σ_idx == ξ.ν_idx + 1)"
+		θ = [θ₁..., ρ, ν, σ, θ₂...]
+	elseif estimate_ν
+		@assert ξ.ν_idx == ξ.ρ_idx + 1 "The code assumes that ρ and ν are stored continguously in θ, that is, that ξ.ν_idx == ξ.ρ_idx + 1"
+		θ = [θ₁..., ρ, ν, θ₂...]
+	else
+		θ = [θ₁..., ρ, θ₂...]
+	end
+
+	# Concatenate into a matrix and convert to Float32 for efficiency
+	θ = hcat(θ...)'
+	θ = Float32.(θ)
+
+	Parameters(θ, chols, objectindices(chols, θ))
+end
+
+"""
+	objectindices(objects, θ::AbstractMatrix{T}) where T
+Returns a vector of indices giving element of `objects` associated with each
+parameter configuration in `θ`.
+
+The number of parameter configurations, `K = size(θ, 2)`, must be a multiple of
+the number of objects, `N = size(objects)[end]`. Further, repeated parameters
+used to generate `objects` must be stored in `θ` after using the `inner` keyword
+argument of `repeat()` (see example below).
+
+# Examples
+```
+K = 6
+N = 3
+τ = rand(K)
+ρ = rand(N)
+ν = rand(N)
+S = expandgrid(1:9, 1:9)
+D = pairwise(Euclidean(), S, S, dims = 1)
+L = maternchols(D, ρ, ν)
+ρ = repeat(ρ, inner = K ÷ N)
+ν = repeat(ν, inner = K ÷ N)
+θ = hcat(τ, ρ, ν)'
+objectindices(L, θ)
+```
+"""
+function objectindices(objects, θ::AbstractMatrix{T}) where T
+
+	K = size(θ, 2)
+	N = size(objects)[end]
+	@assert K % N == 0 "The number parameters in θ is not a multiple of the number of objects"
+
+	return repeat(1:N, inner = K ÷ N)
+end
 
 end

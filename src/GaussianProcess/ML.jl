@@ -2,9 +2,9 @@ using LinearAlgebra
 using NeuralEstimators
 include(joinpath(pwd(), "src/ML.jl"))
 
-function covariancematrix(D; σₑ, ρ, ν)
+function covariancematrix(D; τ, ρ, ν)
     Σ = matern.(D, ρ, ν)
-	Σ[diagind(Σ)] .+= σₑ^2
+	Σ[diagind(Σ)] .+= τ^2
     return Σ
 end
 
@@ -26,7 +26,7 @@ end
 
 # This method can be used for Z <: AbstractVector and for Z <: AbstractMatrix
 function ll(θ, ν, Z, D)
-	Σ = covariancematrix(D, σₑ = θ[1], ρ = θ[2], ν = ν)
+	Σ = covariancematrix(D, τ = θ[1], ρ = θ[2], ν = ν)
 	ℓ = gaussiandensity(Z, Σ; logdensity = true)
 	return ℓ
 end

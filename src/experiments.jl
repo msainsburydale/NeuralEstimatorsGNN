@@ -11,7 +11,6 @@ arg_table = ArgParseSettings()
 	"--m"
 		help = "The sample size to use during training. If multiple samples sizes are given as a vector, multiple neural estimators will be trained."
 		arg_type = String
-
 end
 parsed_args = parse_args(arg_table)
 model           = parsed_args["model"]
