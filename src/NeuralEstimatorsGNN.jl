@@ -7,6 +7,7 @@ using Flux: @functor, glorot_uniform
 using GraphNeuralNetworks
 using GraphNeuralNetworks: check_num_nodes
 using Random: seed!
+using Statistics: mean
 export seed!
 
 export WeightedGraphConv
