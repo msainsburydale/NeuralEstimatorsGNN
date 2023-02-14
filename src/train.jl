@@ -58,10 +58,10 @@ function variableirregularsetup(ξ; K, n, J = 10)
 	ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D
 	θ = Parameters(ξ, K, J = J)
 	m = 1 # number of replicates per spatial field
-	Z = [simulate(θ, m)]
+	Z = simulate(θ, m)
 
 	g = repeat(g, inner = J)
-	Z = reshapedataGNN.(Z, Ref(g))
+	Z = reshapedataGNN(Z, g)
 
 	return θ, Z
 end
@@ -88,6 +88,13 @@ Flux.loadparams!(WGNN,  loadbestweights(path * "/runs_WGNN"))
 
 # ---- Assessment ----
 
+# Construct the specific set of irregular locations, S
+S = rand(n, 2)
+D = pairwise(Euclidean(), S, S, dims = 1)
+A = adjacencymatrix(D, ϵ = ϵ)
+g = GNNGraph(A)
+ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D
+
 function assessestimators(θ, Z, ξ, g)
 
 	Z = reshapedataGNN(Z, g)
@@ -112,13 +119,13 @@ assessments = map(1:10) do i
 	assessment
 end
 assessment = merge(assessments...)
-CSV.write(path * "/estimates_test_S.csv", assessment.θandθ̂)
-CSV.write(path * "/runtime_test_S.csv", assessment.runtime)
+CSV.write(path * "/estimates_test.csv", assessment.θandθ̂)
+CSV.write(path * "/runtime_test.csv", assessment.runtime)
 
 # Focus on a small number of parameters for visualising the joint distribution
 seed!(1)
 θ = Parameters(ξ, 5)
 Z = simulate(θ, M, 100)
 assessment = assessestimators(θ, Z, ξ, g)
-CSV.write(path * "/estimates_scenarios_S.csv", assessment.θandθ̂)
-CSV.write(path * "/runtime_scenarios_S.csv", assessment.runtime)
+CSV.write(path * "/estimates_scenarios.csv", assessment.θandθ̂)
+CSV.write(path * "/runtime_scenarios.csv", assessment.runtime)
