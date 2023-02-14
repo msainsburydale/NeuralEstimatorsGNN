@@ -7,7 +7,7 @@ arg_table = ArgParseSettings()
 		required = true
 	"--n"
 		help = "The number of observations in a single field."
-		arg_type = String
+		arg_type = Integer
 	"--quick"
 		help = "A flag controlling whether or not a computationally inexpensive run should be done."
 		action = :store_true
@@ -20,7 +20,7 @@ quick       = parsed_args["quick"]
 
 using NeuralEstimators
 using NeuralEstimatorsGNN
-using Distances: pairwise, Euclidean 
+using Distances: pairwise, Euclidean
 using GraphNeuralNetworks
 using CSV
 
