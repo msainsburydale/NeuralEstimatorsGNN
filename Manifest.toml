@@ -261,6 +261,11 @@ git-tree-sha1 = "56559bbef6ca5ea0c0818fa5c90320398a6fbf8d"
 uuid = "e2ba6199-217a-4e67-a87a-7c52f15ade04"
 version = "0.1.8"
 
+[[deps.ExternalDocstrings]]
+git-tree-sha1 = "1224740fc4d07c989949e1c1b508ebd49a65a5f6"
+uuid = "e189563c-0753-4f5e-ad5c-be4293c83fb4"
+version = "0.1.1"
+
 [[deps.FLoops]]
 deps = ["BangBang", "Compat", "FLoopsBase", "InitialValues", "JuliaVariables", "MLStyle", "Serialization", "Setfield", "Transducers"]
 git-tree-sha1 = "ffb97765602e3cbe59a0589d237bf07f245a8576"
@@ -290,6 +295,12 @@ deps = ["Adapt", "CUDA", "ChainRulesCore", "Functors", "LinearAlgebra", "MLUtils
 git-tree-sha1 = "518b553ec3776dde058aebd2750c109d04ee5593"
 uuid = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 version = "0.13.11"
+
+[[deps.Folds]]
+deps = ["Accessors", "BangBang", "Baselet", "DefineSingletons", "Distributed", "ExternalDocstrings", "InitialValues", "MicroCollections", "Referenceables", "Requires", "Test", "ThreadedScans", "Transducers"]
+git-tree-sha1 = "638109532de382a1f99b1aae1ca8b5d08515d85a"
+uuid = "41a02a25-b8f0-4f67-bc48-60067656b558"
+version = "0.2.8"
 
 [[deps.FoldsThreads]]
 deps = ["Accessors", "FunctionWrappers", "InitialValues", "SplittablesBase", "Transducers"]
@@ -697,6 +708,12 @@ git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
 uuid = "189a3867-3050-52da-a836-e630ba90ab69"
 version = "1.2.2"
 
+[[deps.Referenceables]]
+deps = ["Adapt"]
+git-tree-sha1 = "e681d3bfa49cd46c3c161505caddf20f0e62aaa9"
+uuid = "42d2dcc6-99eb-4e98-b66c-637b7d73030e"
+version = "0.1.2"
+
 [[deps.Requires]]
 deps = ["UUIDs"]
 git-tree-sha1 = "838a3a4188e2ded87a4f9f184b4b0d78a1e91cb7"
@@ -861,6 +878,12 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 git-tree-sha1 = "9250ef9b01b66667380cf3275b3f7488d0e25faf"
 uuid = "b718987f-49a8-5099-9789-dcd902bef87d"
 version = "1.0.1"
+
+[[deps.ThreadedScans]]
+deps = ["ArgCheck"]
+git-tree-sha1 = "ca1ba3000289eacba571aaa4efcefb642e7a1de6"
+uuid = "24d252fe-5d94-4a69-83ea-56a14333d47a"
+version = "0.1.0"
 
 [[deps.TimerOutputs]]
 deps = ["ExprTools", "Printf"]
