@@ -108,11 +108,13 @@ function assessestimators(θ, Z, ξ, g)
 	return assessment
 end
 
+m = 1 # number of replicates per spatial field
+
 # Sample a large set of parameters for computing the risk function
 seed!(1)
 assessments = map(1:10) do i
 	θ = Parameters(ξ, K_test)
-	Z = simulate(θ, M)
+	Z = simulate(θ, m)
 	assessment = assessestimators(θ, Z, ξ, g)
 	assessment.θandθ̂[:, :trial] .= i
 	assessment.runtime[:, :trial] .= i
@@ -125,7 +127,7 @@ CSV.write(path * "/runtime_test.csv", assessment.runtime)
 # Focus on a small number of parameters for visualising the joint distribution
 seed!(1)
 θ = Parameters(ξ, 5)
-Z = simulate(θ, M, 100)
+Z = simulate(θ, m, 100)
 assessment = assessestimators(θ, Z, ξ, g)
 CSV.write(path * "/estimates_scenarios.csv", assessment.θandθ̂)
 CSV.write(path * "/runtime_scenarios.csv", assessment.runtime)
