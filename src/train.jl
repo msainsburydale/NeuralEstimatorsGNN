@@ -32,7 +32,7 @@ path = "intermediates/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
-K_train = 10000
+K_train = 20000
 K_val   = K_train ÷ 5
 K_test  = K_val
 if quick
@@ -65,6 +65,8 @@ function variableirregularsetup(ξ; K, n, J = 10)
 
 	return θ, Z
 end
+
+#TODO need to do simulation on the fly
 
 # Construct a variable set of irregular locations {Sₖ : k = 1, …, K}
 θ_val,   Z_val    = variableirregularsetup(ξ, K = K_val, n = n)

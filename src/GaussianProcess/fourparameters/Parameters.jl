@@ -4,10 +4,10 @@ using LinearAlgebra
 using Distributions: Uniform
 
 Ω = (
-	τ = Uniform(0.1, 1.0),
-	ρ = Uniform(0.1, 0.7),
-	ν = Uniform(0.5, 2.0),
-	σ = Uniform(0.1, 1.0)
+	τ = Uniform(0.5, 0.55),
+	ρ = Uniform(0.01, 0.4),
+	ν = Uniform(1.0, 2.5),
+	σ = Uniform(0.7, 2.5)
 )
 parameter_names = String.(collect(keys(Ω)))
 ξ = (
