@@ -16,5 +16,5 @@ fi
 
 for model in GaussianProcess/fourparameters
 do
-    julia --threads=auto --project=. src/train.jl --model=$model $quick --n=1024
+    julia --threads=auto --project=. src/train.jl --model=$model $quick --n=512
 done
