@@ -16,5 +16,5 @@ fi
 
 for model in GaussianProcess/fourparameters
 do
-    julia --threads=auto --project=. src/kaust.jl --model=$model $quick --n=512
+    julia --threads=auto --project=. src/kaust.jl $quick
 done

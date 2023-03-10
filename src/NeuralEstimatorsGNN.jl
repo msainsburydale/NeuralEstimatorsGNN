@@ -149,7 +149,7 @@ end
 # of the heap data structure, and see
 # https://juliacollections.github.io/DataStructures.jl/latest/heaps/
 # for a description of Julia's implementation of the heap data structure.
-using DataStructures # heap data structure
+
 using SparseArrays
 using LinearAlgebra
 using Distances
@@ -280,6 +280,7 @@ end
 # NB investigate why I can't get this to work when I have more time (it's very
 # close). I think this approach will be more efficient than the above method.
 # Approach using the heap data structure (can't get it to work properly, for some reason)
+#using DataStructures # heap data structure
 # function findneighbours(d, k::Integer)
 #
 # 	@assert length(d) > k

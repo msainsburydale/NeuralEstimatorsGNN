@@ -34,7 +34,8 @@ function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} wh
 		z
 	end
 	n = size(chols, 1)
-	Z = reshape.(Z, isqrt(n), isqrt(n), 1, :) # assumes a square domain #TODO better to just return a vector
+	# Z = reshape.(Z, isqrt(n), isqrt(n), 1, :) # assumes a square domain #TODO better to just return a vector
+	Z = reshape.(Z, n, :)
 	return Z
 end
 simulate(parameters::Parameters, m::Integer) = simulate(parameters, range(m, m))
