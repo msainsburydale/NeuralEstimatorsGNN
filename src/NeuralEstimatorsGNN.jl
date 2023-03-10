@@ -143,20 +143,178 @@ end
 
 
 
-# ---- Misc. ----
+# ---- Adjacency matrices ----
 
-function adjacencymatrix(D::M; ϵ, weighted = true, remove_diagonals = true) where M <: AbstractMatrix{T} where T
-    A = D .< ϵ
-	remove_diagonals && A[diagind(A)] .= 0 # remove the diagonal entries
+# See https://en.wikipedia.org/wiki/Heap_(data_structure) for a description
+# of the heap data structure, and see
+# https://juliacollections.github.io/DataStructures.jl/latest/heaps/
+# for a description of Julia's implementation of the heap data structure.
+using DataStructures # heap data structure
+using SparseArrays
+using LinearAlgebra
+using Distances
 
-	if weighted
+"""
+	adjacencymatrix(M::Matrix, k::Integer)
+	adjacencymatrix(M::Matrix, ϵ::Float)
+
+Computes a spatially weighted adjacency matrix from `M` based on either the `k`
+nearest neighbours to each location, or a spatial radius of `ϵ` units.
+
+If `M` is a square matrix, is it treated as a distance matrix; otherwise, it
+should be an n x d matrix, where n is the number of spatial locations and d is
+the spatial dimension (typically d = 2).
+
+# Examples
+```
+using NeuralEstimatorsGNN
+using Distances
+
+n = 10
+d = 2
+S = rand(n, d)
+k = 5
+ϵ = 0.3
+
+# Memory efficient constructors (avoids constructing the full distance matrix D)
+adjacencymatrix(S, k)
+adjacencymatrix(S, ϵ)
+
+# Construct from full distance matrix D
+D = pairwise(Euclidean(), S, S, dims = 1)
+adjacencymatrix(D, k)
+adjacencymatrix(D, ϵ)
+```
+"""
+function adjacencymatrix(M::Mat, k::Integer) where Mat <: AbstractMatrix{T} where T
+
+	I = Int64[]
+	J = Int64[]
+	V = Float64[]
+	n = size(M, 1)
+	m = size(M, 2)
+
+	for i ∈ 1:n
+
+		if m == n
+			# since we have a square matrix, it's reasonable to assume that S
+			# is actually a distance matrix, D:
+			d = M[i, :]
+		else
+			# Compute distances between sᵢ and all other locations
+			d = colwise(Euclidean(), M', M[i, :])
+		end
+
+		# Replace d(s) with Inf so that it's not included in the adjacency matrix
+		d[i] = Inf
+
+		# Find the neighbours of s
+		j, v = findneighbours(d, k)
+
+		push!(I, repeat([i], inner = k)...)
+		push!(J, j...)
+		push!(V, v...)
+	end
+
+	return sparse(I,J,V,n,n)
+end
+
+function adjacencymatrix(M::Mat, ϵ::F) where Mat <: AbstractMatrix{T} where {T, F <: AbstractFloat}
+
+	@assert ϵ > 0
+
+	n = size(M, 1)
+	m = size(M, 2)
+
+	if m == n
+
+		D = M
+		# bit-matrix specifying which locations are ϵ-neighbours
+		A = D .< ϵ
+		A[diagind(A)] .= 0 # remove the diagonal entries
+
+		# replace non-zero elements of A with the corresponding distance in D
 		indices = copy(A)
 		A = convert(Matrix{T}, A)
 		A[indices] = D[indices]
+
+		# convert to sparse matrix
+		A = sparse(A)
+	else
+
+		S = M
+
+		I = Int64[]
+		J = Int64[]
+		V = Float64[]
+		for i ∈ 1:n
+
+			# Compute distances between s and all other locations
+			s = S[i, :]
+			d = colwise(Euclidean(), S', s)
+
+			# Replace d(s) with Inf so that it's not included in the adjacency matrix
+			d[i] = Inf
+
+			# Find the ϵ-neighbours of s
+			j = d .< ϵ
+			j = findall(j)
+
+			push!(I, repeat([i], inner = length(j))...)
+			push!(J, j...)
+			push!(V, d[j]...)
+		end
+		A = sparse(I,J,V,n,n)
 	end
 
 	return A
 end
+
+
+function findneighbours(d, k::Integer)
+	V = partialsort(d, 1:k)
+	J = [findfirst(v .== d) for v ∈ V]
+    return J, V
+end
+
+# NB investigate why I can't get this to work when I have more time (it's very
+# close). I think this approach will be more efficient than the above method.
+# Approach using the heap data structure (can't get it to work properly, for some reason)
+# function findneighbours(d, k::Integer)
+#
+# 	@assert length(d) > k
+#
+#     # Build a max heap of differences with first k elements
+# 	h = MutableBinaryMaxHeap(d[1:k])
+#
+#     # For every element starting from (k+1)-th element,
+#     for j ∈ (k+1):lastindex(d)
+#         # if the difference is less than the root of the heap, replace the root
+#         if d[j] < first(h)
+#             pop!(h)
+#             push!(h, d[j])
+#         end
+#     end
+#
+# 	# Extract the indices with respect to d and the corresponding distances
+# 	J = broadcast(x -> x.handle, h.nodes)
+# 	V = broadcast(x -> x.value, h.nodes)
+#
+# 	# # Sort by the index of the original vector d (this ordering may be necessary for constructing sparse arrays)
+# 	# perm = sortperm(J)
+# 	# J = J[perm]
+# 	# V = V[perm]
+#
+# 	perm = sortperm(V)
+# 	J = J[perm]
+# 	V = V[perm]
+#
+#     return J, V
+# end
+
+
+
+
 
 
 # ---- Reshaping data to the correct form ----

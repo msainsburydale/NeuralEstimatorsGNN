@@ -1,10 +1,6 @@
 using ArgParse
 arg_table = ArgParseSettings()
 @add_arg_table arg_table begin
-	"--model"
-		help = "A relative path to the folder of the assumed model; this folder should contain scripts for defining the parameter configurations in Julia and for data simulation."
-		arg_type = String
-		required = true
 	"--n"
 		help = "The number of observations in a single field."
 		arg_type = Int
@@ -13,10 +9,8 @@ arg_table = ArgParseSettings()
 		action = :store_true
 end
 parsed_args = parse_args(arg_table)
-model       = parsed_args["model"]
 n           = parsed_args["n"]
 quick       = parsed_args["quick"]
-
 
 using NeuralEstimators
 using NeuralEstimatorsGNN
@@ -24,6 +18,7 @@ using Distances: pairwise, Euclidean
 using GraphNeuralNetworks
 using CSV
 
+model = "GaussianProcess/fourparameters"
 include(joinpath(pwd(), "src/$model/Parameters.jl"))
 include(joinpath(pwd(), "src/$model/Simulation.jl"))
 include(joinpath(pwd(), "src/Architecture.jl"))
@@ -42,8 +37,7 @@ if quick
 end
 
 p = ξ.p
-# ϵ = 0.125f0 # distance cutoff used to define the local neighbourhood of each node
-neighbours = 10 # number of neighbours to consider
+neighbours = 8 # number of neighbours to consider
 
 function variableirregularsetup(ξ; K, n, J = 10)
 
@@ -72,11 +66,6 @@ end
 θ_val,   Z_val    = variableirregularsetup(ξ, K = K_val, n = n)
 θ_train, Z_train  = variableirregularsetup(ξ, K = K_train, n = n)
 
-# GNN estimator
-seed!(1)
-GNN = gnnarchitecture(p; globalpool = "deepset")
-train(GNN, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN")
-
 # WGNN estimator
 seed!(1)
 WGNN = gnnarchitecture(p; globalpool = "deepset", propagation = "WeightedGraphConv")
@@ -84,7 +73,6 @@ train(WGNN, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN")
 
 # ---- Load the trained estimators ----
 
-Flux.loadparams!(GNN,   loadbestweights(path * "/runs_GNN"))
 Flux.loadparams!(WGNN,  loadbestweights(path * "/runs_WGNN"))
 
 
