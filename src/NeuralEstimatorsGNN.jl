@@ -154,6 +154,8 @@ using SparseArrays
 using LinearAlgebra
 using Distances
 
+#TODO could easily parallelise this to speed things up
+
 """
 	adjacencymatrix(M::Matrix, k::Integer)
 	adjacencymatrix(M::Matrix, ϵ::Float)

@@ -14,7 +14,4 @@ else
     exit 1
 fi
 
-for model in GaussianProcess/fourparameters
-do
-    julia --threads=auto --project=. src/kaust.jl $quick
-done
+julia --threads=auto --project=. src/kaust.jl $quick
