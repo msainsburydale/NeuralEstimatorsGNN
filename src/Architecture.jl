@@ -1,4 +1,5 @@
 using Flux
+using Statistics: mean
 
 function cnnarchitecture(p, qₛ = 0)
 
@@ -79,23 +80,46 @@ function gnnarchitecture(
 		no = 64  # dimension of the final summary vector for each graph
 		ψ = Dense(nh, nt)
 		ϕ = Dense(nt, no)
-		 DeepSetPool(ψ, ϕ)
+		DeepSetPool(ψ, ϕ)
 	else
 		error("global pooling module not recognised")
 	end
 
-	deepset = DeepSet(
-		Chain(
-			Dense(no => nh, relu),
-			Dense(nh => nh, relu),
-			Dense(nh => nh, relu)
-		),
-		Chain(
-			Dense(nh => nh, relu),
-			Dense(nh => nh, relu),
-			Dense(nh => p)
-		)
+	# deepset = DeepSet(
+	# 	Chain(
+	# 		Dense(no => nh, relu),
+	# 		Dense(nh => nh, relu),
+	# 		Dense(nh => nh, relu)
+	# 	),
+	# 	Chain(
+	# 		Dense(nh => nh, relu),
+	# 		Dense(nh => nh, relu),
+	# 		Dense(nh => p)
+	# 	)
+	# )
+	#
+	# GNN(graphtograph, globpool, deepset)
+
+	# deepset = DeepSet(
+	# 	Chain(
+	# 		Dense(no => nh, relu),
+	# 		Dense(nh => nh, relu),
+	# 		Dense(nh => nh, relu)
+	# 	),
+	# 	Chain(
+	# 		Dense(nh => nh, relu),
+	# 		Dense(nh => nh, relu),
+	# 		Dense(nh => p)
+	# 	)
+	# )
+
+	ψ = GraphPropagatePool(graphtograph, globpool)
+	ϕ = Chain(
+		Dense(no => nh, relu),
+		Dense(nh => nh, relu),
+		Dense(nh => nh, relu),
+		Dense(nh => p)
 	)
 
-	GNNEstimator(graphtograph, globpool, deepset)
+	DeepSet(ψ, ϕ)
 end

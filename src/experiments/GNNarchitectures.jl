@@ -105,7 +105,7 @@ all_globalpool = ["mean", "attention", "deepset"]
 all_combinations = expandgrid(all_globalpool, all_nh)
 estimator_names = ["$(c[1])pool_nh$(c[2])" for c ∈ eachrow(all_combinations)]
 
-#  ---- train the estimators  ----
+# ---- train the estimators  ----
 
 times = []
 estimators = map(eachindex(estimator_names)) do i
@@ -122,16 +122,17 @@ CSV.write(path * "/traintime.csv", DataFrame(hcat(times, estimator_names), [:tim
 #  ---- assess the estimators  ----
 
 # Compute the risk function several times for accurate results
+#TODO don't need to do this!
 seed!(1)
 assessments = map(1:10) do i
 	θ = Parameters(ξ, K_test)
 	Z = simulate(θ, M)
 	Z = reshapedataGNN(Z, g)
-	assessment = assess(estimators, θ, [Z]; estimator_names = estimator_names, parameter_names = ξ.parameter_names)
-	assessment.θandθ̂[:, :trial]   .= i
+	assessment = assess(estimators, θ, Z; estimator_names = estimator_names, parameter_names = ξ.parameter_names)
+	assessment.df[:, :trial]   .= i
 	assessment.runtime[:, :trial] .= i
 	assessment
 end
 assessment = merge(assessments...)
-CSV.write(path * "/estimates.csv", assessment.θandθ̂)
+CSV.write(path * "/estimates.csv", assessment.df)
 CSV.write(path * "/runtime.csv", assessment.runtime)

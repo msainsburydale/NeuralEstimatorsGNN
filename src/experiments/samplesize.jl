@@ -1,86 +1,17 @@
-# Strategy:
-# - Train a neural credible-interval estimator for n = 512 using randomly sampled
-#   irregular spatial locations.
-# - Assess the neural credible-interval estimator for n ∈ {512, 2048}. This will
-#   indicate whether the estimator is performing reasonably well for sample sizes
-#   used during training, and whether there is a substantial loss of efficiency
-#   when extrapolating to different sample sizes.
-
-
-# Possible things that can help:
-# - Develop code for fast simulation of Gaussian processes that does not require
-#   the Cholesky factor (see GaussianRandomFields.jl).
-
-
 using ArgParse
 arg_table = ArgParseSettings()
 @add_arg_table arg_table begin
+	"--model"
+		help = "A relative path to the folder of the assumed model; this folder should contain scripts for defining the parameter configurations in Julia and for data simulation."
+		arg_type = String
+		required = true
 	"--quick"
 		help = "A flag controlling whether or not a computationally inexpensive run should be done."
 		action = :store_true
 end
 parsed_args = parse_args(arg_table)
+model       = parsed_args["model"]
 quick       = parsed_args["quick"]
-
-
-# ---- Some functions taken from Neural-confidence/src/experiment.jl and elsewhere ----
-
-function savenamedarray(a, savepath)
-	df = DataFrame(a, Symbol.(names(a, 2)))
-	insertcols!(df, 1, Symbol(dimnames(a, 1)) => names(a, 1))
-	CSV.write(savepath, df)
-end
-
-function empiricalintervalscore(ci, θ, α; per_parameter::Bool = true)
-	p, K = size(θ)
-	@assert length(ci) == K
-	@assert all(size.(ci, 1) .== p)
-	@assert all(size.(ci, 2) .== 2)
-
-	is = map(1:K) do k
-		l = ci[k][:, 1]
-		u = ci[k][:, 2]
-		t = θ[:, k]
-
-		if !per_parameter
-			intervalscore(l, u, t, α)
-		else
-			map(1:p) do i
-				intervalscore(l[i], u[i], t[i], α)
-			end
-		end
-	end
-	mean(is)
-end
-
-function assessci(ci::V, θ, name::String) where  {V <: AbstractArray{M}} where M <: AbstractMatrix
-	cvg = vec(coverage(ci, θ))
-	is  = empiricalintervalscore(ci, θ, 0.05)
-	df  = vcat(cvg', is')
-	score_names = ["coverage", "IS"]
-	df = NamedArray(df, (score_names, parameter_names))
-	savenamedarray(df, path * "/scores_$name.csv")
-end
-
-function variableirregularsetup(ξ; K, n, J = 1, m = 1)
-
-	D = map(1:K) do k
-		S = rand(n, 2)
-		D = pairwise(Euclidean(), S, S, dims = 1)
-		D
-	end
-	A = adjacencymatrix.(D, ϵ)
-	g = GNNGraph.(A)
-
-	ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D
-	θ = Parameters(ξ, K, J = J)
-	Z = simulate(θ, m)
-
-	g = repeat(g, inner = J)
-	Z = reshapedataGNN(Z, g)
-
-	return θ, Z
-end
 
 
 # ----
@@ -94,22 +25,21 @@ using CSV
 using DelimitedFiles
 using NamedArrays
 
-# NB For a fixed spatial domain, the average distance between spatial locations
+# TODO For a fixed spatial domain, the average distance between spatial locations
 #   decreases as the sample size increases; therefore, GNN-based estimators for
 #   spatial problems may be more robust to different sample sizes than those
 #   used during training if neighbours are defined by some fixed spatial radius.
+# I should note that I am defining neighbours based on spatial proximity rather than a K-nearest neighbours approach: that is, I define the neighbours of a node v as all points u that fall within some fixed spatial distance of v. This adds some robustness to the estimator when dealing with varying sample sizes n when compared with simply choosing the K-nearest neighbours since, with a fixed spatial domain, the average distance between spatial locations decreases as the sample size increases and, hence, the K-nearest neighbours of a node will asymptotically, which may compromise the estimation of range parameters.
 
 # neighbours = 8 # number of neighbours to consider
 ϵ = 0.05f0 # spatial radius within which nodes are neighbours
 
-model = "GaussianProcess/fourparameters"
+model = "GaussianProcess/fourparameters" #TODO change to allow model as an argument; make this experiment consistent with the other experiments
 m = 1 # number of replicates per spatial field
 n = 512 # number of observations per field during training
 
-
-include(joinpath(pwd(), "src/$model/Parameters.jl"))
-include(joinpath(pwd(), "src/$model/Simulation.jl"))
-include(joinpath(pwd(), "src/Architecture.jl"))
+include(joinpath(pwd(), "src/$model/model.jl"))
+include(joinpath(pwd(), "src/architecture.jl"))
 
 path = "intermediates/$model"
 if !isdir(path) mkpath(path) end
@@ -142,8 +72,8 @@ Flux.loadparams!(pointestimator, loadbestweights(path * "/runs_point"))
 # Confidence-interval estimator based on the posterior quantiles
 l = deepcopy(pointestimator)
 u = deepcopy(pointestimator)
-ciestimator = CIEstimator(l, u)
-train(ciestimator, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_ci", loss = quantileloss(θ̂, θ, gpu([0.025, 0.975])))
+ciestimator = IntervalEstimator(l, u)
+train(ciestimator, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_ci", loss = (θ̂, θ) -> quantileloss(θ̂, θ, gpu([0.025, 0.975])))
 Flux.loadparams!(ciestimator, loadbestweights(path * "/runs_ci"))
 ciestimator = ciestimator |> gpu
 
@@ -154,22 +84,24 @@ seed!(1)
 θ, Z = variableirregularsetup(ξ, K = K_test, n = n)
 
 # Construct and assess confidence intervals
-ci = confidenceinterval(ciestimator, Z; parameter_names = parameter_names)
+ci = interval(ciestimator, Z; parameter_names = parameter_names)
 assessci(ci, θ.θ, "n$n")
 
 # ---- Assessment: larger n ----
 
 # Construct the test set
 seed!(1)
-largern = 2048
+largern = 4n
 θ, Z = variableirregularsetup(ξ, K = K_test, n = largern)
 
 # Construct and assess confidence intervals
-ci = confidenceinterval(ciestimator, Z; parameter_names = parameter_names)
+ci = interval(ciestimator, Z; parameter_names = parameter_names)
 assessci(ci, θ.θ, "n$largern")
 
 
 # ---- Apply the estimator to the massive spatial data sets ----
+
+#TODO which data sets do I need to estimate from (competitions 1a and 1b?)
 
 datapath = "data/kaust" # relative path to the kaust data
 internal = true # set to false to do inference over the competition data
@@ -202,10 +134,8 @@ cis = map(datasets) do i
 	Z = reshapedataGNN([Z], g)
 
 	# confidence interval
-	ci = confidenceinterval(ciestimator, Z; parameter_names = parameter_names)[1]
-
+	ci = interval(ciestimator, Z; parameter_names = parameter_names)[1]
 	savenamedarray(ci, loadpath * "/ci_$i.csv")
-
 	ci
 end
 

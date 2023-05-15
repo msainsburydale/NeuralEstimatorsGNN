@@ -14,24 +14,16 @@ else
     exit 1
 fi
 
-for model in GaussianProcess/nuFixed GaussianProcess/nuVaried Schlather
+for model in GP/nuFixed #GP/nuVaried Schlather
 do
 
-    if [[ $model == "GaussianProcess/nuFixed" ]]; then
+    if [[ $model == "GP/nuFixed" ]]; then
         m="[1]"
     else
         m="[1,30]"
     fi
 
-    echo ""
-    echo "######## Starting experiment 0 for $model model ############"
-    echo ""
-    julia --threads=auto --project=. src/experiment0.jl --model=$model $quick --m=$m
+    julia --threads=auto --project=. src/experiments/graphstructures.jl --model=$model $quick --m=$m
+    # julia --threads=auto --project=. src/experiments.jl --model=$model $quick --m=$m
 
-    echo ""
-    echo "######## Starting experiments 1 and 2 for $model model ############"
-    echo ""
-    julia --threads=auto --project=. src/experiments.jl --model=$model $quick --m=$m
-
-    Rscript src/Results.R --model=$model
 done

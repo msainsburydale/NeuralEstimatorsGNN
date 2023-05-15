@@ -24,9 +24,9 @@ fi
 # Each .sh files asks the user if quick = y/n. To automate this
 # script, we pipe the above response to each .sh file
 yes $quick_str | bash sh/Misc.sh                 # Miscellaneous results
-yes $quick_str | bash sh/Theoretical.sh          # Section 2
-yes $quick_str | bash sh/SimulationStudies.sh    # Section 3 and some sections of the Supplementary Material
-yes $quick_str | bash sh/Application.sh          # Section 4
+yes $quick_str | bash sh/theoretical.sh          # Section 2
+yes $quick_str | bash sh/simulations.sh          # Section 3 and some sections of the Supplementary Material
+yes $quick_str | bash sh/application.sh          # Section 4
 
 echo ""
 echo "######## Everything finished! ############"

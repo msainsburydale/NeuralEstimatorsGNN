@@ -19,12 +19,12 @@ splitestimator <- function(df) {
   # df$propagationwidth <- gsub("nh",  "", df$propagationwidth)
   # df$propagationwidth <-as.numeric(df$propagationwidth)
   # return(df)
-  
-  df %>% 
-    separate(col = estimator, into = c("globalpool", "propagationwidth"), sep = "_") %>% 
-    mutate(propagationwidth = gsub("nh",  "", propagationwidth)) %>% 
-    mutate(propagationwidth = as.numeric(propagationwidth)) 
-  
+
+  df %>%
+    separate(col = estimator, into = c("globalpool", "propagationwidth"), sep = "_") %>%
+    mutate(propagationwidth = gsub("nh",  "", propagationwidth)) %>%
+    mutate(propagationwidth = as.numeric(propagationwidth))
+
 
 }
 
@@ -46,17 +46,17 @@ df <- read.csv(paste0(int_path, "/estimates.csv"))
 df <- splitestimator(df)
 
 df <- df %>%
-  group_by(globalpool, propagationwidth, trial) %>% 
+  group_by(globalpool, propagationwidth, trial) %>%
   summarise(risk = MAE(estimate, truth)) %>%
-  summarise(avrisk = mean(risk), sdrisk = sd(risk)) 
+  summarise(avrisk = mean(risk), sdrisk = sd(risk))
 
 df %>% write.csv(file = paste0(results_path, "/risk.csv"), row.names = F)
 
-gg <- ggplot(df) + 
-  geom_line(aes(x = propagationwidth, y = avrisk, colour = globalpool)) + 
-  labs(x = "Number of channels in propagation module", 
-       y = risklabel, 
-       colour = "Global pooling\nmodule") + 
+gg <- ggplot(df) +
+  geom_line(aes(x = propagationwidth, y = avrisk, colour = globalpool)) +
+  labs(x = "Number of channels in propagation module",
+       y = risklabel,
+       colour = "Global pooling\nmodule") +
   theme_bw()
 
 ggsave(gg, file = "risk.pdf", width = 6, height = 4, device = "pdf", path = img_path)
@@ -64,18 +64,18 @@ ggsave(gg, file = "risk.pdf", width = 6, height = 4, device = "pdf", path = img_
 # ---- Test time ----
 
 df <- read.csv(paste0(int_path, "/runtime.csv"))
-df$trial <- rep(1:(nrow(df)/10), each = 10) # TODO delete this after rerunning the julia code 
+df$trial <- rep(1:(nrow(df)/10), each = 10) # TODO delete this after rerunning the julia code
 df <- df[df$trial != 1, ] # remove the first trial, which is subject to noise due to code compilation time
 df <- splitestimator(df)
-df <- df %>% 
-  group_by(globalpool, propagationwidth) %>% 
+df <- df %>%
+  group_by(globalpool, propagationwidth) %>%
   summarise(avtime = mean(time), sdtime = sd(time))
 
-gg <- ggplot(df) + 
-  geom_line(aes(x = propagationwidth, y = avtime, colour = globalpool)) + 
-  labs(x = "Number of channels in propagation module", 
-       y = "Computational time (s)", 
-       colour = "Global pooling\nmodule") + 
+gg <- ggplot(df) +
+  geom_line(aes(x = propagationwidth, y = avtime, colour = globalpool)) +
+  labs(x = "Number of channels in propagation module",
+       y = "Computational time (s)",
+       colour = "Global pooling\nmodule") +
   theme_bw()
 
 ggsave(gg, file = "time.pdf", width = 6, height = 4, device = "pdf", path = img_path)
@@ -167,17 +167,17 @@ df <- read.csv(paste0(int_path, "/estimates_scenarios_S.csv"))
 
 lapply(unique(df$k), function(K) {
   ggsave(
-    plotdistribution(df %>% filter(k == K), 
-                     parameter_labels = parameter_labels, 
+    plotdistribution(df %>% filter(k == K),
+                     parameter_labels = parameter_labels,
                      estimator_labels = estimator_labels),
     file = paste0("boxplot", K, ".pdf"),
     width = 8, height = 4, device = "pdf", path = img_path
   )
 
   ggsave(
-    plotdistribution(df %>% filter(k == K), 
-                     parameter_labels = parameter_labels, 
-                     estimator_labels = estimator_labels, 
+    plotdistribution(df %>% filter(k == K),
+                     parameter_labels = parameter_labels,
+                     estimator_labels = estimator_labels,
                      type = "scatter")[[1]],
     file = paste0("scatterplot", K, ".pdf"),
     width = 5, height = 5, device = "pdf", path = img_path

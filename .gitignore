@@ -1,10 +1,17 @@
+.RData
 .Rproj.user
 .DS_Store
 .Rhistory
 Rplots.pdf
+*.Rproj
+"Icon\r"
+Icon?
+.backups
+TeX
 
 # misc. files that I keep in the Dropbox folder but don't need to be tracked
-
+Zhang_et_al/
+src/.backups/
 
 # Data files that are too large:
 

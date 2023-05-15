@@ -14,7 +14,59 @@ export WeightedGraphConv
 export DeepSetPool
 export adjacencymatrix
 export reshapedataDNN, reshapedataGNN
+export variableirregularsetup, irregularsetup
 export Parameters
+
+export coverage
+
+"""
+	coverage(intervals::V, θ) where  {V <: AbstractArray{M}} where M <: AbstractMatrix
+
+Given a p×K matrix of true parameters `θ`, determine the empirical coverage of
+a collection of confidence `intervals` (a K-vector of px2 matrices).
+
+The overall empirical coverage is obtained by averaging the resulting 0-1 matrix
+elementwise over all parameter vectors.
+
+# Examples
+```
+using NeuralEstimators
+p = 3
+K = 100
+θ = rand(p, K)
+intervals = [rand(p, 2) for _ in 1:K]
+coverage(intervals, θ)
+```
+"""
+function coverage(intervals::V, θ) where  {V <: AbstractArray{M}} where M <: AbstractMatrix
+
+    p, K = size(θ)
+	@assert length(intervals) == K
+	@assert all(size.(intervals, 1) .== p)
+	@assert all(size.(intervals, 2) .== 2)
+
+	# for each confidence interval, determine if the true parameters, θ, are
+	# within the interval.
+	within = map(eachindex(intervals)) do k
+
+		c = intervals[k]
+
+		# Determine if the confidence intervals contain the true parameter.
+		# The result is an indicator vector specifying which parameters are
+		# contained in the interval
+		[c[i, 1] < θ[i, k] < c[i, 2] for i ∈ 1:p]
+	end
+
+	# combine the counts into a single matrix p x K matrix
+	within = hcat(within...)
+
+	# compute the empirical coverage
+	cvg = mean(within, dims = 2)
+
+	return cvg
+end
+
+
 
 
 
@@ -86,7 +138,7 @@ end
 # ---- Deep Set pooling layer ----
 
 #TODO I think there is an earlier paper that does this too. Or, perhaps the
-# universal pooling that I encountered previously applied the Deep Set
+# universal pooling that I previously encountered also applied DeepSets
 # architecture over each graph (that is how I originally thought that it would
 # be implemented).
 @doc raw"""
@@ -273,11 +325,33 @@ function adjacencymatrix(M::Mat, ϵ::F) where Mat <: AbstractMatrix{T} where {T,
 end
 
 
+
+
 function findneighbours(d, k::Integer)
 	V = partialsort(d, 1:k)
 	J = [findfirst(v .== d) for v ∈ V]
     return J, V
 end
+
+
+
+# @testset "adjacencymatrix" begin
+# 	n = 10
+# 	S = rand(n, 2)
+# 	k = 5
+# 	ϵ = 0.3
+# 	A₁ = adjacencymatrix(S, k)
+# 	@test all([A₁[i, i] for i ∈ 1:n] .== zeros(n))
+# 	A₂ = adjacencymatrix(S, ϵ)
+# 	@test all([A₂[i, i] for i ∈ 1:n] .== zeros(n))
+#
+# 	D = pairwise(Euclidean(), S, S, dims = 1)
+# 	Ã₁ = adjacencymatrix(D, k)
+# 	Ã₂ = adjacencymatrix(D, ϵ)
+# 	@test Ã₁ == A₁
+# 	@test Ã₂ == A₂
+# end
+
 
 # NB investigate why I can't get this to work when I have more time (it's very
 # close). I think this approach will be more efficient than the above method.
@@ -316,13 +390,59 @@ end
 # end
 
 
+# ---- Parameters definitions and constructors ----
 
+# This is concretely typed so that simulate(params::Parameters, ξ, m::R) is
+# type stable. Note that chol_pointer[i] gives the Cholesky factor associated
+# with parameter configuration θ[:, i].
+struct Parameters{T, I} <: ParameterConfigurations
+	θ::Matrix{T}
+	chols::Array{Float64, 3}
+	chol_pointer::Vector{I}
+end
+
+function Parameters(K::Integer, ξ; J::Integer = 1)
+
+	# All parameters not associated with the Gaussian process
+	θ = [rand(ϑ, K * J) for ϑ in drop(ξ.Ω, (:ρ, :ν, :σ))]
+
+	# Determine if we are estimating ν and σ
+	estimate_ν = "ν" ∈ ξ.parameter_names
+	estimate_σ = "σ" ∈ ξ.parameter_names
+
+	# Covariance parameters associated with the Gaussian process
+	ρ = rand(ξ.Ω.ρ, K)
+	ν = estimate_ν ? rand(ξ.Ω.ν, K) : fill(ξ.ν, K)
+	σ = estimate_σ ? rand(ξ.Ω.σ, K) : fill(ξ.σ, K)
+	chols = maternchols(ξ.D, ρ, ν, σ.^2)
+	chol_pointer = repeat(1:K, inner = J)
+	ρ = repeat(ρ, inner = J)
+	ν = repeat(ν, inner = J)
+	σ = repeat(σ, inner = J)
+
+	# Now insert ρ (and possibly ν and σ) into θ.
+	θ₁ = θ[1:(ξ.ρ_idx-1)]
+	θ₂ = θ[ξ.ρ_idx:end] # Note that ρ and ν are not in θ, so we don't need to skip any indices.
+	if estimate_ν && estimate_σ
+		@assert (ξ.ν_idx == ξ.ρ_idx + 1) && (ξ.σ_idx == ξ.ν_idx + 1) "The code assumes that ρ, ν, and σ are stored continguously in θ and in that order, that is, that (ξ.ν_idx == ξ.ρ_idx + 1) && (ξ.σ_idx == ξ.ν_idx + 1)"
+		θ = [θ₁..., ρ, ν, σ, θ₂...]
+	elseif estimate_ν
+		@assert ξ.ν_idx == ξ.ρ_idx + 1 "The code assumes that ρ and ν are stored continguously in θ, that is, that ξ.ν_idx == ξ.ρ_idx + 1"
+		θ = [θ₁..., ρ, ν, θ₂...]
+	else
+		θ = [θ₁..., ρ, θ₂...]
+	end
+
+	# Concatenate into a matrix and convert to Float32 for efficiency
+	θ = hcat(θ...)'
+	θ = Float32.(θ)
+
+	Parameters(θ, chols, chol_pointer)
+end
 
 
 
 # ---- Reshaping data to the correct form ----
-
-
 
 function reshapedataDNN(Z)
 	reshape.(Z, :, 1, size(Z[1])[end])
@@ -349,94 +469,40 @@ function reshapedataGNN(Z, v::V) where {V <: AbstractVector{A}} where A
 end
 
 
+# ---- Setting up for training ----
 
-# ---- Parameters definitions and constructors ----
+function irregularsetup(ξ, g; K::Integer, m, J::Integer = 10)
 
-# See here: https://discourse.julialang.org/t/filtering-keys-out-of-named-tuples/73564/8
-drop(nt::NamedTuple, key::Symbol) =  Base.structdiff(nt, NamedTuple{(key,)})
-drop(nt::NamedTuple, keys::NTuple{N,Symbol}) where {N} = Base.structdiff(nt, NamedTuple{keys})
+	θ = Parameters(K, ξ, J = J)
+	Z = [simulate(θ, mᵢ) for mᵢ ∈ m]
+	Z = reshapedataGNN.(Z, Ref(g))
 
-# This is concretely typed so that simulate(params::Parameters, ξ, m::R) is
-# type stable. Note that chol_idx[i] gives the Cholesky factor associated
-# with parameter configuration θ[:, i].
-struct Parameters{T, I} <: ParameterConfigurations
-	θ::Matrix{T}
-	chols::Array{Float64, 3}
-	chol_idx::Vector{I}
+	return θ, Z
 end
 
 
-function Parameters(ξ, K::Integer; J::Integer = 1)
+function variableirregularsetup(ξ; K::Integer, n::Integer, m, J::Integer = 10, ϵ)
 
-	# All parameters not associated with the Gaussian process
-	θ = [rand(ϑ, K * J) for ϑ in drop(ξ.Ω, (:ρ, :ν, :σ))]
-
-	# Determine if we are estimating ν and σ
-	estimate_ν = "ν" ∈ ξ.parameter_names
-	estimate_σ = "σ" ∈ ξ.parameter_names
-
-	# Covariance parameters associated with the Gaussian process
-	ρ = rand(ξ.Ω.ρ, K)
-	ν = estimate_ν ? rand(ξ.Ω.ν, K) : fill([ξ.ν], K)
-	σ = estimate_σ ? rand(ξ.Ω.σ, K) : fill([ξ.σ], K)
-	chols = maternchols(ξ.D, ρ, ν, σ.^2)
-	ρ = repeat(ρ, inner = J)
-	ν = repeat(ν, inner = J)
-	σ = repeat(σ, inner = J)
-
-	# Now insert ρ (and possibly ν and σ) into θ.
-	θ₁ = θ[1:(ξ.ρ_idx-1)]
-	θ₂ = θ[ξ.ρ_idx:end] # Note that ρ and ν are not in θ, so we don't need to skip any indices.
-	if estimate_ν && estimate_σ
-		@assert (ξ.ν_idx == ξ.ρ_idx + 1) && (ξ.σ_idx == ξ.ν_idx + 1) "The code assumes that ρ, ν, and σ are stored continguously in θ and in that order, that is, that (ξ.ν_idx == ξ.ρ_idx + 1) && (ξ.σ_idx == ξ.ν_idx + 1)"
-		θ = [θ₁..., ρ, ν, σ, θ₂...]
-	elseif estimate_ν
-		@assert ξ.ν_idx == ξ.ρ_idx + 1 "The code assumes that ρ and ν are stored continguously in θ, that is, that ξ.ν_idx == ξ.ρ_idx + 1"
-		θ = [θ₁..., ρ, ν, θ₂...]
-	else
-		θ = [θ₁..., ρ, θ₂...]
+	D = map(1:K) do k
+		S = rand(n, 2)
+		D = pairwise(Euclidean(), S, S, dims = 1)
+		D
 	end
+	A = adjacencymatrix.(D, ϵ)
+	g = GNNGraph.(A)
 
-	# Concatenate into a matrix and convert to Float32 for efficiency
-	θ = hcat(θ...)'
-	θ = Float32.(θ)
+	ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D
+	θ = Parameters(K, ξ, J = J)
+	Z = [simulate(θ, mᵢ) for mᵢ ∈ m]
 
-	Parameters(θ, chols, objectindices(chols, θ))
+	g = repeat(g, inner = J)
+	Z = reshapedataGNN.(Z, Ref(g))
+
+	return θ, Z
 end
 
-"""
-	objectindices(objects, θ::AbstractMatrix{T}) where T
-Returns a vector of indices giving element of `objects` associated with each
-parameter configuration in `θ`.
 
-The number of parameter configurations, `K = size(θ, 2)`, must be a multiple of
-the number of objects, `N = size(objects)[end]`. Further, repeated parameters
-used to generate `objects` must be stored in `θ` after using the `inner` keyword
-argument of `repeat()` (see example below).
 
-# Examples
-```
-K = 6
-N = 3
-τ = rand(K)
-ρ = rand(N)
-ν = rand(N)
-S = expandgrid(1:9, 1:9)
-D = pairwise(Euclidean(), S, S, dims = 1)
-L = maternchols(D, ρ, ν)
-ρ = repeat(ρ, inner = K ÷ N)
-ν = repeat(ν, inner = K ÷ N)
-θ = hcat(τ, ρ, ν)'
-objectindices(L, θ)
-```
-"""
-function objectindices(objects, θ::AbstractMatrix{T}) where T
 
-	K = size(θ, 2)
-	N = size(objects)[end]
-	@assert K % N == 0 "The number parameters in θ is not a multiple of the number of objects"
-
-	return repeat(1:N, inner = K ÷ N)
-end
 
 end
