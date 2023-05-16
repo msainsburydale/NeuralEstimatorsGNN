@@ -29,7 +29,7 @@ using CSV
 include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
-path = "intermediates/$model"
+path = "intermediates/experiments/architectures/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
@@ -43,100 +43,103 @@ K_test = K_val
 
 p = ξ.p
 n = size(ξ.D, 1)
+ϵ = ξ.ϵ
+
+# The number of epochs used during training: note that early stopping means that
+# we never really train for the full amount of epochs
+epochs = quick ? 2 : 1000
 
 # ------------------------------------------------------
 # ---- Experiment: Comparing GNNs, CNNs, and DNNs ----
 # ------------------------------------------------------
 
-A = adjacencymatrix(ξ.D, ϵ = ϵ)
+A = adjacencymatrix(ξ.D, ϵ)
 g = GNNGraph(A)
 
-# CNN estimator
 seed!(1)
-CNN = DeepSet(cnnarchitecture(p)...)
-
-# DNN estimator
-seed!(1)
-DNN = DeepSet(dnnarchitecture(n, p)...)
-
-# GNN estimator
-seed!(1)
-GNN = gnnarchitecture(p)
-
-# GNN estimator that includes spatial distance
-seed!(1)
-WGNN = gnnarchitecture(p; propagation = "WeightedGraphConv")
+cnn = DeepSet(cnnarchitecture(p)...)
+dnn = DeepSet(dnnarchitecture(n, p)...)
+gnn = gnnarchitecture(p)
+wgnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
 
 # Compare the number of trainable parameters
-nparams(CNN)  # 636563
-nparams(DNN)  # 238723
-nparams(GNN)  # 182019
-nparams(WGNN) # 182023
+nparams(cnn)  # 636062
+nparams(dnn)  # 238658
+nparams(gnn)  # 181890
+nparams(wgnn) # 181894
 
 # Sample parameters and simulate training/validation data
 seed!(1)
-θ_val   = Parameters(ξ, K_val,   J = 10)
-θ_train = Parameters(ξ, K_train, J = 10)
+θ_val   = Parameters(K_val, ξ, J = 5)
+θ_train = Parameters(K_train, ξ, J = 5)
 Z_val   = [simulate(θ_val, mᵢ)   for mᵢ ∈ m]
 Z_train = [simulate(θ_train, mᵢ) for mᵢ ∈ m]
 
-# # Testing:
-# Z = reshapedataGNN(Z_val[1][1:10], g)
-# @time GNN(Z)
-# @time WGNN(Z)
-# Z = Z |> gpu
-# GNN  = GNN |> gpu
-# WGNN = WGNN |> gpu
-# @time GNN(Z)
-# @time WGNN(Z)
 
-# TODO GNN and WGNN currently do not scale well to larger sample sizes
+# # Testing (on my office linux)
+# Z = Z_val[1][1:10];
+# @time cnn(Z);  # 0.053236 seconds (359 allocations: 1.093 MiB)
+# Z = Z |> gpu;
+# cnn = cnn |> gpu;
+# @time cnn(Z);  # 0.000693 seconds (1.78 k allocations: 101.469 KiB)
+#
+# Z = reshapedataGNN(Z_val[1][1:10], g);
+# @time gnn(Z);  # 0.022901 seconds (2.15 k allocations: 83.138 MiB)
+# @time wgnn(Z); # 0.050404 seconds (2.28 k allocations: 221.230 MiB, 6.87% gc time)
+# Z = Z |> gpu;
+# gnn  = gnn |> gpu;
+# wgnn = wgnn |> gpu;
+# @time gnn(Z);  # 0.004413 seconds (5.45 k allocations: 282.469 KiB)
+# @time wgnn(Z); # 0.008089 seconds (5.77 k allocations: 298.469 KiB)
 
 
 # ---- Training ----
 
-@info "training the CNN-based estimator"
-train(
-	CNN, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_CNN"
+@info "training the CNN..."
+trainx(
+	cnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_CNN", epochs = epochs
 )
 
-@info "training the DNN-based estimator"
-train(
-	DNN, θ_train, θ_val,
+@info "training the DNN..."
+trainx(
+	dnn, θ_train, θ_val,
 	reshapedataDNN.(Z_train), reshapedataDNN.(Z_val),
-	savepath = path * "/runs_DNN"
+	savepath = path * "/runs_DNN",
+	epochs = epochs
 )
 
-@info "training the GNN-based estimator"
-train(
-  GNN, θ_train, θ_val,
+@info "training the GNN..."
+trainx(
+  gnn, θ_train, θ_val,
   reshapedataGNN.(Z_train, Ref(g)), reshapedataGNN.(Z_val, Ref(g)),
-  savepath = path * "/runs_GNN"
+  savepath = path * "/runs_GNN",
+  epochs = epochs
 )
 
-@info "training the WGNN-based estimator"
-train(
-  WGNN, θ_train, θ_val,
+@info "training the spatially-weighted GNN..."
+trainx(
+  wgnn, θ_train, θ_val,
   reshapedataGNN.(Z_train, Ref(g)), reshapedataGNN.(Z_val, Ref(g)),
-  savepath = path * "/runs_WGNN"
+  savepath = path * "/runs_WGNN",
+  epochs = epochs
 )
 
 
 # ---- Load the trained estimators ----
 
-Flux.loadparams!(CNN, loadbestweights(path * "/runs_CNN_m$M"))
-Flux.loadparams!(DNN, loadbestweights(path * "/runs_DNN_m$M"))
-Flux.loadparams!(GNN, loadbestweights(path * "/runs_GNN_m$M"))
-Flux.loadparams!(WGNN,loadbestweights(path * "/runs_WGNN_m$M"))
+Flux.loadparams!(cnn, loadbestweights(path * "/runs_CNN_m$M"))
+Flux.loadparams!(dnn, loadbestweights(path * "/runs_DNN_m$M"))
+Flux.loadparams!(gnn, loadbestweights(path * "/runs_GNN_m$M"))
+Flux.loadparams!(wgnn,loadbestweights(path * "/runs_WGNN_m$M"))
 
 # ---- Testing ----
 
 function assessestimators(θ, Z, ξ, g)
 
 	assessments = []
-	push!(assessments, assess([CNN], θ, Z; estimator_names = ["CNN"], parameter_names = ξ.parameter_names))
-	push!(assessments, assess([DNN], θ, [reshapedataDNN(Z)]; estimator_names = ["DNN"], parameter_names = ξ.parameter_names))
-	push!(assessments, assess([GNN, WGNN], θ, [reshapedataGNN(Z, g)]; estimator_names = ["GNN", "WGNN"], parameter_names = ξ.parameter_names))
+	push!(assessments, assess([cnn], θ, Z; estimator_names = ["CNN"], parameter_names = ξ.parameter_names))
+	push!(assessments, assess([dnn], θ, reshapedataDNN(Z); estimator_names = ["DNN"], parameter_names = ξ.parameter_names))
+	push!(assessments, assess([gnn, wgnn], θ, reshapedataGNN(Z, g); estimator_names = ["GNN", "WGNN"], parameter_names = ξ.parameter_names))
 	assessment = merge(assessments...)
 
 	return assessment
@@ -144,16 +147,14 @@ end
 
 # A large set of parameters for computing the risk function
 seed!(1)
-θ = Parameters(ξ, K_test)
+θ = Parameters(K_test, ξ)
 Z = simulate(θ, M)
 assessment = assessestimators(θ, Z, ξ, g)
 CSV.write(path * "/estimates_test.csv", assessment.df)
-CSV.write(path * "/runtime_test.csv", assessment.runtime)
 
 # Focus on a small number of parameters for visualising the joint distribution
 seed!(1)
-θ = Parameters(ξ, 5)
+θ = Parameters(5, ξ)
 Z = simulate(θ, M, 100)
 assessment = assessestimators(θ, Z, ξ, g)
 CSV.write(path * "/estimates_scenarios.csv", assessment.df)
-CSV.write(path * "/runtime_scenarios.csv", assessment.runtime)

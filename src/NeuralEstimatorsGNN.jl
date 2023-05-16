@@ -471,7 +471,7 @@ end
 
 # ---- Setting up for training ----
 
-function irregularsetup(ξ, g; K::Integer, m, J::Integer = 10)
+function irregularsetup(ξ, g; K::Integer, m, J::Integer = 5)
 
 	θ = Parameters(K, ξ, J = J)
 	Z = [simulate(θ, mᵢ) for mᵢ ∈ m]
@@ -481,7 +481,7 @@ function irregularsetup(ξ, g; K::Integer, m, J::Integer = 10)
 end
 
 
-function variableirregularsetup(ξ; K::Integer, n::Integer, m, J::Integer = 10, ϵ)
+function variableirregularsetup(ξ; K::Integer, n::Integer, m, J::Integer = 5, ϵ)
 
 	D = map(1:K) do k
 		S = rand(n, 2)

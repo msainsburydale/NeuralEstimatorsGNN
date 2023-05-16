@@ -37,7 +37,7 @@ include(joinpath(pwd(), "src/$model/Parameters.jl"))
 include(joinpath(pwd(), "src/$model/Simulation.jl"))
 include(joinpath(pwd(), "src/Architecture.jl"))
 
-path = "intermediates/$model/experiment0"
+path = "intermediates/experiments/GNNarchitectures/$model"
 if !isdir(path) mkpath(path) end
 
 
@@ -45,26 +45,15 @@ if !isdir(path) mkpath(path) end
 # ---- Experiment ----
 # --------------------
 
-#TODO Perhaps I need to consider the effect of sample size. Perhaps some architectures scale better to larger samples.
 #TODO Implement local pooling between propagation layers.
-#TODO investigate WithGraph(), and other ways to exploit the fact that we have fixed graphs. It may be necessary to come up with some computational tricks to ensure efficient training.
 
-# Conduct an experiment to investigate different architectures. Use the
-# GaussianProcess with known ν so that we can use one field only.
-# we will assess the architectures with respect to the final risk function,
-# and the total computational time.
-# Want to do a factorial experiment for:
-# - Complexity of the propagation module (i.e., the effect of the number of channels)
-# - The effect of local pooling
-# - Global pooling module (mean pooling, attention pooling, deep set pooling)
-
-# Hypotheses:
-# - It is wasteful to spend a lot of computation resources transforming
-# the graphs into hidden feature graphs, only to condense these graphs into a
-# single scalar feature with simple mean pooling. Instead, it is better to use
-# relatively simple propagation module with relatively few channels, combined
-# with a more flexible global pooling module that allows for each graph to be
-# summarised as a vector, rather than a scalar.
+# Factorial experiment to investigate key considerations different
+# GNN architectures. In the propagation module, we consider the class of
+# propagation layer; its complexity in terms of the number of channels in each
+# layer; and the effect of local pooling between layers. We consider several
+# readout modules, namely, mean, attention, and universal pooling.
+# We assess the estimators in terms of training time and the estimated risk
+# function.
 
 # Main results:
 

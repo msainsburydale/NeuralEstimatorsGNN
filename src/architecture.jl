@@ -42,6 +42,7 @@ function dnnarchitecture(n::Integer, p::Integer)
 end
 
 
+
 function gnnarchitecture(
 	p::Integer; d::Integer = 1, nh::Integer = 128,
 	propagation::String = "GraphConv",
@@ -85,41 +86,28 @@ function gnnarchitecture(
 		error("global pooling module not recognised")
 	end
 
-	# deepset = DeepSet(
-	# 	Chain(
-	# 		Dense(no => nh, relu),
-	# 		Dense(nh => nh, relu),
-	# 		Dense(nh => nh, relu)
-	# 	),
-	# 	Chain(
-	# 		Dense(nh => nh, relu),
-	# 		Dense(nh => nh, relu),
-	# 		Dense(nh => p)
-	# 	)
-	# )
-	#
-	# GNN(graphtograph, globpool, deepset)
-
-	# deepset = DeepSet(
-	# 	Chain(
-	# 		Dense(no => nh, relu),
-	# 		Dense(nh => nh, relu),
-	# 		Dense(nh => nh, relu)
-	# 	),
-	# 	Chain(
-	# 		Dense(nh => nh, relu),
-	# 		Dense(nh => nh, relu),
-	# 		Dense(nh => p)
-	# 	)
-	# )
-
-	ψ = GraphPropagatePool(graphtograph, globpool)
-	ϕ = Chain(
-		Dense(no => nh, relu),
-		Dense(nh => nh, relu),
-		Dense(nh => nh, relu),
-		Dense(nh => p)
+	deepset = DeepSet(
+		Chain(
+			Dense(no => nh, relu),
+			Dense(nh => nh, relu),
+			Dense(nh => nh, relu)
+		),
+		Chain(
+			Dense(nh => nh, relu),
+			Dense(nh => nh, relu),
+			Dense(nh => p)
+		)
 	)
+	estimator = GNN(graphtograph, globpool, deepset)
 
-	DeepSet(ψ, ϕ)
+	# ψ = PropagateReadout(graphtograph, globpool)
+	# ϕ = Chain(
+	# 	Dense(no => nh, relu),
+	# 	Dense(nh => nh, relu),
+	# 	Dense(nh => nh, relu),
+	# 	Dense(nh => p)
+	# )
+	# estimator = DeepSet(ψ, ϕ)
+
+	return estimator
 end

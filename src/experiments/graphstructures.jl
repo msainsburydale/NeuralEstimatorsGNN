@@ -29,7 +29,7 @@ using CSV
 include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
-path = "intermediates/$model"
+path = "intermediates/experiments/graphstructures/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
@@ -47,8 +47,7 @@ n = size(ξ.D, 1)
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
-epochs = quick ? 2 : 200
-
+epochs = quick ? 2 : 1000
 
 # -------------------------------------------------------------------
 # ---- Experiment: Applying GNNs to different graph structures ----
@@ -68,10 +67,11 @@ epochs = quick ? 2 : 200
 # ---- Estimators ----
 
 seed!(1)
-GNN  = gnnarchitecture(p)
-WGNN = gnnarchitecture(p; propagation = "WeightedGraphConv")
-GNN_Svariable  = gnnarchitecture(p)
-WGNN_Svariable = gnnarchitecture(p; propagation = "WeightedGraphConv")
+gnn  = gnnarchitecture(p)
+wgnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
+gnn_Svariable  = gnnarchitecture(p)
+wgnn_Svariable = gnnarchitecture(p; propagation = "WeightedGraphConv")
+
 
 # ---- Training ----
 
@@ -85,38 +85,32 @@ g = GNNGraph(A)
 θ_val,   Z_val   = irregularsetup(ξ, g, K = K_val, m = M)
 θ_train, Z_train = irregularsetup(ξ, g, K = K_train, m = M)
 
-# GNN estimator trained under S
+# GNN estimators trained under S
 seed!(1)
-train(GNN, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_S", epochs = epochs)
-
-# WGNN estimator trained under S
+train(gnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_S", epochs = epochs)
 seed!(1)
-train(WGNN, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_S", epochs = epochs)
+train(wgnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_S", epochs = epochs)
 
-# Construct a variable set of irregular locations {Sₖ : k = 1, …, K}
-θ_val,   Z_val    = variableirregularsetup(ξ, K = K_val, m = M, n = n, ϵ = ϵ)
-θ_train, Z_train  = variableirregularsetup(ξ, K = K_train, m = M, n = n, ϵ = ϵ)
-
-# GNN estimator trained under {Sₖ : k = 1, …, K}
+# GNN estimators trained under a variable set of irregular locations {Sₖ : k = 1, …, K}
+θ_val,   Z_val   = variableirregularsetup(ξ, K = K_val, m = M, n = n, ϵ = ϵ)
+θ_train, Z_train = variableirregularsetup(ξ, K = K_train, m = M, n = n, ϵ = ϵ)
 seed!(1)
-train(GNN_Svariable, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_Svariable", epochs = epochs)
-
-# WGNN estimator trained under {Sₖ : k = 1, …, K}
+train(gnn_Svariable, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_Svariable", epochs = epochs)
 seed!(1)
-train(WGNN_Svariable, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_Svariable", epochs = epochs)
+train(wgnn_Svariable, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_Svariable", epochs = epochs)
 
 # ---- Load the trained estimators ----
 
-Flux.loadparams!(GNN,  loadbestweights(path * "/runs_GNN_S"))
-Flux.loadparams!(WGNN, loadbestweights(path * "/runs_WGNN_S"))
-Flux.loadparams!(GNN_Svariable,  loadbestweights(path * "/runs_GNN_Svariable"))
-Flux.loadparams!(WGNN_Svariable, loadbestweights(path * "/runs_WGNN_Svariable"))
+Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_S"))
+Flux.loadparams!(wgnn, loadbestweights(path * "/runs_WGNN_S"))
+Flux.loadparams!(gnn_Svariable,  loadbestweights(path * "/runs_GNN_Svariable"))
+Flux.loadparams!(wgnn_Svariable, loadbestweights(path * "/runs_WGNN_Svariable"))
 
 # ---- Assess the estimators ----
 
 function assessestimators(θ, Z, g, ξ)
 	assess(
-		[GNN, GNN_Svariable, WGNN, WGNN_Svariable],
+		[gnn, gnn_Svariable, wgnn, wgnn_Svariable],
 		θ,
 		reshapedataGNN(Z, g);
 		estimator_names = ["GNN_S", "GNN_Svariable", "WGNN_S", "WGNN_Svariable"],

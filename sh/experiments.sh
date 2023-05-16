@@ -17,13 +17,17 @@ fi
 for model in GP/nuFixed #GP/nuVaried Schlather
 do
 
+    echo ""
+    echo "##### Starting experiments for $model model #####"
+    echo ""
+
     if [[ $model == "GP/nuFixed" ]]; then
         m="[1]"
     else
         m="[1,30]"
     fi
 
+    julia --threads=auto --project=. src/experiments/architectures.jl   --model=$model $quick --m=$m
     julia --threads=auto --project=. src/experiments/graphstructures.jl --model=$model $quick --m=$m
-    # julia --threads=auto --project=. src/experiments.jl --model=$model $quick --m=$m
 
 done
