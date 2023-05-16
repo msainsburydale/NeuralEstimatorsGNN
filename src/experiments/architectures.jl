@@ -27,6 +27,7 @@ using GraphNeuralNetworks
 using CSV
 
 include(joinpath(pwd(), "src/$model/model.jl"))
+include(joinpath(pwd(), "src/$model/MAP.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
 path = "intermediates/experiments/architectures/$model"
@@ -63,6 +64,7 @@ gnn = gnnarchitecture(p)
 wgnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
 
 # Compare the number of trainable parameters
+#TODO the differing number of parameters means that overfitting is a possibility: should use on-the-fly simulation
 nparams(cnn)  # 636062
 nparams(dnn)  # 238658
 nparams(gnn)  # 181890
@@ -138,6 +140,7 @@ function assessestimators(θ, Z, ξ, g)
 
 	assessments = []
 	push!(assessments, assess([cnn], θ, Z; estimator_names = ["CNN"], parameter_names = ξ.parameter_names))
+	push!(assessments, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names))
 	push!(assessments, assess([dnn], θ, reshapedataDNN(Z); estimator_names = ["DNN"], parameter_names = ξ.parameter_names))
 	push!(assessments, assess([gnn, wgnn], θ, reshapedataGNN(Z, g); estimator_names = ["GNN", "WGNN"], parameter_names = ξ.parameter_names))
 	assessment = merge(assessments...)

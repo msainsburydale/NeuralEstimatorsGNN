@@ -27,6 +27,7 @@ using GraphNeuralNetworks
 using CSV
 
 include(joinpath(pwd(), "src/$model/model.jl"))
+include(joinpath(pwd(), "src/$model/MAP.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
 path = "intermediates/experiments/graphstructures/$model"
@@ -118,6 +119,7 @@ function assessestimators(θ, Z, g, ξ)
 	)
 end
 
+#TODO add MAP estimation for reference
 function assessestimators(S, ξ, K::Integer, set::String)
 
 	D = pairwise(Euclidean(), S, S, dims = 1)

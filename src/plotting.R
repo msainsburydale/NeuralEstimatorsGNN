@@ -5,6 +5,16 @@ library("ggpubr")
 library("viridis")
 library("tidyr")
 
+
+# TODO update plotdistribution() to automatically select only the parameters that are in df, rather than throwing an error when "The number of parameter labels differs to the number of parameters"
+parameter_labels <- c(
+  "τ"  = expression(tau),
+  # "σ"  = expression(sigma), 
+  "ρ"  = expression(rho)
+)
+
+loss <- function(x, y) abs(x - y)
+
 # The simulations may be highly varied in magnitude, so we need to
 # use an independent colour scale. This means that we can't use facet_wrap().
 field_plot <- function(field, regular = TRUE, n = nrow(field)) { #TODO specify the number of missing locations; these will be coloured white
