@@ -19,8 +19,12 @@ m = let expr = Meta.parse(parsed_args["m"])
     @assert expr.head == :vect
     Int.(expr.args)
 end
-M = maximum(m)
 
+# model="GP/nuFixed"
+# quick=true
+# m=[1]
+
+M = maximum(m)
 using NeuralEstimators
 using NeuralEstimatorsGNN
 using GraphNeuralNetworks
@@ -139,8 +143,8 @@ Flux.loadparams!(wgnn,loadbestweights(path * "/runs_WGNN_m$M"))
 function assessestimators(θ, Z, ξ, g)
 
 	assessments = []
+	push!(assessments, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ))
 	push!(assessments, assess([cnn], θ, Z; estimator_names = ["CNN"], parameter_names = ξ.parameter_names))
-	push!(assessments, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names))
 	push!(assessments, assess([dnn], θ, reshapedataDNN(Z); estimator_names = ["DNN"], parameter_names = ξ.parameter_names))
 	push!(assessments, assess([gnn, wgnn], θ, reshapedataGNN(Z, g); estimator_names = ["GNN", "WGNN"], parameter_names = ξ.parameter_names))
 	assessment = merge(assessments...)
@@ -152,12 +156,27 @@ end
 seed!(1)
 θ = Parameters(K_test, ξ)
 Z = simulate(θ, M)
+ξ = (ξ..., θ₀ = θ.θ)
 assessment = assessestimators(θ, Z, ξ, g)
 CSV.write(path * "/estimates_test.csv", assessment.df)
 
 # Focus on a small number of parameters for visualising the joint distribution
 seed!(1)
-θ = Parameters(5, ξ)
+K_scenarios = 5
+θ = Parameters(K_scenarios, ξ)
 Z = simulate(θ, M, 100)
+ξ = (ξ..., θ₀ = θ.θ)
 assessment = assessestimators(θ, Z, ξ, g)
 CSV.write(path * "/estimates_scenarios.csv", assessment.df)
+
+# save spatial fields for plotting
+Z = Z[1:K_scenarios] # only need one field per parameter configuration
+colons  = ntuple(_ -> (:), ndims(Z[1]) - 1)
+z  = broadcast(z -> vec(z[colons..., 1]), Z) # save only the first replicate of each parameter configuration
+z  = vcat(z...)
+d  = prod(size(Z[1])[1:end-1])
+k  = repeat(1:K_scenarios, inner = d)
+s1 = repeat(S[:, 1], K_scenarios)
+s2 = repeat(S[:, 2], K_scenarios)
+df = DataFrame(Z = z, k = k, s1 = s1, s2 = s2)
+CSV.write(path * "/Z.csv", df)

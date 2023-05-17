@@ -19,10 +19,15 @@ m = let expr = Meta.parse(parsed_args["m"])
     @assert expr.head == :vect
     Int.(expr.args)
 end
-M = maximum(m)
 
+# model="GP/nuFixed"
+# quick=true
+# m=[1]
+
+M = maximum(m)
 using NeuralEstimators
 using NeuralEstimatorsGNN
+using DataFrames
 using GraphNeuralNetworks
 using CSV
 
@@ -73,7 +78,6 @@ wgnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
 gnn_Svariable  = gnnarchitecture(p)
 wgnn_Svariable = gnnarchitecture(p; propagation = "WeightedGraphConv")
 
-
 # ---- Training ----
 
 # Construct a specific set of irregular locations, S
@@ -110,34 +114,53 @@ Flux.loadparams!(wgnn_Svariable, loadbestweights(path * "/runs_WGNN_Svariable"))
 # ---- Assess the estimators ----
 
 function assessestimators(θ, Z, g, ξ)
-	assess(
+	assessment1 = assess(
 		[gnn, gnn_Svariable, wgnn, wgnn_Svariable],
 		θ,
 		reshapedataGNN(Z, g);
 		estimator_names = ["GNN_S", "GNN_Svariable", "WGNN_S", "WGNN_Svariable"],
 		parameter_names = ξ.parameter_names
 	)
+	assessment2 = assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ)
+	assessment  = merge(assessment1, assessment2)
+	return assessment
 end
 
-#TODO add MAP estimation for reference
 function assessestimators(S, ξ, K::Integer, set::String)
 
 	D = pairwise(Euclidean(), S, S, dims = 1)
 	A = adjacencymatrix(D, ϵ)
 	g = GNNGraph(A)
-	ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D
+	ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
 
 	# test set for estimating the risk function
+	seed!(1)
 	θ = Parameters(K_test, ξ)
 	Z = simulate(θ, M)
+	ξ = (ξ..., θ₀ = θ.θ)
 	assessment = assessestimators(θ, Z, g, ξ)
 	CSV.write(path * "/estimates_test_$set.csv", assessment.df)
 
 	# small number of parameters for visualising the sampling distributions
-	θ = Parameters(5, ξ)
+	K_scenarios = 5
+	seed!(1)
+	θ = Parameters(K_scenarios, ξ)
 	Z = simulate(θ, M, 100)
+	ξ = (ξ..., θ₀ = θ.θ)
 	assessment = assessestimators(θ, Z, g, ξ)
 	CSV.write(path * "/estimates_scenarios_$set.csv", assessment.df)
+
+	# save spatial fields for plotting
+	Z = Z[1:K_scenarios] # only need one field per parameter configuration
+	colons  = ntuple(_ -> (:), ndims(Z[1]) - 1)
+	z  = broadcast(z -> vec(z[colons..., 1]), Z) # save only the first replicate of each parameter configuration
+	z  = vcat(z...)
+	d  = prod(size(Z[1])[1:end-1])
+	k  = repeat(1:K_scenarios, inner = d)
+	s1 = repeat(S[:, 1], K_scenarios)
+	s2 = repeat(S[:, 2], K_scenarios)
+	df = DataFrame(Z = z, k = k, s1 = s1, s2 = s2)
+	CSV.write(path * "/Z_$set.csv", df)
 
 	return 0
 end

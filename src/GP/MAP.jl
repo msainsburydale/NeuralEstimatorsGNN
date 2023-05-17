@@ -1,10 +1,8 @@
 using LinearAlgebra
 using NeuralEstimators
-using NeuralEstimatorsEM
 using Optim
 using Folds
 using Flux: flatten
-using Test
 
 function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVector{A}}
 
@@ -43,7 +41,7 @@ function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVecto
 
 	# Optimise
 	θ̂ = Folds.map(Z, θ₀) do Zₖ, θ₀ₖ
-		 MAP(Zₖ, θ₀ₖ, ξ, Ω) # this is model specific
+		 MAP(Zₖ, θ₀ₖ, ξ, Ω)
 	end
 
 	# Convert to matrix
@@ -54,39 +52,7 @@ end
 
 
 
-function MAP(Z::M, θ₀::V, ξ, Ω) where {T, R, V <: AbstractArray{T, 1}, M <: AbstractArray{R, 2}}
-
-	# Get the indices of the observed data. This is also used to determine if we
-	# have different patterns of missingness in the data.
-	m   = size(Z, 2)
-	idx = [findall(x -> !ismissing(x), vec(Z[:, i])) for i ∈ 1:m]
-
-	# Drop the missing observations from Z, and convert the eltype from Union{Missing, R} to R
-	Z = [[Z[idx[i], i]...] for i ∈ 1:m]
-
-	# If the missingness patterns vary, Z needs to be kept as an array of arrays;
-	# otherwise, we can store it as a matrix.
-	fixed_pattern = constpattern(idx)
-	if fixed_pattern
-		Z = hcat(Z...)
-	end
-
-	# If it is present, the distance matrix D also needs to be modified, since
-	# D contains the distances for all locations, but we only want distances for
-	# the observed locations. If the missingness patterns vary, D needs to be an
-	# array of matrices. Otherwise, we need only a single distance matrix.
-	# Note that we deal with the distance matrix here, rather than in nll(),
-	# since it is more efficient (we don't need to do it at each iteration) and
-	# it reduces code repetition for the models that use distance matrices.
-	if haskey(ξ, :D)
-		D = ξ.D
-		if fixed_pattern
-			D = D[idx[1], idx[1]]
-		else
-			D = [D[idx[i], idx[i]] for i ∈ 1:m]
-		end
-		ξ = merge(ξ, (D = D,))
-	end
+function MAP(Z::M, θ₀::V, ξ, Ω) where {T, V <: AbstractVector{T}, M <: AbstractMatrix{T}}
 
 	# Closure that will be minimised
 	loss(θ) = nll(θ, Z, ξ, Ω)

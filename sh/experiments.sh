@@ -30,4 +30,7 @@ do
     julia --threads=auto --project=. src/experiments/architectures.jl   --model=$model $quick --m=$m
     julia --threads=auto --project=. src/experiments/graphstructures.jl --model=$model $quick --m=$m
 
+    Rscript src/experiments/architectures.R   --model=$model
+    Rscript src/experiments/graphstructures.R --model=$model
+
 done

@@ -25,13 +25,6 @@ using CSV
 using DelimitedFiles
 using NamedArrays
 
-# TODO For a fixed spatial domain, the average distance between spatial locations
-#   decreases as the sample size increases; therefore, GNN-based estimators for
-#   spatial problems may be more robust to different sample sizes than those
-#   used during training if neighbours are defined by some fixed spatial radius.
-# I should note that I am defining neighbours based on spatial proximity rather than a K-nearest neighbours approach: that is, I define the neighbours of a node v as all points u that fall within some fixed spatial distance of v. This adds some robustness to the estimator when dealing with varying sample sizes n when compared with simply choosing the K-nearest neighbours since, with a fixed spatial domain, the average distance between spatial locations decreases as the sample size increases and, hence, the K-nearest neighbours of a node will asymptotically, which may compromise the estimation of range parameters.
-
-# neighbours = 8 # number of neighbours to consider
 ϵ = 0.05f0 # spatial radius within which nodes are neighbours
 
 model = "GaussianProcess/fourparameters" #TODO change to allow model as an argument; make this experiment consistent with the other experiments

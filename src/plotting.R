@@ -8,51 +8,41 @@ library("tidyr")
 
 # TODO update plotdistribution() to automatically select only the parameters that are in df, rather than throwing an error when "The number of parameter labels differs to the number of parameters"
 parameter_labels <- c(
-  "τ"  = expression(tau),
+  "τ"  = expression(hat(tau)),
   # "σ"  = expression(sigma), 
-  "ρ"  = expression(rho)
+  "ρ"  = expression(hat(rho))
 )
 
 loss <- function(x, y) abs(x - y)
 
 # The simulations may be highly varied in magnitude, so we need to
 # use an independent colour scale. This means that we can't use facet_wrap().
-field_plot <- function(field, regular = TRUE, n = nrow(field)) { #TODO specify the number of missing locations; these will be coloured white
+field_plot <- function(field, regular = TRUE, variable = "Z", x = "s1", y = "s2") {
   
-  N <- nrow(field)
-  if (n > N) stop("The number of observed locations, n, must be less than or equal to the total number of locations, N = nrow(field)")
-  idx <- sample(N, n, replace = FALSE)
-  field <- field[idx, ]
+  # Standard eval with ggplot2 without `aes_string()`: https://stackoverflow.com/a/55133909
   
-  gg <- ggplot(field, aes(x = x, y = y))
+  gg <- ggplot(field, aes(x = !!sym(x), y = !!sym(y)))
   
   if (regular) {
     gg <- gg +
-      geom_tile(aes(fill = Z)) +
+      geom_tile(aes(fill = !!sym(variable))) +
       scale_fill_viridis_c(option = "magma")
   } else {
     gg <- gg +
-      geom_point(aes(colour = Z)) +
+      geom_point(aes(colour = !!sym(variable))) +
       scale_colour_viridis_c(option = "magma")
   }
   
   gg <- gg +
-    labs(fill = "", x = " ", y = " ") +
+    labs(fill = "", x = expression(s[1]), y = expression(s[2])) +
     theme_bw() +
-    theme(
-      panel.grid = element_blank(),
-      panel.border = element_blank(),
-      axis.ticks   =  element_blank(),
-      axis.text    = element_blank(),
-      legend.position = "right",
-      strip.background = element_blank(),
-      strip.text.x = element_blank()
-    ) +
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0))
   
   return(gg)
 }
+
+
 
 MAE <- function(x, y) mean(abs(x - y))
 MSE <- function(x, y) mean((x - y)^2)
