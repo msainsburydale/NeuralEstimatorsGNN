@@ -1,3 +1,17 @@
+# -------------------------------------------------------------------
+# ---- Experiment: Applying GNNs to different graph structures ----
+# -------------------------------------------------------------------
+
+# Applying GNNs to different graph structures.
+# Here we compare a GNN trained under a specific set of irregular locations S,
+# and a GNN trained with a variable set of irregular locations {Sₖ : k = 1, …, K},
+# where K is the number of unique parameter vectors in the training set.
+# We assess the estimators with respect to the set of specific irregular locations, S.
+# The purpose of this experiment is to determine whether optimal inference
+# requires the neural estimator to be trained specifically under the spatial
+# locations of the given data set, or if a general estimator can be used that
+# is close to optimal irrespective of the configuration of the spatial locations.
+
 using ArgParse
 arg_table = ArgParseSettings()
 @add_arg_table arg_table begin
@@ -55,21 +69,6 @@ n = size(ξ.D, 1)
 # we never really train for the full amount of epochs
 epochs = quick ? 2 : 1000
 
-# -------------------------------------------------------------------
-# ---- Experiment: Applying GNNs to different graph structures ----
-# -------------------------------------------------------------------
-
-# Applying GNNs to different graph structures.
-# Here we compare a GNN trained under a specific set of irregular locations S,
-# and a GNN trained with a variable set of irregular locations {Sₖ : k = 1, …, K},
-# where K is the number of unique parameter vectors in the training set.
-# We assess the estimators with respect to the set of specific irregular locations, S.
-# The purpose of this experiment is to determine whether optimal inference
-# requires the neural estimator to be trained specifically under the spatial
-# locations of the given data set, or if a general estimator can be used that
-# is close to optimal irrespective of the configuration of the spatial locations.
-
-
 # ---- Estimators ----
 
 seed!(1)
@@ -97,8 +96,8 @@ seed!(1)
 train(wgnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_S", epochs = epochs)
 
 # GNN estimators trained under a variable set of irregular locations {Sₖ : k = 1, …, K}
-θ_val,   Z_val   = variableirregularsetup(ξ, K = K_val, m = M, n = n, ϵ = ϵ)
-θ_train, Z_train = variableirregularsetup(ξ, K = K_train, m = M, n = n, ϵ = ϵ)
+θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = M, ϵ = ϵ)
+θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = M, ϵ = ϵ)
 seed!(1)
 train(gnn_Svariable, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_Svariable", epochs = epochs)
 seed!(1)
@@ -114,15 +113,12 @@ Flux.loadparams!(wgnn_Svariable, loadbestweights(path * "/runs_WGNN_Svariable"))
 # ---- Assess the estimators ----
 
 function assessestimators(θ, Z, g, ξ)
-	assessment1 = assess(
-		[gnn, gnn_Svariable, wgnn, wgnn_Svariable],
-		θ,
-		reshapedataGNN(Z, g);
+	assessment = assess(
+		[gnn, gnn_Svariable, wgnn, wgnn_Svariable], θ, reshapedataGNN(Z, g);
 		estimator_names = ["GNN_S", "GNN_Svariable", "WGNN_S", "WGNN_Svariable"],
 		parameter_names = ξ.parameter_names
 	)
-	assessment2 = assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ)
-	assessment  = merge(assessment1, assessment2)
+	assessment = merge(assessment, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ))
 	return assessment
 end
 

@@ -397,7 +397,7 @@ end
 # with parameter configuration θ[:, i].
 struct Parameters{T, I} <: ParameterConfigurations
 	θ::Matrix{T}
-	chols::Array{Float64, 3}
+	chols
 	chol_pointer::Vector{I}
 end
 
@@ -414,7 +414,7 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	ρ = rand(ξ.Ω.ρ, K)
 	ν = estimate_ν ? rand(ξ.Ω.ν, K) : fill(ξ.ν, K)
 	σ = estimate_σ ? rand(ξ.Ω.σ, K) : fill(ξ.σ, K)
-	chols = maternchols(ξ.D, ρ, ν, σ.^2)
+	chols = maternchols(ξ.D, ρ, ν, σ.^2; stack = false)
 	chol_pointer = repeat(1:K, inner = J)
 	ρ = repeat(ρ, inner = J)
 	ν = repeat(ν, inner = J)
@@ -441,8 +441,14 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 end
 
 
-
 # ---- Reshaping data to the correct form ----
+
+function reshapedataCNN(Z)
+	n = size(Z[1], 1)
+	@assert sqrt(n) == isqrt(n) # assumes a square domain
+	Z = reshape.(Z, isqrt(n), isqrt(n), 1, :)
+	reshape.(Z, :, 1, size(Z[1])[end])
+end
 
 function reshapedataDNN(Z)
 	reshape.(Z, :, 1, size(Z[1])[end])
@@ -480,18 +486,18 @@ function irregularsetup(ξ, g; K::Integer, m, J::Integer = 5)
 	return θ, Z
 end
 
+function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, ϵ) where {R <: AbstractRange{I}} where I <: Integer
 
-function variableirregularsetup(ξ; K::Integer, n::Integer, m, J::Integer = 5, ϵ)
-
+	ñ = rand(n, K)
 	D = map(1:K) do k
-		S = rand(n, 2)
+		S = rand(ñ[k], 2)
 		D = pairwise(Euclidean(), S, S, dims = 1)
 		D
 	end
 	A = adjacencymatrix.(D, ϵ)
 	g = GNNGraph.(A)
 
-	ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D
+	ξ = (ξ..., D = D) # update ξ to contain the new distance matrices (note that Parameters can handle a vector of distance matrices because of maternchols())
 	θ = Parameters(K, ξ, J = J)
 	Z = [simulate(θ, mᵢ) for mᵢ ∈ m]
 
@@ -500,6 +506,7 @@ function variableirregularsetup(ξ; K::Integer, n::Integer, m, J::Integer = 5, �
 
 	return θ, Z
 end
+variableirregularsetup(ξ, n::Integer; K::Integer, m, J::Integer = 5, ϵ) = variableirregularsetup(ξ, range(n, n); K = K, m = m, J = J, ϵ = ϵ)
 
 
 

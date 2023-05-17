@@ -1,3 +1,7 @@
+# ----------------------------------------------------
+# ---- Experiment: Comparing GNNs, CNNs, and DNNs ----
+# ----------------------------------------------------
+
 using ArgParse
 arg_table = ArgParseSettings()
 @add_arg_table arg_table begin
@@ -55,9 +59,7 @@ n = size(ξ.D, 1)
 # we never really train for the full amount of epochs
 epochs = quick ? 2 : 1000
 
-# ------------------------------------------------------
-# ---- Experiment: Comparing GNNs, CNNs, and DNNs ----
-# ------------------------------------------------------
+# ---- Setup ----
 
 A = adjacencymatrix(ξ.D, ϵ)
 g = GNNGraph(A)
@@ -104,7 +106,7 @@ Z_train = [simulate(θ_train, mᵢ) for mᵢ ∈ m]
 
 @info "training the CNN..."
 trainx(
-	cnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_CNN", epochs = epochs
+	cnn, θ_train, θ_val, reshapedataCNN.(Z_train), reshapedataCNN.(Z_val), savepath = path * "/runs_CNN", epochs = epochs
 )
 
 @info "training the DNN..."
@@ -145,7 +147,7 @@ function assessestimators(θ, Z, ξ, g)
 
 	assessments = []
 	push!(assessments, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ))
-	push!(assessments, assess([cnn], θ, Z; estimator_names = ["CNN"], parameter_names = ξ.parameter_names))
+	push!(assessments, assess([cnn], θ, reshapedataCNN(Z); estimator_names = ["CNN"], parameter_names = ξ.parameter_names))
 	push!(assessments, assess([dnn], θ, reshapedataDNN(Z); estimator_names = ["DNN"], parameter_names = ξ.parameter_names))
 	push!(assessments, assess([gnn, wgnn], θ, reshapedataGNN(Z, g); estimator_names = ["GNN", "WGNN"], parameter_names = ξ.parameter_names))
 	assessment = merge(assessments...)

@@ -1,3 +1,17 @@
+# -------------------------------------------------------------------
+# ---- Experiment: Applying GNNs to different graph structures ----
+# -------------------------------------------------------------------
+
+# Applying GNNs to different graph structures.
+# Here we compare a GNN trained under a specific set of irregular locations S,
+# and a GNN trained with a variable set of irregular locations {Sₖ : k = 1, …, K},
+# where K is the number of unique parameter vectors in the training set.
+# We assess the estimators with respect to the set of specific irregular locations, S.
+# The purpose of this experiment is to determine whether optimal inference
+# requires the neural estimator to be trained specifically under the spatial
+# locations of the given data set, or if a general estimator can be used that
+# is close to optimal irrespective of the configuration of the spatial locations.
+
 using ArgParse
 arg_table = ArgParseSettings()
 @add_arg_table arg_table begin
@@ -8,143 +22,111 @@ arg_table = ArgParseSettings()
 	"--quick"
 		help = "A flag controlling whether or not a computationally inexpensive run should be done."
 		action = :store_true
+	"--m"
+		help = "The sample size to use during training. If multiple samples sizes are given as a vector, multiple neural estimators will be trained."
+		arg_type = String
 end
 parsed_args = parse_args(arg_table)
-model       = parsed_args["model"]
-quick       = parsed_args["quick"]
+model           = parsed_args["model"]
+quick           = parsed_args["quick"]
+m = let expr = Meta.parse(parsed_args["m"])
+    @assert expr.head == :vect
+    Int.(expr.args)
+end
 
+# model="GP/nuFixed"
+# quick=true
+# m=[1]
 
-# ----
-
+M = maximum(m)
 using NeuralEstimators
 using NeuralEstimatorsGNN
 using DataFrames
-using Distances: pairwise, Euclidean
 using GraphNeuralNetworks
 using CSV
-using DelimitedFiles
-using NamedArrays
-
-ϵ = 0.05f0 # spatial radius within which nodes are neighbours
-
-model = "GaussianProcess/fourparameters" #TODO change to allow model as an argument; make this experiment consistent with the other experiments
-m = 1 # number of replicates per spatial field
-n = 512 # number of observations per field during training
 
 include(joinpath(pwd(), "src/$model/model.jl"))
+include(joinpath(pwd(), "src/$model/MAP.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
-path = "intermediates/$model"
+path = "intermediates/experiments/samplesize/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
-K_train = 20000
-K_val   = K_train ÷ 10
-K_test = 1000
+K_train = 10_000
+K_val   = K_train ÷ 5
 if quick
 	K_train = K_train ÷ 100
-	K_val   = K_val ÷ 100
-	K_test = K_test ÷ 100
+	K_val   = K_val   ÷ 100
 end
+K_test = K_val
 
+p = ξ.p
+n = size(ξ.D, 1)
+ϵ = ξ.ϵ
+
+# The number of epochs used during training: note that early stopping means that
+# we never really train for the full amount of epochs
+epochs = quick ? 2 : 1000
+
+# ---- Estimators ----
+
+seed!(1)
+gnn1 = gnnarchitecture(p)
+gnn2 = gnnarchitecture(p)
+gnn3 = gnnarchitecture(p)
 
 # ---- Training ----
 
-# Construct a variable set of irregular locations {Sₖ : k = 1, …, K}
-#TODO should do on-the-fly simulation to improve results. This may be possible
-# with the fast simulation techniques.
-θ_val,   Z_val    = variableirregularsetup(ξ, K = K_val, n = n, J = 5)
-θ_train, Z_train  = variableirregularsetup(ξ, K = K_train, n = n, J = 5)
-
-# Train a point estimator for the posterior median
+# GNN estimator trained with a fixed small n
 seed!(1)
-pointestimator = gnnarchitecture(ξ.p; globalpool = "deepset")
-train(pointestimator, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_point")
-Flux.loadparams!(pointestimator, loadbestweights(path * "/runs_point"))
+θ_val,   Z_val   = variableirregularsetup(ξ, 30, K = K_val, m = M, ϵ = ϵ)
+θ_train, Z_train = variableirregularsetup(ξ, 30, K = K_train, m = M, ϵ = ϵ)
+train(gnn1, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN1", epochs = epochs)
 
-# Confidence-interval estimator based on the posterior quantiles
-l = deepcopy(pointestimator)
-u = deepcopy(pointestimator)
-ciestimator = IntervalEstimator(l, u)
-train(ciestimator, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_ci", loss = (θ̂, θ) -> quantileloss(θ̂, θ, gpu([0.025, 0.975])))
-Flux.loadparams!(ciestimator, loadbestweights(path * "/runs_ci"))
-ciestimator = ciestimator |> gpu
-
-# ---- Assessment: training n ----
-
-# Construct the test set
+# GNN estimator trained with a fixed large n
 seed!(1)
-θ, Z = variableirregularsetup(ξ, K = K_test, n = n)
+θ_val,   Z_val   = variableirregularsetup(ξ, 300, K = K_val, m = M, ϵ = ϵ)
+θ_train, Z_train = variableirregularsetup(ξ, 300, K = K_train, m = M, ϵ = ϵ)
+train(gnn2, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN2", epochs = epochs)
 
-# Construct and assess confidence intervals
-ci = interval(ciestimator, Z; parameter_names = parameter_names)
-assessci(ci, θ.θ, "n$n")
-
-# ---- Assessment: larger n ----
-
-# Construct the test set
+# GNN estimator trained with a range of n
 seed!(1)
-largern = 4n
-θ, Z = variableirregularsetup(ξ, K = K_test, n = largern)
+θ_val,   Z_val   = variableirregularsetup(ξ, 30:300, K = K_val, m = M, ϵ = ϵ)
+θ_train, Z_train = variableirregularsetup(ξ, 30:300, K = K_train, m = M, ϵ = ϵ)
+train(gnn3, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN3", epochs = epochs)
 
-# Construct and assess confidence intervals
-ci = interval(ciestimator, Z; parameter_names = parameter_names)
-assessci(ci, θ.θ, "n$largern")
+# ---- Load the trained estimators ----
 
+Flux.loadparams!(gnn1,  loadbestweights(path * "/runs_GNN1"))
+Flux.loadparams!(gnn2,  loadbestweights(path * "/runs_GNN2"))
+Flux.loadparams!(gnn3,  loadbestweights(path * "/runs_GNN3"))
 
-# ---- Apply the estimator to the massive spatial data sets ----
+# ---- Assess the estimators ----
 
-#TODO which data sets do I need to estimate from (competitions 1a and 1b?)
-
-datapath = "data/kaust" # relative path to the kaust data
-internal = true # set to false to do inference over the competition data
-thinned  = true # set to false to use the full data sets
-competition = "a" # can also set to "b"
-
-datasets = [1, 2, 4]
-
-cis = map(datasets) do i
-
-	@info "Estimating over data set $i"
-
-	# load the data
-	datpth = datapath
-	datpth *= internal ?  "_internal" : ""
-	datpth *= thinned ?  "/thinned" : "/full"
-	loadpath = joinpath(pwd(), datpth, "Sub-competition_1$competition")
-	data = readdlm(loadpath * "/Train_$i.csv",  ',')
-
-	# split the data into spatial locations and response values
-	S = data[:, 1:2]
-	Z = data[:, 3]
-	Z = reshape(Z, length(Z), 1) #TODO shouldn't have to do this
-	S = Float64.(S)
-	Z = Float64.(Z)
-
-	# prepare the data for the GNN
-	A = adjacencymatrix(S, ϵ)
-	g = GNNGraph(A)
-	Z = reshapedataGNN([Z], g)
-
-	# confidence interval
-	ci = interval(ciestimator, Z; parameter_names = parameter_names)[1]
-	savenamedarray(ci, loadpath * "/ci_$i.csv")
-	ci
+function assessestimators(θ, Z, ξ)
+	assessment = assess(
+		[gnn1, gnn2, gnn3], θ, Z;
+		estimator_names = ["GNN1", "GNN2", "GNN3"],
+		parameter_names = ξ.parameter_names,
+		verbose = false
+	)
+	# ξ = (ξ..., θ₀ = θ.θ)
+	# assessment = merge(assessment, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ))
+	return assessment
 end
 
+function assessestimators(n, ξ, K::Integer)
+	println("	Assessing estimators with n = $n...")
+	# test set for estimating the risk function
+	seed!(1)
+	θ, Z = variableirregularsetup(ξ, n, K = K, m = M, ϵ = ϵ)
+	assessment = assessestimators(θ, Z, ξ)
+	assessment.df[:, :n] .= n
 
+	return assessment
+end
 
-
-# ---- unused code ----
-
-
-# # Construct a set of randomly sampled irregular locations, S
-# seed!(1)
-# S = rand(n, 2)
-# D = pairwise(Euclidean(), S, S, dims = 1)
-# A = adjacencymatrix(D, ϵ)
-# g = GNNGraph(A)
-# ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D
-# θ = Parameters(ξ, K_test)
-# Z = simulate(θ, m)
-# Z = reshapedataGNN(Z, g)
+assessment = [assessestimators(n, ξ, K_test) for n ∈ [30, 60, 100, 200, 300, 500, 750, 1000]]
+assessment = merge(assessment...)
+CSV.write(path * "/estimates_test.csv", assessment.df)

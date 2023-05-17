@@ -33,14 +33,12 @@ function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} wh
 	chol_pointer = parameters.chol_pointer
 
 	Z = Folds.map(1:K) do i
-		L = view(chols, :, :, chol_pointer[i])
+		L = chols[chol_pointer[i]][:, :]
 		z = simulategaussianprocess(L, m̃[i])
 		z = z + τ[i] * randn(size(z)...) # add measurement error
 		z = Float32.(z)
 		z
 	end
-	n = size(chols, 1)
-	Z = reshape.(Z, isqrt(n), isqrt(n), 1, :) # assumes a square domain
 	return Z
 end
 simulate(parameters::Parameters, m::Integer) = simulate(parameters, range(m, m))
