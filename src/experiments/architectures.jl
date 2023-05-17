@@ -27,6 +27,7 @@ end
 M = maximum(m)
 using NeuralEstimators
 using NeuralEstimatorsGNN
+using DataFrames
 using GraphNeuralNetworks
 using CSV
 
