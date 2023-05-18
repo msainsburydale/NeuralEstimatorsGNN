@@ -8,6 +8,8 @@ using Folds
 pts = range(0, 1, length = 16)
 S = expandgrid(pts, pts)
 parameter_names = String.(collect(keys(Ω)))
+
+#TODO probably shouldn't define S here, do it in the scripts that use gridded data
 ξ = (
 	Ω = Ω,
 	pts = pts,

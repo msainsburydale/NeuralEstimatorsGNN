@@ -10,9 +10,12 @@ using Folds
 	ρ = Uniform(0.05, 0.5),
 	ν = Uniform(0.5, 2.0)
 )
-parameter_names = String.(collect(keys(Ω)))
+
+#TODO probably shouldn't define S here, do it in the scripts that use gridded data
 pts = range(0, 1, length = 16)
-S = expandgrid(pts, pts)
+S   = expandgrid(pts, pts)
+parameter_names = String.(collect(keys(Ω)))
+
 ξ = (
 	Ω = Ω,
 	S = S,
@@ -22,26 +25,25 @@ S = expandgrid(pts, pts)
 	ρ_idx = findfirst(parameter_names .== "ρ"),
 	ν_idx = findfirst(parameter_names .== "ν"),
 	σ = 1.0, # marginal variance to use if σ is not included in Ω
-	invtransform = exp,
-	ϵ = 0.125f0 # cutoff distance used to define the neighbourhood of each node
+	ϵ = 0.125f0, # cutoff distance used to define the neighbourhood of each node
+	invtransform = exp #TODO need to incorporate this in the pairwise MAP if it's not already
 )
 
-function simulate(parameters::Parameters, ξ, m::R) where {R <: AbstractRange{I}} where I <: Integer
+function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} where I <: Integer
 
-	P = size(parameters, 2)
-	m̃ = rand(m, P)
+	K = size(parameters, 2)
+	m̃ = rand(m, K)
 
 	chols        = parameters.chols
 	chol_pointer = parameters.chol_pointer
 
-	Z = Folds.map(1:P) do i
-		L = view(chols, :, :, chol_pointer[i])
-		z = simulateschlather(L, m̃[i])
+	Z = Folds.map(1:K) do k
+		L = chols[chol_pointer[k]][:, :]
+		L = convert(Matrix, L) # FIXME shouldn't need to do this conversion. Think it's just a problem with the dispatching of simulateschlather()
+		z = simulateschlather(L, m̃[k])
 		z = Float32.(z)
 		z
 	end
-	n = size(chols, 1)
-	Z = reshape.(Z, isqrt(n), isqrt(n), 1, :) # assumes a square domain
 	return Z
 end
 simulate(parameters::Parameters, ξ, m::Integer) = simulate(parameters, ξ, range(m, m))
