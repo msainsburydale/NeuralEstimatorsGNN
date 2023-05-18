@@ -13,7 +13,7 @@ export seed!
 export WeightedGraphConv
 export DeepSetPool
 export adjacencymatrix
-export reshapedataDNN, reshapedataGNN
+export reshapedataDNN, reshapedataGNN, reshapedataCNN
 export variableirregularsetup, irregularsetup
 export Parameters
 
@@ -446,8 +446,7 @@ end
 function reshapedataCNN(Z)
 	n = size(Z[1], 1)
 	@assert sqrt(n) == isqrt(n) # assumes a square domain
-	Z = reshape.(Z, isqrt(n), isqrt(n), 1, :)
-	reshape.(Z, :, 1, size(Z[1])[end])
+	reshape.(Z, isqrt(n), isqrt(n), 1, :)
 end
 
 function reshapedataDNN(Z)
