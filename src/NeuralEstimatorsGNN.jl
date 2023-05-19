@@ -507,6 +507,5 @@ function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, ϵ) whe
 end
 variableirregularsetup(ξ, n::Integer; K::Integer, m, J::Integer = 5, ϵ) = variableirregularsetup(ξ, range(n, n); K = K, m = m, J = J, ϵ = ϵ)
 
-
-
+#module end
 end

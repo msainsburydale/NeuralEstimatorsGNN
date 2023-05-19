@@ -46,5 +46,5 @@ function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} wh
 	end
 	return Z
 end
-simulate(parameters::Parameters, ξ, m::Integer) = simulate(parameters, ξ, range(m, m))
-simulate(parameters::Parameters, ξ) = stackarrays(simulate(parameters, ξ, 1))
+simulate(parameters::Parameters, m::Integer) = simulate(parameters, range(m, m))
+simulate(parameters::Parameters) = stackarrays(simulate(parameters, 1))
