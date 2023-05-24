@@ -42,6 +42,16 @@ function dnnarchitecture(n::Integer, p::Integer)
 end
 
 
+struct DropSingleton <: GNNLayer end
+# dropsingleton(x::AbstractMatrix) = x
+# dropsingleton(x::A) where A <: AbstractArray{T, 3} where T = dropdims(x, dims = 3)
+# dropsingleton(g::GNNGraph) = GNNGraph(g, ndata = g.ndata, gdata = dropsingleton(g.gdata.u))
+
+(l::DropSingleton)(x::AbstractMatrix) = x
+(l::DropSingleton)(x::A) where A <: AbstractArray{T, 3} where T = dropdims(x, dims = 3)
+(l::DropSingleton)(g::GNNGraph) = GNNGraph(g, ndata = g.ndata, gdata = l(g.gdata.u))
+(l::DropSingleton)(g::GNNGraph, x::AbstractMatrix)
+
 
 function gnnarchitecture(
 	p::Integer; d::Integer = 1, nh::Integer = 128,
@@ -88,6 +98,7 @@ function gnnarchitecture(
 
 	deepset = DeepSet(
 		Chain(
+			dropsingleton, # NB necessary because the efficient storage approach yields a 3D array
 			Dense(no => nh, relu),
 			Dense(nh => nh, relu),
 			Dense(nh => nh, relu)
@@ -99,6 +110,8 @@ function gnnarchitecture(
 		)
 	)
 	estimator = GNN(graphtograph, globpool, deepset)
+
+	#TODO need to drop singleton dimension: so, globpool should be Chain(globpool, x -> dropdims())
 
 	# ψ = PropagateReadout(graphtograph, globpool)
 	# ϕ = Chain(

@@ -68,8 +68,6 @@ end
 
 
 
-
-
 # ---- WeightedGraphConv ----
 
 #TODO change documentation
@@ -115,6 +113,7 @@ end
 
 rangeparameter(l::WeightedGraphConv) = exp.(l.W3)
 
+#TODO 3D array version of this
 function (l::WeightedGraphConv)(g::GNNGraph, x::AbstractMatrix)
     check_num_nodes(g, x)
     r = rangeparameter(l)  # strictly positive range parameter
@@ -462,6 +461,8 @@ function reshapedataGNN(Z, g::GNNGraph)
 	end
 end
 
+
+# Here v is a vector of graphs
 function reshapedataGNN(Z, v::V) where {V <: AbstractVector{A}} where A
 	@assert length(Z) == length(v)
 	l = length(Z)
@@ -472,6 +473,49 @@ function reshapedataGNN(Z, v::V) where {V <: AbstractVector{A}} where A
 		Flux.batch([GNNGraph(v[j], ndata = (Matrix(vec(z[colons..., i])'))) for i ∈ 1:m])
 	end
 end
+
+"""
+	addsingleton(x; dim)
+
+# Examples
+```
+x = rand(4, 4, 10)
+addsingleton(x; dim = 3)
+```
+"""
+addsingleton(x; dim) = reshape(x, size(x)[1:dim-1]..., 1, size(x)[dim:end]...)
+
+
+using Flux: flatten
+
+#TODO also need to do this for a vector of graphs
+function reshapedataGNN2(z::A, g::GNNGraph) where A <: AbstractArray{T, N} where {T, N}
+	# First, flatten the multi-dimensional array into a matrix, where the first
+	# dimension stores the node-level data and the second dimensions stores
+	# the replicates. Then, since ndata wants final dimension to equal the
+	# number of nodes in the graph, permute the dimensions. Finally, add a
+	# singleton first dimension (indicating that we have univariate data)
+	z = permutedims(flatten(z))
+	z = addsingleton(z; dim = 1)
+	GNNGraph(g, ndata = z)
+end
+
+function reshapedataGNN2(Z::V, g::GNNGraph) where {V <: AbstractVector{A}} where A <: AbstractArray{T, N} where {T, N}
+	reshapedataGNN2.(Z, Ref(g))
+end
+
+# Here v is a vector of graphs TODO clean this up
+function reshapedataGNN2(Z, v::V) where {V <: AbstractVector{A}} where A
+	@assert length(Z) == length(v)
+	l = length(Z)
+	map(1:l) do j
+		z = Z[j]
+		m = size(z)[end]
+		colons  = ntuple(_ -> (:), ndims(z) - 1)
+		Flux.batch([GNNGraph(v[j], ndata = (Matrix(vec(z[colons..., i])'))) for i ∈ 1:m])
+	end
+end
+
 
 
 # ---- Setting up for training ----

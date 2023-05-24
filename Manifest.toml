@@ -87,6 +87,12 @@ git-tree-sha1 = "aebf55e6d7795e02ca500a689d326ac979aaf89e"
 uuid = "9718e550-a3fa-408a-8086-8db961cd8217"
 version = "0.1.1"
 
+[[deps.BenchmarkTools]]
+deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
+git-tree-sha1 = "d9a9701b899b30332bbcb3e1679c41cce81fb0e8"
+uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+version = "1.3.2"
+
 [[deps.CEnum]]
 git-tree-sha1 = "eb4cb44a499229b3b8426dcfb5dd85333951ff90"
 uuid = "fa961155-64e5-5f13-b03f-caf6b980ea82"
@@ -466,6 +472,12 @@ git-tree-sha1 = "abc9885a7ca2052a736a600f7fa66209f96506e1"
 uuid = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
 version = "1.4.1"
 
+[[deps.JSON]]
+deps = ["Dates", "Mmap", "Parsers", "Unicode"]
+git-tree-sha1 = "31e996f0a15c7b280ba9f76636b3ff9e2ae58c9a"
+uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+version = "0.21.4"
+
 [[deps.JuliaVariables]]
 deps = ["MLStyle", "NameResolution"]
 git-tree-sha1 = "49fb3cb53362ddadb4415e9b73926d6b40709e70"
@@ -633,9 +645,9 @@ uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 
 [[deps.NeuralEstimators]]
 deps = ["BSON", "CSV", "CUDA", "ChainRulesCore", "DataFrames", "Distances", "Distributions", "Flux", "Functors", "GaussianRandomFields", "GraphNeuralNetworks", "Graphs", "LinearAlgebra", "NamedArrays", "Parameters", "Random", "RecursiveArrayTools", "SpecialFunctions", "Statistics", "Test", "Zygote"]
-git-tree-sha1 = "9e98fcbe3e8072a5bdcd08e687e1f0c8646fdcbc"
+git-tree-sha1 = "133706047cbfaa3ec0c97762209f3782d28bb388"
 repo-rev = "main"
-repo-url = "https://github.com/msainsburydale/NeuralEstimators.jl.git"
+repo-url = "https://github.com/msainsburydale/NeuralEstimators.jl"
 uuid = "38f6df31-6b4a-4144-b2af-7ace2da57606"
 version = "0.1.0"
 
@@ -730,6 +742,10 @@ version = "2.2.3"
 [[deps.Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[[deps.Profile]]
+deps = ["Printf"]
+uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 
 [[deps.ProgressLogging]]
 deps = ["Logging", "SHA", "UUIDs"]

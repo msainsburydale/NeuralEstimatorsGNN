@@ -1,185 +1,160 @@
 library("optparse")
 option_list <- list(
-  make_option("--model", type="character", default=NULL,
-              help="The statistical model: for example, 'GaussianProcess/nuFixed'", 
-              metavar="character")
+  make_option("--model", type="character", default=NULL, metavar="character")
 )
 opt_parser  <- OptionParser(option_list=option_list)
 model       <- parse_args(opt_parser)$model
 
-source("src/plotting.R")
+int_path <- paste0("intermediates/", model)
+img_path <- paste0("img/", model)
+dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
-parameter_labels <- c(
-  "σ"  = expression(sigma),
-  "ρ"  = expression(rho)
-)
-
-splitestimator <- function(df) {
-  # df <- separate(data = df, col = estimator, into = c("globalpool", "propagationwidth"), sep = "_")
-  # df$propagationwidth <- gsub("nh",  "", df$propagationwidth)
-  # df$propagationwidth <-as.numeric(df$propagationwidth)
-  # return(df)
-
-  df %>%
-    separate(col = estimator, into = c("globalpool", "propagationwidth"), sep = "_") %>%
-    mutate(propagationwidth = gsub("nh",  "", propagationwidth)) %>%
-    mutate(propagationwidth = as.numeric(propagationwidth))
-
-
+loadestimates <- function(set, type = "scenarios") {
+  df <- read.csv(paste0(int_path, "/estimates_", type, "_", set, ".csv"))
+  df$set <- set
+  df
 }
 
-# ----------------------
-# ---- Experiment 0 ----
-# ----------------------
-
-int_path <- paste0("intermediates/GNN/", model, "/experiment0")
-img_path <- paste0("img/GNN/", model, "/experiment0")
-results_path <- paste0("results/GNN/", model, "/experiment0")
-dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
-dir.create(results_path, recursive = TRUE, showWarnings = FALSE)
-
-
-# ---- Risk function ----
-
-# Load in estimates + true parameters
-df <- read.csv(paste0(int_path, "/estimates.csv"))
-df <- splitestimator(df)
-
-df <- df %>%
-  group_by(globalpool, propagationwidth, trial) %>%
-  summarise(risk = MAE(estimate, truth)) %>%
-  summarise(avrisk = mean(risk), sdrisk = sd(risk))
-
-df %>% write.csv(file = paste0(results_path, "/risk.csv"), row.names = F)
-
-gg <- ggplot(df) +
-  geom_line(aes(x = propagationwidth, y = avrisk, colour = globalpool)) +
-  labs(x = "Number of channels in propagation module",
-       y = risklabel,
-       colour = "Global pooling\nmodule") +
-  theme_bw()
-
-ggsave(gg, file = "risk.pdf", width = 6, height = 4, device = "pdf", path = img_path)
-
-# ---- Test time ----
-
-df <- read.csv(paste0(int_path, "/runtime.csv"))
-df$trial <- rep(1:(nrow(df)/10), each = 10) # TODO delete this after rerunning the julia code
-df <- df[df$trial != 1, ] # remove the first trial, which is subject to noise due to code compilation time
-df <- splitestimator(df)
-df <- df %>%
-  group_by(globalpool, propagationwidth) %>%
-  summarise(avtime = mean(time), sdtime = sd(time))
-
-gg <- ggplot(df) +
-  geom_line(aes(x = propagationwidth, y = avtime, colour = globalpool)) +
-  labs(x = "Number of channels in propagation module",
-       y = "Computational time (s)",
-       colour = "Global pooling\nmodule") +
-  theme_bw()
-
-ggsave(gg, file = "time.pdf", width = 6, height = 4, device = "pdf", path = img_path)
-
-
-# ----------------------
-# ---- Experiment 1 ----
-# ----------------------
-
-int_path <- paste0("intermediates/GNN/", model)
-img_path <- paste0("img/GNN/", model, "/experiment1")
-results_path <- paste0("results/GNN/", model, "/experiment1")
-dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
-dir.create(results_path, recursive = TRUE, showWarnings = FALSE)
-
-
-# ---- Risk function ----
-
-# Load in estimates + true parameters
-df <- read.csv(paste0(int_path, "/estimates_test.csv"))
-
-df %>%
-  group_by(estimator, trial) %>%
-  summarise(risk = MAE(estimate, truth)) %>%
-  summarise(risk_average = mean(risk), risk_sd = sd(risk)) %>%
-  write.csv(file = paste0(results_path, "/risk.csv"), row.names = F)
-
-
-# ---- Joint distribution of the estimators ----
-
-# Load in estimates + true parameters
-df <- read.csv(paste0(int_path, "/estimates_scenarios.csv"))
-
-
-lapply(unique(df$k), function(K) {
-  ggsave(
-    plotdistribution(df %>% filter(k == K), parameter_labels = parameter_labels),
-    file = paste0("boxplot", K, ".pdf"),
-    width = 8, height = 4, device = "pdf", path = img_path
-  )
-
-  ggsave(
-    plotdistribution(df %>% filter(k == K), parameter_labels = parameter_labels, type = "scatter")[[1]],
-    file = paste0("scatterplot", K, ".pdf"),
-    width = 5, height = 5, device = "pdf", path = img_path
-  )
-})
-
-
-# ----------------------
-# ---- Experiment 2 ----
-# ----------------------
-
-int_path <- paste0("intermediates/GNN/", model)
-img_path <- paste0("img/GNN/", model, "/experiment2")
-results_path <- paste0("results/GNN/", model, "/experiment2")
-dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
-dir.create(results_path, recursive = TRUE, showWarnings = FALSE)
+source("src/plotting.R")
 
 boldtheta <- bquote(bold(theta))
 estimator_labels <- c(
-  "GNN" = bquote(hat(.(boldtheta))[GNN]("·") * " : " * tilde(S)),
-  "GNN_S" = bquote(hat(.(boldtheta))[GNN]("·") * " : " * S),
-  "GNN_Svariable" = bquote(hat(.(boldtheta))[GNN]("·") * " : " * S[k] * ", k = 1, ..., K"),
-  "WGNN" = bquote(hat(.(boldtheta))[WGNN]("·") * " : " * tilde(S)),
-  "WGNN_S" = bquote(hat(.(boldtheta))[WGNN]("·") * " : " * S),
-  "WGNN_Svariable" = bquote(hat(.(boldtheta))[WGNN]("·") * " : " * S[k] * ", k = 1, ..., K")
+  "GNN" = "GNN",
+  "CNN" = "CNN",
+  "MAP" = "MAP"
 )
-
-
+estimators <- names(estimator_labels)
 
 # ---- Risk function ----
 
-# Load in estimates + true parameters
-df <- read.csv(paste0(int_path, "/estimates_test_S.csv"))
+df <- loadestimates("gridded", "test") %>%
+  rbind(loadestimates("uniform", "test")) %>%
+  rbind(loadestimates("quadrants", "test")) %>% 
+  rbind(loadestimates("mixedsparsity", "test")) %>% 
+  rbind(loadestimates("cup", "test")) %>% 
+  filter(estimator %in% estimators)
 
+## Bayes risk with respect to absolute error
 df %>%
-  group_by(estimator, trial) %>%
-  summarise(risk = MAE(estimate, truth)) %>%
-  summarise(risk_average = mean(risk), risk_sd = sd(risk)) %>%
-  write.csv(file = paste0(results_path, "/risk.csv"), row.names = F)
+  mutate(loss = abs(estimate - truth)) %>% 
+  group_by(set, estimator) %>% 
+  summarise(risk = mean(loss), sd = sd(loss)/sqrt(length(loss))) %>%
+  write.csv(file = paste0(img_path, "/risk.csv"), row.names = F)
 
 
-# ---- Joint distribution of the estimators ----
+## RMSE  ## TODO can I get an estimate of the sd? 
+df %>%
+  mutate(loss = (estimate - truth)^2) %>% 
+  group_by(set, estimator) %>% 
+  summarise(RMSE = sqrt(mean(loss))) %>%
+  write.csv(file = paste0(img_path, "/RMSE.csv"), row.names = F)
 
-# Load in estimates + true parameters
-df <- read.csv(paste0(int_path, "/estimates_scenarios_S.csv"))
 
+# ---- Sampling distributions ----
 
-lapply(unique(df$k), function(K) {
+loaddata <- function(set) {
+  df <- read.csv(paste0(int_path, "/Z_", set, ".csv"))
+  df$set <- set
+  df
+}
+
+df <- loadestimates("gridded") %>%
+  rbind(loadestimates("uniform")) %>%
+  rbind(loadestimates("quadrants")) %>% 
+  rbind(loadestimates("mixedsparsity")) %>% 
+  rbind(loadestimates("cup")) %>% 
+  filter(estimator %in% estimators)
+
+zdf <- loaddata("gridded") %>%
+  rbind(loaddata("uniform")) %>%
+  rbind(loaddata("quadrants")) %>%
+  rbind(loaddata("mixedsparsity")) %>%
+  rbind(loaddata("cup"))
+
+figures <- lapply(unique(df$k), function(K) {
+  
+  df  <- df  %>% filter(k == K)
+  zdf <- zdf %>% filter(k == K)
+  
+  ggz_1  <- field_plot(filter(zdf, set == "gridded"), regular = T) # NB set regular = F for consistency
+  ggz_2  <- field_plot(filter(zdf, set == "uniform"), regular = F) 
+  ggz_3  <- field_plot(filter(zdf, set == "quadrants"), regular = F)
+  ggz_4  <- field_plot(filter(zdf, set == "mixedsparsity"), regular = F)
+  ggz_5  <- field_plot(filter(zdf, set == "cup"), regular = F)
+  ggz_1  <- ggz_1 + labs(fill = "Z") + theme(legend.title.align = 0.25, legend.title = element_text(face = "bold"))
+  data_legend <- get_legend(ggz_1)
+  data <- list(ggz_1, ggz_2, ggz_3, ggz_4, ggz_5)
+  data <- lapply(data, function(gg) gg + 
+                   theme(legend.position = "none") + 
+                   theme(plot.title = element_text(hjust = 0.5)) + 
+                   coord_fixed())
+  
+  
+  
+  # Marginal distributions
+  box_1  <- plotdistribution(filter(df, set == "gridded"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1) + scale_estimator(df)
+  box_2  <- plotdistribution(filter(df, set == "uniform"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1)  + scale_estimator(df)
+  box_3  <- plotdistribution(filter(df, set == "quadrants"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1)  + scale_estimator(df)
+  box_4  <- plotdistribution(filter(df, set == "mixedsparsity"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1) + scale_estimator(df)
+  box_5  <- plotdistribution(filter(df, set == "cup"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1) + scale_estimator(df)
+  box_legend <- get_legend(box_1)
+  box <- list(box_1, box_2, box_3, box_4, box_5)
+  box <- lapply(box, function(gg) {
+    gg$facet$params$nrow <- 2
+    gg$facet$params$strip.position <- "bottom"
+    gg + 
+      theme(legend.position = "none") +
+      theme(
+        strip.background = element_blank(),
+        axis.title.y = element_blank()
+      )
+  })
+  
+  plotlist <- c(data, box)
+  figure1  <- ggarrange(plotlist = plotlist, nrow = 2, ncol = 5, heights = c(1.25, 2))
+  figure2  <- ggarrange(data_legend, box_legend, ncol = 1, heights = c(1, 2.5))
+  figure   <- ggarrange(figure1, figure2, widths = c(1, 0.15))
+  figure
+  
   ggsave(
-    plotdistribution(df %>% filter(k == K),
-                     parameter_labels = parameter_labels,
-                     estimator_labels = estimator_labels),
-    file = paste0("boxplot", K, ".pdf"),
-    width = 8, height = 4, device = "pdf", path = img_path
+    figure, 
+    file = paste0("samplingdistributions_marginal", K, ".pdf"),
+    width = 12.5, height = 6, device = "pdf", path = img_path
   )
-
+  
+  # Joint distributions
+  joint_1  <- plotdistribution(filter(df, set == "gridded"), type = "scatter", parameter_labels = parameter_labels, estimator_labels = estimator_labels)[[1]] + scale_estimator(df)
+  joint_2  <- plotdistribution(filter(df, set == "uniform"), type = "scatter", parameter_labels = parameter_labels, estimator_labels = estimator_labels)[[1]] + scale_estimator(df)
+  joint_3  <- plotdistribution(filter(df, set == "quadrants"), type = "scatter", parameter_labels = parameter_labels, estimator_labels = estimator_labels)[[1]] + scale_estimator(df)
+  joint_4  <- plotdistribution(filter(df, set == "mixedsparsity"), type = "scatter", parameter_labels = parameter_labels, estimator_labels = estimator_labels)[[1]] + scale_estimator(df)
+  joint_5  <- plotdistribution(filter(df, set == "cup"), type = "scatter", parameter_labels = parameter_labels, estimator_labels = estimator_labels)[[1]] + scale_estimator(df)
+  joint_legend <- get_legend(joint_1)
+  joint <- list(joint_1, joint_2, joint_3, joint_4, joint_5)
+  joint <- lapply(joint, function(gg) {
+    gg$facet$params$nrow <- 2
+    gg$facet$params$strip.position <- "bottom"
+    gg + 
+      theme(legend.position = "none") +
+      theme(
+        strip.background = element_blank()
+      )
+  })
+  
+  plotlist <- c(data, joint)
+  figure1  <- ggarrange(plotlist = plotlist, nrow = 2, ncol = 5, align = "hv")
+  figure2  <- ggarrange(data_legend, joint_legend, ncol = 1, heights = c(1, 1))
+  figure   <- ggarrange(figure1, figure2, widths = c(1, 0.15))
+  figure
+  
   ggsave(
-    plotdistribution(df %>% filter(k == K),
-                     parameter_labels = parameter_labels,
-                     estimator_labels = estimator_labels,
-                     type = "scatter")[[1]],
-    file = paste0("scatterplot", K, ".pdf"),
-    width = 5, height = 5, device = "pdf", path = img_path
+    figure, 
+    file = paste0("samplingdistributions_joint", K, ".pdf"),
+    width = 12.5, height = 4, device = "pdf", path = img_path
   )
+  
+  figure
 })
+
+
+
+

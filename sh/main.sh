@@ -14,7 +14,7 @@ else
     exit 1
 fi
 
-for model in GP/nuFixed Schlather
+for model in GP/nuFixed Schlather GP/nuFixed
 do
 
     echo ""
