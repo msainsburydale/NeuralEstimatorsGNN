@@ -19,6 +19,10 @@ arg_table = ArgParseSettings()
 		help = "A relative path to the folder of the assumed model; this folder should contain scripts for defining the parameter configurations in Julia and for data simulation."
 		arg_type = String
 		required = true
+	"--neighbours"
+		help = "How to define neighbour matrix: using either a fixed spatial 'radius' or a fixed number of neighbours ('fixednum')"
+		arg_type = String
+		default = "radius"
 	"--quick"
 		help = "A flag controlling whether or not a computationally inexpensive run should be done."
 		action = :store_true
@@ -28,6 +32,7 @@ arg_table = ArgParseSettings()
 end
 parsed_args = parse_args(arg_table)
 model           = parsed_args["model"]
+neighbours      = parsed_args["neighbours"]
 quick           = parsed_args["quick"]
 m = let expr = Meta.parse(parsed_args["m"])
     @assert expr.head == :vect
@@ -49,7 +54,7 @@ include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/$model/MAP.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
-path = "intermediates/experiments/graphstructures/$model"
+path = "intermediates/experiments/graphstructures/$model/$neighbours"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
@@ -63,7 +68,15 @@ K_test = K_val
 
 p = ξ.p
 n = size(ξ.D, 1)
+
+
+# For uniformly sampled locations on a unit grid, the probability that a point
+# falls within a circle of radius d is πd². So, on average, we expect nπd²
+# neighbours for each spatial location. Use this information to choose k in a
+# way that makes for a fair comparison between the two approaches.
 d = ξ.r
+k = ceil(Int, n*π*d^2)
+neighbour_parameter = neighbours == "radius" ? d : k
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
@@ -83,7 +96,7 @@ wgnn_Svariable = gnnarchitecture(p; propagation = "WeightedGraphConv")
 seed!(1)
 S = rand(n, 2)
 D = pairwise(Euclidean(), S, S, dims = 1)
-A = adjacencymatrix(D, d)
+A = adjacencymatrix(D, neighbour_parameter)
 g = GNNGraph(A)
 ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D
 θ_val,   Z_val   = irregularsetup(ξ, g, K = K_val, m = M)
@@ -96,8 +109,8 @@ seed!(1)
 train(wgnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_S", epochs = epochs)
 
 # GNN estimators trained under a variable set of irregular locations {Sₖ : k = 1, …, K}
-θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = M, neighbour_parameter = d)
-θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = M, neighbour_parameter = d)
+θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = M, neighbour_parameter = neighbour_parameter)
+θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = M, neighbour_parameter = neighbour_parameter)
 seed!(1)
 train(gnn_Svariable, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_Svariable", epochs = epochs)
 seed!(1)
@@ -125,7 +138,7 @@ end
 function assessestimators(S, ξ, K::Integer, set::String)
 
 	D = pairwise(Euclidean(), S, S, dims = 1)
-	A = adjacencymatrix(D, d)
+	A = adjacencymatrix(D, neighbour_parameter)
 	g = GNNGraph(A)
 	ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
 

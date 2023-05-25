@@ -2,16 +2,6 @@
 # ---- Experiment: GNNs in the presence of varibale sample sizes ----
 # -------------------------------------------------------------------
 
-# Applying GNNs to different graph structures.
-# Here we compare a GNN trained under a specific set of irregular locations S,
-# and a GNN trained with a variable set of irregular locations {Sₖ : k = 1, …, K},
-# where K is the number of unique parameter vectors in the training set.
-# We assess the estimators with respect to the set of specific irregular locations, S.
-# The purpose of this experiment is to determine whether optimal inference
-# requires the neural estimator to be trained specifically under the spatial
-# locations of the given data set, or if a general estimator can be used that
-# is close to optimal irrespective of the configuration of the spatial locations.
-
 using ArgParse
 arg_table = ArgParseSettings()
 @add_arg_table arg_table begin
@@ -39,10 +29,10 @@ m = let expr = Meta.parse(parsed_args["m"])
     Int.(expr.args)
 end
 
-model="GP/nuFixed"
-quick=true
-m=[1]
-neighbours = "radius"
+# model="GP/nuFixed"
+# quick=true
+# m=[1]
+# neighbours = "radius"
 
 M = maximum(m)
 using NeuralEstimators
