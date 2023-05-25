@@ -80,8 +80,7 @@ Z_val   = [simulate(θ_val, mᵢ)   for mᵢ ∈ m]
 Z_train = [simulate(θ_train, mᵢ) for mᵢ ∈ m]
 
 # convert to graph
-ϵ = 2.0f0 # distance cutoff used to define the local neighbourhood of each node
-A = adjacencymatrix(ξ.D, ϵ = ϵ)
+A = adjacencymatrix(ξ.D, ξ.r)
 g = GNNGraph(A)
 Z_train = reshapedataGNN.(Z_train, Ref(g))
 Z_val   = reshapedataGNN.(Z_val, Ref(g))

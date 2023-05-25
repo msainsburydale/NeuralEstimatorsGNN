@@ -55,7 +55,7 @@ K_test = K_val
 
 p = ξ.p
 n = size(ξ.D, 1)
-ϵ = ξ.ϵ
+r = ξ.r
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
@@ -87,8 +87,8 @@ if !skip_training
 	# GNN estimator
 	@info "training the GNN..."
 	seed!(1)
-	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, ϵ = ϵ)
-	θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, ϵ = ϵ)
+	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, neighbour_parameter = r)
+	θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, neighbour_parameter = r)
 	trainx(gnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN", epochs = epochs)
 end
 
@@ -123,7 +123,7 @@ end
 function assessestimators(S, ξ, K::Integer, set::String)
 
 	D = pairwise(Euclidean(), S, S, dims = 1)
-	A = adjacencymatrix(D, ϵ)
+	A = adjacencymatrix(D, r)
 	g = GNNGraph(A)
 	ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
 

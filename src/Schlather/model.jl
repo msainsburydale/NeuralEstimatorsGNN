@@ -25,7 +25,7 @@ parameter_names = String.(collect(keys(Ω)))
 	ρ_idx = findfirst(parameter_names .== "ρ"),
 	ν_idx = findfirst(parameter_names .== "ν"),
 	σ = 1.0, # marginal variance to use if σ is not included in Ω
-	ϵ = 0.125f0, # cutoff distance used to define the neighbourhood of each node
+	r = 0.15f0, # cutoff distance used to define the neighbourhood of each node
 	invtransform = exp #TODO need to incorporate this in the pairwise MAP if it's not already
 )
 

@@ -205,14 +205,14 @@ using SparseArrays
 using LinearAlgebra
 using Distances
 
-#TODO could easily parallelise this to speed things up
+#TODO could easily parallelise this to speed it up
 
 """
 	adjacencymatrix(M::Matrix, k::Integer)
-	adjacencymatrix(M::Matrix, ϵ::Float)
+	adjacencymatrix(M::Matrix, d::Float)
 
 Computes a spatially weighted adjacency matrix from `M` based on either the `k`
-nearest neighbours to each location, or a spatial radius of `ϵ` units.
+nearest neighbours to each location, or a spatial radius of `d` units.
 
 If `M` is a square matrix, is it treated as a distance matrix; otherwise, it
 should be an n x d matrix, where n is the number of spatial locations and d is
@@ -227,16 +227,16 @@ n = 10
 d = 2
 S = rand(n, d)
 k = 5
-ϵ = 0.3
+d = 0.3
 
 # Memory efficient constructors (avoids constructing the full distance matrix D)
 adjacencymatrix(S, k)
-adjacencymatrix(S, ϵ)
+adjacencymatrix(S, d)
 
 # Construct from full distance matrix D
 D = pairwise(Euclidean(), S, S, dims = 1)
 adjacencymatrix(D, k)
-adjacencymatrix(D, ϵ)
+adjacencymatrix(D, d)
 ```
 """
 function adjacencymatrix(M::Mat, k::Integer) where Mat <: AbstractMatrix{T} where T
@@ -272,9 +272,9 @@ function adjacencymatrix(M::Mat, k::Integer) where Mat <: AbstractMatrix{T} wher
 	return sparse(I,J,V,n,n)
 end
 
-function adjacencymatrix(M::Mat, ϵ::F) where Mat <: AbstractMatrix{T} where {T, F <: AbstractFloat}
+function adjacencymatrix(M::Mat, d::F) where Mat <: AbstractMatrix{T} where {T, F <: AbstractFloat}
 
-	@assert ϵ > 0
+	@assert d > 0
 
 	n = size(M, 1)
 	m = size(M, 2)
@@ -282,8 +282,8 @@ function adjacencymatrix(M::Mat, ϵ::F) where Mat <: AbstractMatrix{T} where {T,
 	if m == n
 
 		D = M
-		# bit-matrix specifying which locations are ϵ-neighbours
-		A = D .< ϵ
+		# bit-matrix specifying which locations are d-neighbours
+		A = D .< d
 		A[diagind(A)] .= 0 # remove the diagonal entries
 
 		# replace non-zero elements of A with the corresponding distance in D
@@ -309,8 +309,8 @@ function adjacencymatrix(M::Mat, ϵ::F) where Mat <: AbstractMatrix{T} where {T,
 			# Replace d(s) with Inf so that it's not included in the adjacency matrix
 			d[i] = Inf
 
-			# Find the ϵ-neighbours of s
-			j = d .< ϵ
+			# Find the d-neighbours of s
+			j = d .< d
 			j = findall(j)
 
 			push!(I, repeat([i], inner = length(j))...)
@@ -323,9 +323,6 @@ function adjacencymatrix(M::Mat, ϵ::F) where Mat <: AbstractMatrix{T} where {T,
 	return A
 end
 
-
-
-
 function findneighbours(d, k::Integer)
 	V = partialsort(d, 1:k)
 	J = [findfirst(v .== d) for v ∈ V]
@@ -333,20 +330,19 @@ function findneighbours(d, k::Integer)
 end
 
 
-
 # @testset "adjacencymatrix" begin
 # 	n = 10
 # 	S = rand(n, 2)
 # 	k = 5
-# 	ϵ = 0.3
+# 	d = 0.3
 # 	A₁ = adjacencymatrix(S, k)
 # 	@test all([A₁[i, i] for i ∈ 1:n] .== zeros(n))
-# 	A₂ = adjacencymatrix(S, ϵ)
+# 	A₂ = adjacencymatrix(S, d)
 # 	@test all([A₂[i, i] for i ∈ 1:n] .== zeros(n))
 #
 # 	D = pairwise(Euclidean(), S, S, dims = 1)
 # 	Ã₁ = adjacencymatrix(D, k)
-# 	Ã₂ = adjacencymatrix(D, ϵ)
+# 	Ã₂ = adjacencymatrix(D, d)
 # 	@test Ã₁ == A₁
 # 	@test Ã₂ == A₂
 # end
@@ -529,7 +525,9 @@ function irregularsetup(ξ, g; K::Integer, m, J::Integer = 5)
 	return θ, Z
 end
 
-function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, ϵ) where {R <: AbstractRange{I}} where I <: Integer
+
+# Note that neighbour_parameter can be a float or an integer
+function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter) where {R <: AbstractRange{I}} where I <: Integer
 
 	ñ = rand(n, K)
 	D = map(1:K) do k
@@ -537,7 +535,7 @@ function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, ϵ) whe
 		D = pairwise(Euclidean(), S, S, dims = 1)
 		D
 	end
-	A = adjacencymatrix.(D, ϵ)
+	A = adjacencymatrix.(D, neighbour_parameter)
 	g = GNNGraph.(A)
 
 	ξ = (ξ..., D = D) # update ξ to contain the new distance matrices (note that Parameters can handle a vector of distance matrices because of maternchols())
@@ -545,11 +543,11 @@ function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, ϵ) whe
 	Z = [simulate(θ, mᵢ) for mᵢ ∈ m]
 
 	g = repeat(g, inner = J)
-	Z = reshapedataGNN.(Z, Ref(g))
+	Z = reshapedataGNN.(Z, Ref(g)) # TODO why is Ref() needed here?
 
-	return θ, Z
+	return_ξ ? (θ, Z, ξ) : (θ, Z)
 end
-variableirregularsetup(ξ, n::Integer; K::Integer, m, J::Integer = 5, ϵ) = variableirregularsetup(ξ, range(n, n); K = K, m = m, J = J, ϵ = ϵ)
+variableirregularsetup(ξ, n::Integer; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter) = variableirregularsetup(ξ, range(n, n); K = K, m = m, J = J, return_ξ = return_ξ, neighbour_parameter = neighbour_parameter)
 
-#module end
+#module
 end

@@ -13,22 +13,18 @@ end
 Negative log-likelihood function to be minimised using Optim. If length(θ) > 2,
 the smoothness parameter, ν, is estimated; otherwise, it is fixed to 1.
 """
-function nll(θ, Z, ξ, Ω)
+function nll(θ, Z, D, Ω)
 
 	# Constrain the estimates to be within the prior support
 	θ = scaledlogistic.(θ, Ω)
 	p = length(θ)
 	ν = p > 2 ? θ[3] : one(eltype(θ))
 
+	# Current covariance matrix
+	Σ = covariancematrix(D, τ = θ[1], ρ = θ[2], ν = ν)
+
 	# compute the log-likelihood function
-	ℓ = ll(θ, ν, Z, ξ.D)
+	ℓ = gaussiandensity(Z, Σ; logdensity = true)
 
 	return -ℓ
-end
-
-# This method can be used for Z <: AbstractVector and for Z <: AbstractMatrix
-function ll(θ, ν, Z, D)
-	Σ = covariancematrix(D, τ = θ[1], ρ = θ[2], ν = ν)
-	ℓ = gaussiandensity(Z, Σ; logdensity = true)
-	return ℓ
 end

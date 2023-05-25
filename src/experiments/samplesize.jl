@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------
-# ---- Experiment: Applying GNNs to different graph structures ----
+# ---- Experiment: GNNs in the presence of varibale sample sizes ----
 # -------------------------------------------------------------------
 
 # Applying GNNs to different graph structures.
@@ -19,6 +19,10 @@ arg_table = ArgParseSettings()
 		help = "A relative path to the folder of the assumed model; this folder should contain scripts for defining the parameter configurations in Julia and for data simulation."
 		arg_type = String
 		required = true
+	"--neighbours"
+		help = "How to define neighbour matrix: using either a fixed spatial 'radius' or a fixed number of neighbours ('fixednum')"
+		arg_type = String
+		default = "radius"
 	"--quick"
 		help = "A flag controlling whether or not a computationally inexpensive run should be done."
 		action = :store_true
@@ -28,15 +32,17 @@ arg_table = ArgParseSettings()
 end
 parsed_args = parse_args(arg_table)
 model           = parsed_args["model"]
+neighbours      = parsed_args["neighbours"]
 quick           = parsed_args["quick"]
 m = let expr = Meta.parse(parsed_args["m"])
     @assert expr.head == :vect
     Int.(expr.args)
 end
 
-# model="GP/nuFixed"
-# quick=true
-# m=[1]
+model="GP/nuFixed"
+quick=true
+m=[1]
+neighbours = "radius"
 
 M = maximum(m)
 using NeuralEstimators
@@ -49,7 +55,7 @@ include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/$model/MAP.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
-path = "intermediates/experiments/samplesize/$model"
+path = "intermediates/experiments/samplesize/$model/$neighbours"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
@@ -63,7 +69,14 @@ K_test = K_val
 
 p = ξ.p
 n = size(ξ.D, 1)
-ϵ = ξ.ϵ
+
+# For uniformly sampled locations on a unit grid, the probability that a point
+# falls within a circle of radius d is πd². So, on average, we expect nπd²
+# neighbours for each spatial location. Use this information to choose k in a
+# way that makes for a fair comparison between the two approaches.
+d = ξ.r
+k = ceil(Int, n*π*d^2)
+neighbour_parameter = neighbours == "radius" ? d : k
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
@@ -72,28 +85,31 @@ epochs = quick ? 2 : 1000
 # ---- Estimators ----
 
 seed!(1)
-gnn1 = gnnarchitecture(p)
-gnn2 = gnnarchitecture(p)
-gnn3 = gnnarchitecture(p)
+gnn1 = gnnarchitecture(p; propagation = "WeightedGraphConv")
+gnn2 = gnnarchitecture(p; propagation = "WeightedGraphConv")
+gnn3 = gnnarchitecture(p; propagation = "WeightedGraphConv")
 
 # ---- Training ----
 
+small_n = 30
+large_n = 300
+
 # GNN estimator trained with a fixed small n
 seed!(1)
-θ_val,   Z_val   = variableirregularsetup(ξ, 30, K = K_val, m = M, ϵ = ϵ)
-θ_train, Z_train = variableirregularsetup(ξ, 30, K = K_train, m = M, ϵ = ϵ)
+θ_val,   Z_val   = variableirregularsetup(ξ, small_n, K = K_val, m = M, neighbour_parameter = neighbour_parameter)
+θ_train, Z_train = variableirregularsetup(ξ, small_n, K = K_train, m = M, neighbour_parameter = neighbour_parameter)
 train(gnn1, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN1", epochs = epochs)
 
 # GNN estimator trained with a fixed large n
 seed!(1)
-θ_val,   Z_val   = variableirregularsetup(ξ, 300, K = K_val, m = M, ϵ = ϵ)
-θ_train, Z_train = variableirregularsetup(ξ, 300, K = K_train, m = M, ϵ = ϵ)
+θ_val,   Z_val   = variableirregularsetup(ξ, large_n, K = K_val, m = M, neighbour_parameter = neighbour_parameter)
+θ_train, Z_train = variableirregularsetup(ξ, large_n, K = K_train, m = M, neighbour_parameter = neighbour_parameter)
 train(gnn2, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN2", epochs = epochs)
 
 # GNN estimator trained with a range of n
 seed!(1)
-θ_val,   Z_val   = variableirregularsetup(ξ, 30:300, K = K_val, m = M, ϵ = ϵ)
-θ_train, Z_train = variableirregularsetup(ξ, 30:300, K = K_train, m = M, ϵ = ϵ)
+θ_val,   Z_val   = variableirregularsetup(ξ, small_n:large_n, K = K_val, m = M, neighbour_parameter = neighbour_parameter)
+θ_train, Z_train = variableirregularsetup(ξ, small_n:large_n, K = K_train, m = M, neighbour_parameter = neighbour_parameter)
 train(gnn3, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN3", epochs = epochs)
 
 # ---- Load the trained estimators ----
@@ -105,14 +121,24 @@ Flux.loadparams!(gnn3,  loadbestweights(path * "/runs_GNN3"))
 # ---- Assess the estimators ----
 
 function assessestimators(θ, Z, ξ)
+
+	println("	Running GNN estimators...")
 	assessment = assess(
 		[gnn1, gnn2, gnn3], θ, Z;
 		estimator_names = ["GNN1", "GNN2", "GNN3"],
 		parameter_names = ξ.parameter_names,
 		verbose = false
 	)
-	# ξ = (ξ..., θ₀ = θ.θ)
-	# assessment = merge(assessment, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ))
+
+	println("	Running MAP estimator...")
+	# Convert Z from a graph to a matrix (required for MAP)
+	ξ = (ξ..., θ₀ = θ.θ) # initialise the MAP to the true parameters
+	Z = broadcast(z -> reshape(z.ndata.x, :, 1), Z)
+	assessment = merge(
+		assessment,
+		assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ, verbose=false)
+		)
+
 	return assessment
 end
 
@@ -120,7 +146,7 @@ function assessestimators(n, ξ, K::Integer)
 	println("	Assessing estimators with n = $n...")
 	# test set for estimating the risk function
 	seed!(1)
-	θ, Z = variableirregularsetup(ξ, n, K = K, m = M, ϵ = ϵ)
+	θ, Z, ξ = variableirregularsetup(ξ, n, K = K, m = M, neighbour_parameter = neighbour_parameter, return_ξ = true)
 	assessment = assessestimators(θ, Z, ξ)
 	assessment.df[:, :n] .= n
 

@@ -53,7 +53,6 @@ K_test = K_val
 
 p = ξ.p
 n = size(ξ.D, 1)
-ϵ = ξ.ϵ
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
@@ -61,13 +60,13 @@ epochs = quick ? 2 : 1000
 
 # ---- Setup ----
 
-A = adjacencymatrix(ξ.D, ϵ)
+A = adjacencymatrix(ξ.D, ξ.r)
 g = GNNGraph(A)
 
 seed!(1)
 cnn = DeepSet(cnnarchitecture(p)...)
 dnn = DeepSet(dnnarchitecture(n, p)...)
-gnn = gnnarchitecture(p)
+gnn = gnnarchitecture(p; propagation = "GraphConv")
 wgnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
 
 # Compare the number of trainable parameters

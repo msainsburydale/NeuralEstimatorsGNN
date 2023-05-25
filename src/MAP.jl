@@ -6,6 +6,8 @@ using Flux: flatten
 
 function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVector{A}}
 
+
+
 	# Compress the data from an n-dimensional array to a matrix
 	Z = flatten.(Z)
 
@@ -33,16 +35,44 @@ function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVecto
 		end
 	end
 
+	# Distance matrix
+	D = ξ.D
+	# D may be a single matrix or a vector of matrices
+	if typeof(D) <: AbstractVector
+		# If θ₀ is replicated, try to create an approporiate pointer for D based
+		# on same way that chol_pointer is constructed.
+		L = length(D)
+		if L != K && (K ÷ L) != (K / L)
+			error("The number of parameter configurations, K = $K, and the number of distances matrics, L = $L, do not match; further, K is not a multiple of L, so we cannot replicate D to match θ.")
+		end
+		D_pointer = repeat(1:L, inner = K ÷ L) # Note that this is exactly the same as the field chol_pointer in objects of type Parameters
+	else
+		D = [D]
+		D_pointer = repeat([1], K)
+	end
+
+
 	# Number of parameter configurations to estimate
 	K = size(θ₀, 2)
 
 	# Convert from matrix to vector of vectors
 	θ₀ = [θ₀[:, k] for k ∈ 1:K]
 
+
 	# Optimise
-	θ̂ = Folds.map(Z, θ₀) do Zₖ, θ₀ₖ
-		 MAP(Zₖ, θ₀ₖ, ξ, Ω)
+	θ̂ = Folds.map(1:K) do k
+		 # MAP(Z[k], θ₀[k], D[k], Ω)
+		 Dₖ = D[D_pointer[k]]
+		 MAP(Z[k], θ₀[k], Dₖ, Ω)
 	end
+
+	# # D may be a single matrix or a vector of matrices
+	# if typeof(D) <: AbstractVector
+	# 	Dₖ = D[k]
+	# else
+	# 	D = D
+	# end
+
 
 	# Convert to matrix
 	θ̂ = hcat(θ̂...)
@@ -52,10 +82,10 @@ end
 
 
 
-function MAP(Z::M, θ₀::V, ξ, Ω) where {T, V <: AbstractVector{T}, M <: AbstractMatrix{T}}
+function MAP(Z::M, θ₀::V, D, Ω) where {T, V <: AbstractVector{T}, M <: AbstractMatrix{T}}
 
 	# Closure that will be minimised
-	loss(θ) = nll(θ, Z, ξ, Ω)
+	loss(θ) = nll(θ, Z, D, Ω)
 
 	# Estimate the parameters
 	θ̂ = optimize(loss, θ₀, NelderMead()) |> Optim.minimizer
@@ -65,13 +95,4 @@ function MAP(Z::M, θ₀::V, ξ, Ω) where {T, V <: AbstractVector{T}, M <: Abst
 	θ̂ = scaledlogistic.(θ̂, Ω)
 
 	return θ̂
-end
-
-# This method is for the case that the spatial locations vary between replicates,
-# so D is assumed to be an array of matrices.
-function ll(θ, ν, Z::V, D) where {T, S <: AbstractVector{T}, V <: AbstractVector{S}}
-	m = length(Z)
-	ℓ = [ll(θ, ν, vec(Z[i]), ξ.D[i]) for i ∈ 1:m]
-	ℓ = sum(ℓ)
-	return ℓ
 end

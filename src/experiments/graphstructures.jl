@@ -63,7 +63,7 @@ K_test = K_val
 
 p = ξ.p
 n = size(ξ.D, 1)
-ϵ = ξ.ϵ
+d = ξ.r
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
@@ -72,9 +72,9 @@ epochs = quick ? 2 : 1000
 # ---- Estimators ----
 
 seed!(1)
-gnn  = gnnarchitecture(p)
+gnn  = gnnarchitecture(p; propagation = "GraphConv")
 wgnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
-gnn_Svariable  = gnnarchitecture(p)
+gnn_Svariable  = gnnarchitecture(p; propagation = "GraphConv")
 wgnn_Svariable = gnnarchitecture(p; propagation = "WeightedGraphConv")
 
 # ---- Training ----
@@ -83,7 +83,7 @@ wgnn_Svariable = gnnarchitecture(p; propagation = "WeightedGraphConv")
 seed!(1)
 S = rand(n, 2)
 D = pairwise(Euclidean(), S, S, dims = 1)
-A = adjacencymatrix(D, ϵ)
+A = adjacencymatrix(D, d)
 g = GNNGraph(A)
 ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D
 θ_val,   Z_val   = irregularsetup(ξ, g, K = K_val, m = M)
@@ -96,8 +96,8 @@ seed!(1)
 train(wgnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_S", epochs = epochs)
 
 # GNN estimators trained under a variable set of irregular locations {Sₖ : k = 1, …, K}
-θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = M, ϵ = ϵ)
-θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = M, ϵ = ϵ)
+θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = M, neighbour_parameter = d)
+θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = M, neighbour_parameter = d)
 seed!(1)
 train(gnn_Svariable, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_Svariable", epochs = epochs)
 seed!(1)
@@ -125,7 +125,7 @@ end
 function assessestimators(S, ξ, K::Integer, set::String)
 
 	D = pairwise(Euclidean(), S, S, dims = 1)
-	A = adjacencymatrix(D, ϵ)
+	A = adjacencymatrix(D, d)
 	g = GNNGraph(A)
 	ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
 

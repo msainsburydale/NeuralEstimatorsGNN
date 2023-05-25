@@ -41,27 +41,17 @@ function logpairwiselikelihood(Z::M, ψ::M, indices::I) where {T <: Number, M <:
 end
 
 # Wrapper to use in optimize().
-function nll(θ::V, Z::M, ξ, Ω) where {T <: Number, V <: AbstractArray{T, 1}, M <: AbstractArray{T, 2}}
+function nll(θ::V, Z::M, D, Ω) where {T <: Number, V <: AbstractArray{T, 1}, M <: AbstractArray{T, 2}}
 
 	# Constrain the estimates to be within the prior support
 	θ = scaledlogistic.(θ, Ω)
 
-	# Convert distance matrix to FLoat64 to avoid positive definite errors
-	D = Float64.(ξ.D)
+	# Indices of observation pairs that are within a distance of d₀.
+	# Note that the full pairwise likelihood is obtained by setting d₀ = Inf.
+	indices = findall(d -> 0 < d < d₀, triu(D))
 
 	# Construct the correlation matrix from the current parameters
     ψ = corrmatrix(D, θ[1], θ[2])
 
-	return -logpairwiselikelihood(Z, ψ, ξ.indices)
-end
-
-
-# Wrapper function specific to the Schlather model
-function PL(Z::V, ξ, d₀) where {T <: Number, A <: AbstractArray{T, 4}, V <: AbstractVector{A}}
-
-	# Indices of observation pairs that are within a distance of d₀.
-	# Note that the full pairwise likelihood is obtained by setting d₀ = Inf.
-	indices = findall(d -> 0 < d < d₀, triu(ξ.D))
-
-	return likelihoodestimator(Z, (ξ..., indices = indices))
+	return -logpairwiselikelihood(Z, ψ, indices)
 end
