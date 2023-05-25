@@ -33,11 +33,11 @@ function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVecto
 		else
 			error("The length of the data vector, m = $m, and the number of parameter configurations, K = $K, do not match; further, m is not a multiple of K, so we cannot replicate θ to match Z.")
 		end
+		K = size(θ₀, 2) # update K
 	end
 
-	# Distance matrix
+	# Distance matrix: D may be a single matrix or a vector of matrices
 	D = ξ.D
-	# D may be a single matrix or a vector of matrices
 	if typeof(D) <: AbstractVector
 		# If θ₀ is replicated, try to create an approporiate pointer for D based
 		# on same way that chol_pointer is constructed.
@@ -50,29 +50,16 @@ function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVecto
 		D = [D]
 		D_pointer = repeat([1], K)
 	end
-
-
-	# Number of parameter configurations to estimate
-	K = size(θ₀, 2)
+	@assert length(D_pointer) == K
 
 	# Convert from matrix to vector of vectors
 	θ₀ = [θ₀[:, k] for k ∈ 1:K]
 
-
 	# Optimise
 	θ̂ = Folds.map(1:K) do k
-		 # MAP(Z[k], θ₀[k], D[k], Ω)
 		 Dₖ = D[D_pointer[k]]
 		 MAP(Z[k], θ₀[k], Dₖ, Ω)
 	end
-
-	# # D may be a single matrix or a vector of matrices
-	# if typeof(D) <: AbstractVector
-	# 	Dₖ = D[k]
-	# else
-	# 	D = D
-	# end
-
 
 	# Convert to matrix
 	θ̂ = hcat(θ̂...)
