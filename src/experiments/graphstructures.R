@@ -1,12 +1,14 @@
 library("optparse")
 option_list <- list(
-  make_option("--model", type="character", default=NULL, metavar="character")
+  make_option("--model", type="character", default=NULL, metavar="character"),
+  make_option("--neighbours", type="character", default="radius", metavar="character")
 )
 opt_parser  <- OptionParser(option_list=option_list)
 model       <- parse_args(opt_parser)$model
+neighbours  <- parse_args(opt_parser)$neighbours
 
-int_path <- paste0("intermediates/experiments/graphstructures/", model)
-img_path <- paste0("img/experiments/graphstructures/", model)
+int_path <- paste("intermediates/experiments/graphstructures", model, neighbours, sep = "/")
+img_path <- paste("img/experiments/graphstructures", model, neighbours, sep = "/")
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
 loadestimates <- function(set, type = "scenarios") {
@@ -18,13 +20,6 @@ loadestimates <- function(set, type = "scenarios") {
 source("src/plotting.R")
 
 boldtheta <- bquote(bold(theta))
-estimator_labels <- c(
-  "GNN_S" = bquote(GNN[S]),
-  "GNN_Svariable" = "GNN",
-  "MAP" = "MAP"#,
-  # "WGNN_S" = bquote(hat(.(boldtheta))[WGNN]("·") * " : " * S),
-  # "WGNN_Svariable" = bquote(hat(.(boldtheta))[WGNN]("·") * " : " * S[k] * ", k = 1, ..., K")
-)
 estimators <- names(estimator_labels)
 
 # ---- Risk function ----
@@ -73,6 +68,31 @@ figures <- lapply(unique(df$k), function(K) {
   
   df  <- df  %>% filter(k == K)
   zdf <- zdf %>% filter(k == K)
+  
+  # #TODO histogram of spatial distances 
+  # hdf <- zdf %>% 
+  #   group_by(set) %>% 
+  #   summarise(h = c(dist(matrix(c(s1, s2), ncol = 2, byrow = F))))
+  # 
+  # if (neighbours == "radius") {
+  #   hdf <- filter(hdf, h < 0.15)
+  # } else {
+  #   #TODO for fixednum approach, need to know which nodes are neighbours
+  # }
+  # 
+  # # TODO need to change the ordering here
+  # ggh <- ggplot(hdf) + 
+  #   geom_histogram(aes(x = h)) + 
+  #   facet_wrap(~set)
+  # 
+  # x <- split(zdf, zdf$set)
+  # x <- lapply(x, function(df) {
+  #   S = df[, c("s1", "s2")]
+  #   S = expand.grid(S)
+  #   D = apply(S, 1, function(x) sqrt(sum(x^2)))
+  #   df = data.frame(D = D, set = )  
+  # })
+  
   
   ggz_1  <- field_plot(filter(zdf, set == "S"), regular = F) + labs(title = "S")
   ggz_2  <- field_plot(filter(zdf, set == "Stilde"), regular = F) + labs(title = "S'")

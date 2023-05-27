@@ -25,8 +25,8 @@ m = let expr = Meta.parse(parsed_args["m"])
     Int.(expr.args)
 end
 
-# model="Schlather"
-# m=[1, 30]
+# model="GP/nuFixed"
+# m=[1]
 # skip_training = false
 # quick=true
 
@@ -38,7 +38,7 @@ using GraphNeuralNetworks
 using CSV
 
 include(joinpath(pwd(), "src/$model/model.jl"))
-include(joinpath(pwd(), "src/$model/MAP.jl")) # TODO add Pairwise likelihood for Schlather model (prototype with office PC)
+include(joinpath(pwd(), "src/$model/MAP.jl")) # TODO add Pairwise likelihood for Schlather model
 include(joinpath(pwd(), "src/architecture.jl"))
 
 path = "intermediates/$model"
@@ -65,7 +65,8 @@ epochs = quick ? 2 : 1000
 
 seed!(1)
 cnn = DeepSet(cnnarchitecture(p)...)
-gnn = gnnarchitecture(p)
+gnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
+dnn = DeepSet(dnnarchitecture(n, p)...)
 
 # ---- Training ----
 
@@ -82,7 +83,7 @@ if !skip_training
 	θ_train = Parameters(K_train, ξ, J = 5)
 	Z_val   = simulate(θ_val, M)
 	Z_train = simulate(θ_train, M)
-	trainx(cnn, θ_train, θ_val, reshapedataCNN(Z_train), reshapedataCNN(Z_val), savepath = path * "/runs_CNN", epochs = epochs)
+	trainx(cnn, θ_train, θ_val, reshapedataCNN(Z_train), reshapedataCNN(Z_val), m, savepath = path * "/runs_CNN", epochs = epochs)
 
 	# GNN estimator
 	@info "training the GNN..."
@@ -90,15 +91,38 @@ if !skip_training
 	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, neighbour_parameter = r)
 	θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, neighbour_parameter = r)
 	trainx(gnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN", epochs = epochs)
+
 end
 
+# A separate DNN needs to be used for each spatial configuration in the test set.
+# Hence, here we simply define a function that will be called later in the script.
+function trainDNN(dnn, ξ, S, set::String, skip_training::Bool)
+
+	@info "training the DNN for spatial configurations '$set'..."
+
+	# Compute distance matrix D and update ξ
+	D = pairwise(Euclidean(), S, S, dims = 1)
+	ξ = (ξ..., S = S, D = D)
+
+	if !skip_training
+		seed!(1)
+		θ_val   = Parameters(K_val, ξ, J = 5)
+		θ_train = Parameters(K_train, ξ, J = 5)
+		Z_val   = simulate(θ_val, M)
+		Z_train = simulate(θ_train, M)
+		trainx(dnn, θ_train, θ_val, reshapedataDNN(Z_train), reshapedataDNN(Z_val), m, savepath = path * "/runs_DNN_$set", epochs = epochs)
+	end
+
+	Flux.loadparams!(dnn,  loadbestweights(path * "/runs_DNN_$(set)_m$M"))
+
+	return dnn
+end
 
 
 # ---- Load the trained estimators ----
 
 Flux.loadparams!(cnn,  loadbestweights(path * "/runs_CNN_m$M"))
 Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_m$M"))
-
 
 # ---- Assess the estimators ----
 
@@ -108,6 +132,8 @@ function assessestimators(θ, Z, g, ξ; assess_CNN::Bool = false, assess_MAP::Bo
 		estimator_names = ["GNN"],
 		parameter_names = ξ.parameter_names
 	)
+
+	assessment = merge(assessment, assess([dnn], θ, reshapedataDNN(Z); estimator_names = ["DNN"], parameter_names = ξ.parameter_names))
 
 	if assess_CNN
 		assessment = merge(assessment, assess([cnn], θ, reshapedataCNN(Z); estimator_names = ["CNN"], parameter_names = ξ.parameter_names))
@@ -143,7 +169,7 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	K_scenarios = 5
 	seed!(1)
 	θ = Parameters(K_scenarios, ξ)
-	Z = simulate(θ, M, 100)
+	Z = simulate(θ, M, 150)
 	ξ = (ξ..., θ₀ = θ.θ)
 	assessment = assessestimators(θ, Z, g, ξ; assess_CNN = assess_CNN)
 	CSV.write(path * "/estimates_scenarios_$set.csv", assessment.df)
@@ -166,15 +192,20 @@ end
 
 
 # Test with respect to gridded data
+set = "gridded"
 pts = range(0, 1, length = 16)
 S   = expandgrid(pts, pts)
+dnn = trainDNN(dnn, ξ, S, set, skip_training)
 seed!(1)
-assessestimators(S, ξ, K_test, "gridded")
+assessestimators(S, ξ, K_test, set)
 
 # Test with respect to a set of irregular uniformly sampled locations
 seed!(1)
+set = "uniform"
 S = rand(n, 2)
-assessestimators(S, ξ, K_test, "uniform")
+dnn = trainDNN(dnn, ξ, S, set, skip_training)
+seed!(1)
+assessestimators(S, ξ, K_test, set)
 
 # Test with respect to locations sampled only in the first and third quadrants
 #         . . .
@@ -184,10 +215,13 @@ assessestimators(S, ξ, K_test, "uniform")
 #  . . .
 #  . . .
 seed!(1)
+set = "quadrants"
 S₁ = 0.5 * rand(n÷2, 2)
 S₂ = 0.5 * rand(n÷2, 2) .+ 0.5
 S  = vcat(S₁, S₂)
-assessestimators(S, ξ, K_test, "quadrants")
+dnn = trainDNN(dnn, ξ, S, set, skip_training)
+seed!(1)
+assessestimators(S, ξ, K_test, set)
 
 
 # Test with respect to locations with mixed sparsity.
@@ -204,6 +238,7 @@ assessestimators(S, ξ, K_test, "quadrants")
 #    .        . . .
 # .             .
 seed!(1)
+set = "mixedsparsity"
 n_centre = 200
 @assert n_centre < n
 @assert (n - n_centre) % 4 == 0
@@ -214,7 +249,9 @@ S_corner2 = 1/3 * rand(n_corner, 2); S_corner2[:, 2] .+= 2/3
 S_corner3 = 1/3 * rand(n_corner, 2); S_corner3[:, 1] .+= 2/3
 S_corner4 = 1/3 * rand(n_corner, 2); S_corner4 .+= 2/3
 S = vcat(S_centre, S_corner1, S_corner2, S_corner3, S_corner4)
-assessestimators(S, ξ, K_test, "mixedsparsity")
+dnn = trainDNN(dnn, ξ, S, set, skip_training)
+seed!(1)
+assessestimators(S, ξ, K_test, set)
 
 
 # Test with respect to locations with a cup shape ∪.
@@ -229,9 +266,12 @@ assessestimators(S, ξ, K_test, "mixedsparsity")
 # . . . . . . . . .
 #Construct by considering the domain split into three vertical strips
 seed!(1)
+set = "cup"
 n_strip2 = n÷3 + n % 3 # ensure that total sample size is n (even if n is not divisible by 3)
 S_strip1 = rand(n÷3, 2);      S_strip1[:, 1] .*= 0.2;
 S_strip2 = rand(n_strip2, 2); S_strip2[:, 1] .*= 0.6; S_strip2[:, 1] .+= 0.2; S_strip2[:, 2] .*= 1/3;
 S_strip3 = rand(n÷3, 2);      S_strip3[:, 1] .*= 0.2; S_strip3[:, 1] .+= 0.8;
 S = vcat(S_strip1, S_strip2, S_strip3)
-assessestimators(S, ξ, K_test, "cup")
+dnn = trainDNN(dnn, ξ, S, set, skip_training)
+seed!(1)
+assessestimators(S, ξ, K_test, set)

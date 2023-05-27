@@ -6,8 +6,6 @@ using Flux: flatten
 
 function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVector{A}}
 
-
-
 	# Compress the data from an n-dimensional array to a matrix
 	Z = flatten.(Z)
 

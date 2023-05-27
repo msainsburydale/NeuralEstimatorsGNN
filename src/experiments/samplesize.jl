@@ -50,7 +50,7 @@ if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
 K_train = 10_000
-K_val   = K_train ÷ 5
+K_val   = K_train ÷ 10
 if quick
 	K_train = K_train ÷ 100
 	K_val   = K_val   ÷ 100
@@ -64,8 +64,10 @@ n = size(ξ.D, 1)
 # falls within a circle of radius d is πd². So, on average, we expect nπd²
 # neighbours for each spatial location. Use this information to choose k in a
 # way that makes for a fair comparison between the two approaches.
+small_n = 30
+large_n = 300
 d = ξ.r
-k = ceil(Int, n*π*d^2)
+k = ceil(Int, large_n*π*d^2)
 neighbour_parameter = neighbours == "radius" ? d : k
 
 # The number of epochs used during training: note that early stopping means that
@@ -81,8 +83,7 @@ gnn3 = gnnarchitecture(p; propagation = "WeightedGraphConv")
 
 # ---- Training ----
 
-small_n = 30
-large_n = 300
+
 
 # GNN estimator trained with a fixed small n
 seed!(1)

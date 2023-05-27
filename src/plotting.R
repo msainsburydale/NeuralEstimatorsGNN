@@ -4,7 +4,22 @@ library("dplyr")
 library("ggpubr")
 library("viridis")
 library("tidyr")
+library("latex2exp")
 
+# see: latex2exp_supported()
+estimator_labels <- c(
+  "GNN1" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30})$"),
+  "GNN2" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{300})$"),
+  "GNN3" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30;300})$"),
+  "GNN3 radius" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30;300})$ : Fixed cut-off distance"),
+  "GNN3 fixednum" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30;300})$ : $k$-nearest neighbours"),
+  "GNN" = "GNN",
+  "CNN" = "CNN",
+  "DNN" = "DNN", 
+  "MAP" = "MAP", 
+  "GNN_S" = bquote(GNN[S]),
+  "GNN_Svariable" = "GNN"
+)
 
 # Legend labelling 
 estimator_order <- names(estimator_labels) # specifies the order that the estimators should appear in the plot legends.
@@ -19,25 +34,17 @@ scale_estimator <- function(df, scale = "colour", values = estimator_colours, ..
   )
 }
 
-# TODO move asterix to the left (maybe with negative spacing?)
-estimator_labels <- c(
-  "GNN1" = expression(hat(theta)("·"~";"~gamma[30]*"*")),
-  "GNN2" = expression(hat(theta)("·"~";"~gamma[300]*"*")),
-  "GNN3" = expression(hat(theta)("·"~";"~gamma[30:300]*"*")),
-  "GNN" = "GNN",
-  "CNN" = "CNN",
-  "MAP" = "MAP"
-)
-
 estimator_colours <- c(
   "MAP" = "#FDE725FF",
   "GNN" = "#21908CFF",
   "CNN" = "#440154FF",
+  "DNN" = "red",
   # Variable sample size experiment:
-  "GNN1"    = "red",
-  "GNN2"    = "orange",
-  "GNN3"    = "#440154FF"
-  
+  "GNN1" = "red",
+  "GNN2" = "orange",
+  "GNN3" = "#440154FF",
+  "GNN3 radius" = "#440154FF",
+  "GNN3 fixednum" = "#21908CFF"
 )
 
 

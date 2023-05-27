@@ -41,7 +41,7 @@ function logpairwiselikelihood(Z::M, ψ::M, indices::I) where {T <: Number, M <:
 end
 
 # Wrapper to use in optimize().
-function nll(θ::V, Z::M, D, Ω) where {T <: Number, V <: AbstractArray{T, 1}, M <: AbstractArray{T, 2}}
+function nll(θ, Z, D, Ω)
 
 	# Constrain the estimates to be within the prior support
 	θ = scaledlogistic.(θ, Ω)

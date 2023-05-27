@@ -28,12 +28,14 @@ do
     fi
 
     julia --threads=auto --project=. src/experiments/architectures.jl   --model=$model $quick --m=$m
-    julia --threads=auto --project=. src/experiments/graphstructures.jl --model=$model $quick --m=$m --neighbours=radius
-    julia --threads=auto --project=. src/experiments/graphstructures.jl --model=$model $quick --m=$m --neighbours=fixednum
+    julia --threads=auto --project=. src/experiments/graphstructures.jl --model=$model $quick --m=$m
     julia --threads=auto --project=. src/experiments/samplesize.jl      --model=$model $quick --m=$m --neighbours=radius
     julia --threads=auto --project=. src/experiments/samplesize.jl      --model=$model $quick --m=$m --neighbours=fixednum
 
     Rscript src/experiments/architectures.R   --model=$model
     Rscript src/experiments/graphstructures.R --model=$model
+    Rscript src/experiments/samplesize.R --model=$model --neighbours=radius
+    Rscript src/experiments/samplesize.R --model=$model --neighbours=fixednum
+    Rscript src/experiments/samplesizeII.R --model=$model
 
 done

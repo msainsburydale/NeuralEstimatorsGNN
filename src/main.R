@@ -17,11 +17,12 @@ loadestimates <- function(set, type = "scenarios") {
 
 source("src/plotting.R")
 
-boldtheta <- bquote(bold(theta))
+# TODO is this estimator_labels still needed? I don't think so. 
 estimator_labels <- c(
   "GNN" = "GNN",
   "CNN" = "CNN",
-  "MAP" = "MAP"
+  "MAP" = "MAP", 
+  "DNN" = "DNN"
 )
 estimators <- names(estimator_labels)
 
