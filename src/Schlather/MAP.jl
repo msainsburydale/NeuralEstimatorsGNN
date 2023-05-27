@@ -16,10 +16,8 @@ corrmatrix(D, ρ, ν) = matern.(D, ρ, ν)
 # Note that it is slightly inefficient to pass the indices through the functions
 # to subset the data at the very lowest level of logpairwiselikelihood(), since this
 # means that ψ is computed for all parameter pairs, rather than just a subset.
-# However, computing ψ is relatively inexpensive, so I won't worry about
-# changing it for now. If I do decide to change it, I can subset the distance
+# If I do decide to change it, I can subset the distance
 # matrix and obtain the i and j indices for subsetting y as follows:
-# Subset the distance matrix and
 # D = D[indices]
 # i = map(x -> x[1], indices)
 # j = map(x -> x[2], indices)
@@ -48,7 +46,7 @@ function nll(θ, Z, D, Ω)
 
 	# Indices of observation pairs that are within a distance of d₀.
 	# Note that the full pairwise likelihood is obtained by setting d₀ = Inf.
-	indices = findall(d -> 0 < d < d₀, triu(D))
+	indices = findall(d -> 0 < d < 0.15, triu(D)) # here d₀ = 0.15
 
 	# Construct the correlation matrix from the current parameters
     ψ = corrmatrix(D, θ[1], θ[2])

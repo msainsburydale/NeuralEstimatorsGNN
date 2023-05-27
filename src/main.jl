@@ -38,7 +38,7 @@ using GraphNeuralNetworks
 using CSV
 
 include(joinpath(pwd(), "src/$model/model.jl"))
-include(joinpath(pwd(), "src/$model/MAP.jl")) # TODO add Pairwise likelihood for Schlather model
+include(joinpath(pwd(), "src/$model/MAP.jl")) 
 include(joinpath(pwd(), "src/architecture.jl"))
 
 path = "intermediates/$model"
