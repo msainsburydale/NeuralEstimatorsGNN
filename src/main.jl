@@ -158,7 +158,7 @@ function assessestimators(θ, Z, g, ξ; assess_CNN::Bool = false, assess_MAP::Bo
 		parameter_names = ξ.parameter_names
 	)
 
-	assessment = merge(assessment, assess([dnn], θ, reshapedataDNN(Z); estimator_names = ["DNN"], parameter_names = ξ.parameter_names))
+	# assessment = merge(assessment, assess([dnn], θ, reshapedataDNN(Z); estimator_names = ["DNN"], parameter_names = ξ.parameter_names))
 
 	if assess_CNN
 		assessment = merge(assessment, assess([cnn], θ, reshapedataCNN(Z); estimator_names = ["CNN"], parameter_names = ξ.parameter_names))
@@ -220,7 +220,7 @@ end
 set = "gridded"
 pts = range(0, 1, length = 16)
 S   = expandgrid(pts, pts)
-dnn = trainDNN(dnn, ξ, S, set, skip_training)
+# dnn = trainDNN(dnn, ξ, S, set, skip_training)
 seed!(1)
 assessestimators(S, ξ, K_test, set)
 
@@ -244,7 +244,7 @@ set = "quadrants"
 S₁ = 0.5 * rand(n÷2, 2)
 S₂ = 0.5 * rand(n÷2, 2) .+ 0.5
 S  = vcat(S₁, S₂)
-dnn = trainDNN(dnn, ξ, S, set, skip_training)
+# dnn = trainDNN(dnn, ξ, S, set, skip_training)
 seed!(1)
 assessestimators(S, ξ, K_test, set)
 
@@ -274,7 +274,7 @@ S_corner2 = 1/3 * rand(n_corner, 2); S_corner2[:, 2] .+= 2/3
 S_corner3 = 1/3 * rand(n_corner, 2); S_corner3[:, 1] .+= 2/3
 S_corner4 = 1/3 * rand(n_corner, 2); S_corner4 .+= 2/3
 S = vcat(S_centre, S_corner1, S_corner2, S_corner3, S_corner4)
-dnn = trainDNN(dnn, ξ, S, set, skip_training)
+# dnn = trainDNN(dnn, ξ, S, set, skip_training)
 seed!(1)
 assessestimators(S, ξ, K_test, set)
 
@@ -297,6 +297,6 @@ S_strip1 = rand(n÷3, 2);      S_strip1[:, 1] .*= 0.2;
 S_strip2 = rand(n_strip2, 2); S_strip2[:, 1] .*= 0.6; S_strip2[:, 1] .+= 0.2; S_strip2[:, 2] .*= 1/3;
 S_strip3 = rand(n÷3, 2);      S_strip3[:, 1] .*= 0.2; S_strip3[:, 1] .+= 0.8;
 S = vcat(S_strip1, S_strip2, S_strip3)
-dnn = trainDNN(dnn, ξ, S, set, skip_training)
+# dnn = trainDNN(dnn, ξ, S, set, skip_training)
 seed!(1)
 assessestimators(S, ξ, K_test, set)
