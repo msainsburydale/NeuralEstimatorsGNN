@@ -228,7 +228,7 @@ assessestimators(S, ξ, K_test, set)
 seed!(1)
 set = "uniform"
 S = rand(n, 2)
-dnn = trainDNN(dnn, ξ, S, set, skip_training)
+# dnn = trainDNN(dnn, ξ, S, set, skip_training)
 seed!(1)
 assessestimators(S, ξ, K_test, set)
 
