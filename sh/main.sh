@@ -24,7 +24,7 @@ do
     if [[ $model == "GP/nuFixed" ]]; then
         m="[1]"
     else
-        m="[1,30]"
+        m="[1,15]" # TODO increase this when I improve efficiency
     fi
 
     julia --threads=auto --project=. src/main.jl --model=$model $quick --m=$m

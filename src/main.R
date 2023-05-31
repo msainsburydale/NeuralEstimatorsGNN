@@ -17,16 +17,11 @@ loadestimates <- function(set, type = "scenarios") {
 
 source("src/plotting.R")
 
-# TODO is this estimator_labels still needed? I don't think so. 
-estimator_labels <- c(
-  "GNN" = "GNN",
-  "CNN" = "CNN",
-  "MAP" = "MAP", 
-  "DNN" = "DNN"
-)
-estimators <- names(estimator_labels)
+
 
 # ---- Risk function ----
+
+estimators <- c("GNN", "CNN", "MAP") 
 
 df <- loadestimates("gridded", "test") %>%
   rbind(loadestimates("uniform", "test")) %>%

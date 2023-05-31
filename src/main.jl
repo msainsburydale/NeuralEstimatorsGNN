@@ -38,7 +38,7 @@ using GraphNeuralNetworks
 using CSV
 
 include(joinpath(pwd(), "src/$model/model.jl"))
-include(joinpath(pwd(), "src/$model/MAP.jl")) 
+include(joinpath(pwd(), "src/$model/MAP.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
 path = "intermediates/$model"
@@ -118,6 +118,30 @@ function trainDNN(dnn, ξ, S, set::String, skip_training::Bool)
 	return dnn
 end
 
+#TODO
+# Function to  train a GNN for a specific spatial configuration
+# function trainGNN(dnn, ξ, S, set::String, skip_training::Bool)
+#
+# 	@info "training the GNN for spatial configurations '$set'..."
+#
+# 	# Compute distance matrix D and update ξ
+# 	D = pairwise(Euclidean(), S, S, dims = 1)
+# 	ξ = (ξ..., S = S, D = D)
+#
+# 	if !skip_training
+# 		# GNN estimator
+# 		@info "training the GNN..."
+# 		seed!(1)
+# 		θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, neighbour_parameter = r)
+# 		θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, neighbour_parameter = r)
+# 		trainx(gnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN", epochs = epochs)
+# 	end
+#
+# 	Flux.loadparams!(dnn,  loadbestweights(path * "/runs_DNN_$(set)_m$M"))
+#
+# 	return dnn
+# end
+
 
 # ---- Load the trained estimators ----
 
@@ -127,6 +151,7 @@ Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_m$M"))
 # ---- Assess the estimators ----
 
 function assessestimators(θ, Z, g, ξ; assess_CNN::Bool = false, assess_MAP::Bool = true)
+
 	assessment = assess(
 		[gnn], θ, reshapedataGNN(Z, g);
 		estimator_names = ["GNN"],
