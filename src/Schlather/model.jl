@@ -21,6 +21,7 @@ parameter_names = String.(collect(keys(Ω)))
 	S = S,
 	D = pairwise(Euclidean(), S, S, dims = 1),
 	p = length(Ω),
+	d = size(S, 1),
 	parameter_names = parameter_names,
 	ρ_idx = findfirst(parameter_names .== "ρ"),
 	ν_idx = findfirst(parameter_names .== "ν"),

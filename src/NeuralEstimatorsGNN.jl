@@ -16,7 +16,7 @@ export adjacencymatrix
 export reshapedataDNN, reshapedataGNN, reshapedataCNN
 export variableirregularsetup, irregularsetup
 export Parameters
-
+export addsingleton
 export coverage
 
 """
@@ -480,9 +480,6 @@ addsingleton(x; dim = 3)
 ```
 """
 addsingleton(x; dim) = reshape(x, size(x)[1:dim-1]..., 1, size(x)[dim:end]...)
-
-export addsingleton
-
 
 using Flux: flatten
 

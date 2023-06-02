@@ -14,7 +14,7 @@ else
     exit 1
 fi
 
-for model in GP/nuFixed Schlather GP/nuFixed
+for model in Schlather GP/nuVaried GP/nuFixed
 do
 
     echo ""
@@ -24,10 +24,9 @@ do
     if [[ $model == "GP/nuFixed" ]]; then
         m="[1]"
     else
-        m="[1,15]" # TODO increase this when I improve efficiency
+        m="[1,15,30,50]"
     fi
 
     julia --threads=auto --project=. src/main.jl --model=$model $quick --m=$m
-    Rscript src/main.R   --model=$model
-
+    #Rscript src/main.R   --model=$model
 done
