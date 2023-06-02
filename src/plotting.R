@@ -51,9 +51,10 @@ estimator_colours <- c(
 
 # TODO update plotdistribution() to automatically select only the parameters that are in df, rather than throwing an error when "The number of parameter labels differs to the number of parameters"
 parameter_labels <- c(
-  "τ"  = expression(hat(tau)),
-  # "σ"  = expression(sigma), 
-  "ρ"  = expression(hat(rho))
+  # "τ"  = expression(hat(tau)),
+  # "σ"  = expression(sigma),
+  "ρ"  = expression(hat(rho)),
+  "ν"  = expression(hat(nu))
 )
 
 loss <- function(x, y) abs(x - y)

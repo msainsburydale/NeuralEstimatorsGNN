@@ -481,10 +481,11 @@ addsingleton(x; dim = 3)
 """
 addsingleton(x; dim) = reshape(x, size(x)[1:dim-1]..., 1, size(x)[dim:end]...)
 
+export addsingleton
+
 
 using Flux: flatten
 
-#TODO also need to do this for a vector of graphs
 function reshapedataGNN2(z::A, g::GNNGraph) where A <: AbstractArray{T, N} where {T, N}
 	# First, flatten the multi-dimensional array into a matrix, where the first
 	# dimension stores the node-level data and the second dimensions stores
