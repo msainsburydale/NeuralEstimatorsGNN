@@ -25,9 +25,9 @@ m = let expr = Meta.parse(parsed_args["m"])
     Int.(expr.args)
 end
 
-# model="GP/nuFixed"
-# m=[1]
-# skip_training = false
+# model="Schlather"
+# m=[1, 30]
+# skip_training = true
 # quick=true
 
 M = maximum(m)
@@ -46,7 +46,7 @@ if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
 K_train = 10_000
-K_val   = K_train ÷ 5
+K_val   = K_train ÷ 10
 if quick
 	K_train = K_train ÷ 100
 	K_val   = K_val   ÷ 100
@@ -74,13 +74,15 @@ dnn = DeepSet(dnnarchitecture(n, p)...)
 # because CNNs require gridded data whilst GNNs require training with irregular
 # data if they are to generalise well.
 
+const J = 3
+
 if !skip_training
 
 	# CNN estimator
 	@info "training the CNN..."
 	seed!(1)
-	θ_val   = Parameters(K_val, ξ, J = 5)
-	θ_train = Parameters(K_train, ξ, J = 5)
+	θ_val   = Parameters(K_val, ξ, J = J)
+	θ_train = Parameters(K_train, ξ, J = J)
 	Z_val   = simulate(θ_val, M)
 	Z_train = simulate(θ_train, M)
 	trainx(cnn, θ_train, θ_val, reshapedataCNN(Z_train), reshapedataCNN(Z_val), m, savepath = path * "/runs_CNN", epochs = epochs)
@@ -88,8 +90,8 @@ if !skip_training
 	# GNN estimator
 	@info "training the GNN..."
 	seed!(1)
-	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, neighbour_parameter = r)
-	θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, neighbour_parameter = r)
+	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, neighbour_parameter = r, J = J),
+	θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, neighbour_parameter = r, J = J)
 	trainx(gnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16)
 
 end
@@ -106,8 +108,8 @@ function trainDNN(dnn, ξ, S, set::String, skip_training::Bool)
 
 	if !skip_training
 		seed!(1)
-		θ_val   = Parameters(K_val, ξ, J = 5)
-		θ_train = Parameters(K_train, ξ, J = 5)
+		θ_val   = Parameters(K_val, ξ, J = J)
+		θ_train = Parameters(K_train, ξ, J = J)
 		Z_val   = simulate(θ_val, M)
 		Z_train = simulate(θ_train, M)
 		trainx(dnn, θ_train, θ_val, reshapedataDNN(Z_train), reshapedataDNN(Z_val), m, savepath = path * "/runs_DNN_$set", epochs = epochs)
@@ -161,7 +163,7 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	θ = Parameters(K_test, ξ)
 	Z = simulate(θ, M)
 	ξ = (ξ..., θ₀ = θ.θ)
-	assessment = assessestimators(θ, Z, g, ξ; assess_CNN = assess_CNN)
+	assessment = assessestimators(θ, Z, g, ξ; assess_CNN = assess_CNN, assess_MAP = assess_MAP)
 	CSV.write(path * "/estimates_test_$set.csv", assessment.df)
 	CSV.write(path * "/runtime_test_$set.csv", assessment.runtime)
 
@@ -171,7 +173,7 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	θ = Parameters(K_scenarios, ξ)
 	Z = simulate(θ, M, 150)
 	ξ = (ξ..., θ₀ = θ.θ)
-	assessment = assessestimators(θ, Z, g, ξ; assess_CNN = assess_CNN)
+	assessment = assessestimators(θ, Z, g, ξ; assess_CNN = assess_CNN, assess_MAP = assess_MAP)
 	CSV.write(path * "/estimates_scenarios_$set.csv", assessment.df)
 	CSV.write(path * "/runtime_scenarios_$set.csv", assessment.runtime)
 

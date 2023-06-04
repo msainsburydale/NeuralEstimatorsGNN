@@ -19,7 +19,7 @@ function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVecto
 	# Convert to Float64 so that Cholesky factorisation doesn't throw positive
 	# definite error due to rounding.
 	# (When you want to broadcast broadcast, then broadcast broadcast)
-	Z  = broadcast.(x -> !ismissing(x) ? Float64(x) : identity(x), Z)
+	Z  = broadcast.(Float64, Z)
 	θ₀ = Float64.(θ₀)
 
 	# If Z is replicated, try to replicate θ₀ accordingly.

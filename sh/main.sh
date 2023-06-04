@@ -24,9 +24,9 @@ do
     if [[ $model == "GP/nuFixed" ]]; then
         m="[1]"
     else
-        m="[1,15,30,50]"
+        m="[1,30]"
     fi
 
-    julia --threads=auto --project=. src/main.jl --model=$model $quick --m=$m
+    julia --threads=auto --project=. src/main.jl --model=$model $quick --m=$m --skip_training
     #Rscript src/main.R   --model=$model
 done

@@ -46,7 +46,7 @@ function nll(θ, Z, D, Ω)
 
 	# Indices of observation pairs that are within a distance of d₀.
 	# Note that the full pairwise likelihood is obtained by setting d₀ = Inf.
-	indices = findall(d -> 0 < d < 0.15, triu(D)) # here d₀ = 0.15
+	indices = findall(d -> 0 < d < 0.2, triu(D)) 
 
 	# Construct the correlation matrix from the current parameters
     ψ = corrmatrix(D, θ[1], θ[2])

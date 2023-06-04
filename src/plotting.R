@@ -1,10 +1,15 @@
-library("NeuralEstimators")
-library("ggplot2")
-library("dplyr")
-library("ggpubr")
-library("viridis")
-library("tidyr")
-library("latex2exp")
+suppressMessages({
+  library("NeuralEstimators")
+  library("ggplot2")
+  library("dplyr")
+  library("ggpubr")
+  library("egg")
+  library("viridis")
+  library("tidyr")
+  library("latex2exp")  
+  library("ggExtra") # ggMarginal
+})
+
 
 # see: latex2exp_supported()
 estimator_labels <- c(
@@ -47,12 +52,9 @@ estimator_colours <- c(
   "GNN3 fixednum" = "#21908CFF"
 )
 
-
-
-# TODO update plotdistribution() to automatically select only the parameters that are in df, rather than throwing an error when "The number of parameter labels differs to the number of parameters"
 parameter_labels <- c(
-  # "τ"  = expression(hat(tau)),
-  # "σ"  = expression(sigma),
+  "τ"  = expression(hat(tau)),
+  "σ"  = expression(hat(sigma)),
   "ρ"  = expression(hat(rho)),
   "ν"  = expression(hat(nu))
 )

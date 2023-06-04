@@ -17,11 +17,53 @@ loadestimates <- function(set, type = "scenarios") {
 
 source("src/plotting.R")
 
+loaddata <- function(set) {
+  df <- read.csv(paste0(int_path, "/Z_", set, ".csv"))
+  df$set <- set
+  df
+}
+
+estimators <- c("GNN", "CNN", "MAP") 
+
+
+# ---- Simple plot used in the main text ----
+
+df  <- loadestimates("uniform", "scenarios") %>% filter(estimator %in% estimators)
+zdf <- loaddata("uniform")
+
+figures <- lapply(unique(df$k), function(K) {
+
+  df <- df %>% filter(k == K)
+  zdf <- zdf %>% filter(k == K)
+
+  gg1 <- field_plot(zdf, regular = F) #+ coord_fixed()
+  gg2 <- plotdistribution(df, type = "scatter", parameter_labels = parameter_labels)[[1]] # , truth_line_size = 1
+  gg3 <- plotdistribution(df, parameter_labels = parameter_labels, return_list = T)
+
+  gg2 <- gg2 + scale_estimator(df)
+  gg3 <- lapply(gg3, function(gg) gg + scale_estimator(df) + theme(legend.position = "top") + labs(y = ""))
+
+  gg1 <- gg1 + theme(legend.position = "top", legend.title.align = 0.5, legend.title = element_text(face = "bold"))
+  gg2 <- gg2 + theme(legend.position = "top")
+
+  # ggarrange(gg1, gg2, nrow = 1, align = "hv")
+  figure <- ggpubr::ggarrange(plotlist = c(list(gg1, gg2), gg3), nrow = 1, ncol = 4, align = "hv")
+
+  ggsave(
+    figure,
+    file = paste0("main", K, ".pdf"),
+    width = 9.3, height = 3, device = "pdf", path = img_path
+  )
+
+  # gg2 <- ggMarginal(gg2, groupFill = TRUE, groupColour = TRUE, type = "density", alpha = 0.5, position = "identity")
+  # gg2 <- as.ggplot(gg2)
+
+  figure
+})
+
 
 
 # ---- Risk function ----
-
-estimators <- c("GNN", "CNN", "MAP") 
 
 df <- loadestimates("gridded", "test") %>%
   rbind(loadestimates("uniform", "test")) %>%
@@ -48,12 +90,6 @@ df %>%
 
 # ---- Sampling distributions ----
 
-loaddata <- function(set) {
-  df <- read.csv(paste0(int_path, "/Z_", set, ".csv"))
-  df$set <- set
-  df
-}
-
 df <- loadestimates("gridded") %>%
   rbind(loadestimates("uniform")) %>%
   rbind(loadestimates("quadrants")) %>% 
@@ -73,6 +109,7 @@ figures <- lapply(unique(df$k), function(K) {
   zdf <- zdf %>% filter(k == K)
   
   ggz_1  <- field_plot(filter(zdf, set == "gridded"), regular = T) # NB set regular = F for consistency
+  ggz_1  <- ggz_1 + scale_x_continuous(breaks = c(0.25, 0.5, 0.75), expand = c(0, 0)) + scale_y_continuous(breaks = c(0.25, 0.5, 0.75), expand = c(0, 0))  
   ggz_2  <- field_plot(filter(zdf, set == "uniform"), regular = F) 
   ggz_3  <- field_plot(filter(zdf, set == "quadrants"), regular = F)
   ggz_4  <- field_plot(filter(zdf, set == "mixedsparsity"), regular = F)
@@ -80,11 +117,19 @@ figures <- lapply(unique(df$k), function(K) {
   ggz_1  <- ggz_1 + labs(fill = "Z") + theme(legend.title.align = 0.25, legend.title = element_text(face = "bold"))
   data_legend <- get_legend(ggz_1)
   data <- list(ggz_1, ggz_2, ggz_3, ggz_4, ggz_5)
-  data <- lapply(data, function(gg) gg + 
-                   theme(legend.position = "none") + 
-                   theme(plot.title = element_text(hjust = 0.5)) + 
-                   coord_fixed())
+  data <- lapply(
+    data, function(gg) gg + 
+      theme(legend.position = "none") + 
+      theme(plot.title = element_text(hjust = 0.5)) #+ coord_fixed()
+    )
   
+  
+  # TESTING
+  data[-1] <- lapply(data[-1], function(gg) gg + 
+                       theme(axis.text.y = element_blank(),
+                             axis.ticks.y = element_blank(),
+                             axis.title.y = element_blank()))
+  egg::ggarrange(plots = data, align = "hv", nrow = 1)
   
   
   # Marginal distributions
@@ -107,9 +152,9 @@ figures <- lapply(unique(df$k), function(K) {
   })
   
   plotlist <- c(data, box)
-  figure1  <- ggarrange(plotlist = plotlist, nrow = 2, ncol = 5, heights = c(1.25, 2))
-  figure2  <- ggarrange(data_legend, box_legend, ncol = 1, heights = c(1, 2.5))
-  figure   <- ggarrange(figure1, figure2, widths = c(1, 0.15))
+  figure1  <- ggpubr::ggarrange(plotlist = plotlist, nrow = 2, ncol = 5, heights = c(1.25, 2))
+  figure2  <- ggpubr::ggarrange(data_legend, box_legend, ncol = 1, heights = c(1, 2.5))
+  figure   <- ggpubr::ggarrange(figure1, figure2, widths = c(1, 0.15))
   figure
   
   ggsave(
@@ -136,11 +181,22 @@ figures <- lapply(unique(df$k), function(K) {
       )
   })
   
-  plotlist <- c(data, joint)
-  figure1  <- ggarrange(plotlist = plotlist, nrow = 2, ncol = 5, align = "hv")
-  figure2  <- ggarrange(data_legend, joint_legend, ncol = 1, heights = c(1, 1))
-  figure   <- ggarrange(figure1, figure2, widths = c(1, 0.15))
-  figure
+  joint[-1] <- lapply(joint[-1], function(gg) gg + 
+                       theme(axis.text.y = element_blank(),
+                             axis.ticks.y = element_blank(),
+                             axis.title.y = element_blank()))
+  
+  # limits: 
+  xname <- quo_name(g$layers[[1]]$mapping$x); xname <- gsub("estimate_", "", xname)
+  yname <- quo_name(g$layers[[1]]$mapping$y); yname <- gsub("estimate_", "", yname)
+  xlims <- df %>% filter(parameter == xname) %>% summarise(range(estimate)) %>% as.matrix %>% c
+  ylims <- df %>% filter(parameter == yname) %>% summarise(range(estimate)) %>% as.matrix %>% c
+  joint <- lapply(joint, function(gg) gg + xlim(xlims) + ylim(ylims))
+  
+  plots <- c(data, joint)
+  figure1  <- egg::ggarrange(plots = plots, nrow = 2, ncol = 5, align = "hv")
+  figure2  <- ggpubr::ggarrange(data_legend, joint_legend, ncol = 1, heights = c(1, 1))
+  figure   <- ggpubr::ggarrange(figure1, figure2, widths = c(1, 0.15))
   
   ggsave(
     figure, 

@@ -541,7 +541,7 @@ function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_
 	Z = [simulate(θ, mᵢ) for mᵢ ∈ m]
 
 	g = repeat(g, inner = J)
-	Z = reshapedataGNN.(Z, Ref(g)) # TODO why is Ref() needed here?
+	Z = reshapedataGNN.(Z, Ref(g)) 
 
 	return_ξ ? (θ, Z, ξ) : (θ, Z)
 end
