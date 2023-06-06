@@ -171,7 +171,7 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	K_scenarios = 5
 	seed!(1)
 	θ = Parameters(K_scenarios, ξ)
-	Z = simulate(θ, M, 150)
+	Z = simulate(θ, M, quick ? 10 : 100)
 	ξ = (ξ..., θ₀ = θ.θ)
 	assessment = assessestimators(θ, Z, g, ξ; assess_CNN = assess_CNN, assess_MAP = assess_MAP)
 	CSV.write(path * "/estimates_scenarios_$set.csv", assessment.df)
