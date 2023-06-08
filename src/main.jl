@@ -185,6 +185,7 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	colons  = ntuple(_ -> (:), ndims(Z[1]) - 1)
 	z  = broadcast(z -> vec(z[colons..., 1]), Z) # save only the first replicate of each parameter configuration
 	z  = vcat(z...)
+	z  = broadcast(ξ.invtransform, z) 
 	d  = prod(size(Z[1])[1:end-1])
 	k  = repeat(1:K_scenarios, inner = d)
 	s1 = repeat(S[:, 1], K_scenarios)
