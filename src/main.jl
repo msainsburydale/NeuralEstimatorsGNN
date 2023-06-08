@@ -134,18 +134,17 @@ function assessestimators(θ, Z, g, ξ; assess_CNN::Bool = false, assess_MAP::Bo
 	assessment = assess(
 		[gnn], θ, reshapedataGNN(Z, g);
 		estimator_names = ["GNN"],
-		parameter_names = ξ.parameter_names,
-		use_gpu = false
+		parameter_names = ξ.parameter_names
 	)
 
 	# assessment = merge(assessment, assess([dnn], θ, reshapedataDNN(Z); estimator_names = ["DNN"], parameter_names = ξ.parameter_names))
 
 	if assess_CNN
-		assessment = merge(assessment, assess([cnn], θ, reshapedataCNN(Z); estimator_names = ["CNN"], parameter_names = ξ.parameter_names, use_gpu = false))
+		assessment = merge(assessment, assess([cnn], θ, reshapedataCNN(Z); estimator_names = ["CNN"], parameter_names = ξ.parameter_names))
 	end
 
 	if assess_MAP
-		assessment = merge(assessment, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ))
+		assessment = merge(assessment, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_ξ = true, ξ = ξ))
 	end
 
 	return assessment
@@ -185,7 +184,7 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	colons  = ntuple(_ -> (:), ndims(Z[1]) - 1)
 	z  = broadcast(z -> vec(z[colons..., 1]), Z) # save only the first replicate of each parameter configuration
 	z  = vcat(z...)
-	z  = broadcast(ξ.invtransform, z) 
+	z  = broadcast(ξ.invtransform, z)
 	d  = prod(size(Z[1])[1:end-1])
 	k  = repeat(1:K_scenarios, inner = d)
 	s1 = repeat(S[:, 1], K_scenarios)
