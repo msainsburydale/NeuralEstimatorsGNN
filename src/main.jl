@@ -25,6 +25,8 @@ m = let expr = Meta.parse(parsed_args["m"])
     Int.(expr.args)
 end
 
+#TODO need to save the data after inverse transforming
+
 # model="Schlather"
 # m=[1, 30]
 # skip_training = true
@@ -132,13 +134,14 @@ function assessestimators(θ, Z, g, ξ; assess_CNN::Bool = false, assess_MAP::Bo
 	assessment = assess(
 		[gnn], θ, reshapedataGNN(Z, g);
 		estimator_names = ["GNN"],
-		parameter_names = ξ.parameter_names
+		parameter_names = ξ.parameter_names,
+		use_gpu = false
 	)
 
 	# assessment = merge(assessment, assess([dnn], θ, reshapedataDNN(Z); estimator_names = ["DNN"], parameter_names = ξ.parameter_names))
 
 	if assess_CNN
-		assessment = merge(assessment, assess([cnn], θ, reshapedataCNN(Z); estimator_names = ["CNN"], parameter_names = ξ.parameter_names))
+		assessment = merge(assessment, assess([cnn], θ, reshapedataCNN(Z); estimator_names = ["CNN"], parameter_names = ξ.parameter_names, use_gpu = false))
 	end
 
 	if assess_MAP

@@ -92,9 +92,9 @@ df %>%
 
 df <- loadestimates("gridded") %>%
   rbind(loadestimates("uniform")) %>%
-  rbind(loadestimates("quadrants")) %>% 
-  rbind(loadestimates("mixedsparsity")) %>% 
-  rbind(loadestimates("cup")) %>% 
+  rbind(loadestimates("quadrants")) %>%
+  rbind(loadestimates("mixedsparsity")) %>%
+  rbind(loadestimates("cup")) %>%
   filter(estimator %in% estimators)
 
 zdf <- loaddata("gridded") %>%
@@ -123,13 +123,10 @@ figures <- lapply(unique(df$k), function(K) {
       theme(plot.title = element_text(hjust = 0.5)) #+ coord_fixed()
     )
   
-  
-  # TESTING
   data[-1] <- lapply(data[-1], function(gg) gg + 
                        theme(axis.text.y = element_blank(),
                              axis.ticks.y = element_blank(),
                              axis.title.y = element_blank()))
-  egg::ggarrange(plots = data, align = "hv", nrow = 1)
   
   
   # Marginal distributions
