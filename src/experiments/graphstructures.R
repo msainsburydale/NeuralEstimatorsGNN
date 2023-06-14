@@ -47,8 +47,6 @@ df %>%
 
 # ---- Sampling distributions ----
 
-
-
 loaddata <- function(set) {
   df <- read.csv(paste0(int_path, "/Z_", set, ".csv"))
   df$set <- set
@@ -59,6 +57,16 @@ df <- loadestimates("S") %>%
   rbind(loadestimates("Stilde")) %>%
   rbind(loadestimates("Sclustered")) %>% 
   filter(estimator %in% estimators)
+
+# Relabel to control the order of boxplots
+# df$estimator <- as.factor(df$estimator)
+# levels(df$estimator) <- c("GNN_S", "GNN_Svariable", "GNN_Sclustered", "MAP")
+df$estimator[df$estimator == "GNN_S"] <- "GNN_S1"
+df$estimator[df$estimator == "GNN_Svariable"] <- "GNN_S2"
+df$estimator[df$estimator == "GNN_Sclustered"] <- "GNN_S3"
+
+
+df$estimator %>% unique
 
 zdf <- loaddata("S") %>%
   rbind(loaddata("Stilde")) %>%
@@ -106,9 +114,9 @@ figures <- lapply(unique(df$k), function(K) {
                    coord_fixed())
   
   
-  box_1  <- plotdistribution(filter(df, set == "S"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1) # + scale_estimator(df)
-  box_2   <- plotdistribution(filter(df, set == "Stilde"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1) # + scale_estimator(df)
-  box_3   <- plotdistribution(filter(df, set == "Sclustered"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1) # + scale_estimator(df)
+  box_1  <- plotdistribution(filter(df, set == "S"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1)  + scale_estimator(df)
+  box_2   <- plotdistribution(filter(df, set == "Stilde"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1)  + scale_estimator(df)
+  box_3   <- plotdistribution(filter(df, set == "Sclustered"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1)  + scale_estimator(df)
   box_legend <- get_legend(box_2)
   box <- list(box_1, box_2, box_3)
   box <- lapply(box, function(gg) {
@@ -124,9 +132,9 @@ figures <- lapply(unique(df$k), function(K) {
   })
   
   plotlist <- c(data, box)
-  figure1  <- ggarrange(plotlist = plotlist, nrow = 2, ncol = 3, heights = c(1.25, 2))
-  figure2  <- ggarrange(data_legend, box_legend, ncol = 1, heights = c(1, 2.5))
-  figure   <- ggarrange(figure1, figure2, widths = c(1, 0.15))
+  figure1  <- ggpubr::ggarrange(plotlist = plotlist, nrow = 2, ncol = 3, heights = c(1.25, 2))
+  figure2  <- ggpubr::ggarrange(data_legend, box_legend, ncol = 1, heights = c(1, 2.5))
+  figure   <- ggpubr::ggarrange(figure1, figure2, widths = c(1, 0.15))
   figure
   
   ggsave(
@@ -137,7 +145,3 @@ figures <- lapply(unique(df$k), function(K) {
   
   figure
 })
-
-
-
-

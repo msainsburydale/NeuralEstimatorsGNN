@@ -91,6 +91,8 @@ gnn_Svariable  = gnnarchitecture(p; propagation = "GraphConv")
 wgnn_Svariable = gnnarchitecture(p; propagation = "WeightedGraphConv")
 gnn_Sclustered  = gnnarchitecture(p; propagation = "GraphConv")
 wgnn_Sclustered = gnnarchitecture(p; propagation = "WeightedGraphConv")
+gnn_Smatern  = gnnarchitecture(p; propagation = "GraphConv")
+wgnn_Smatern = gnnarchitecture(p; propagation = "WeightedGraphConv")
 
 # ---- Training ----
 
@@ -140,6 +142,15 @@ seed!(1)
 train(wgnn_Sclustered, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_Sclustered", epochs = epochs)
 
 
+# Estimators trained under a Matern clustering process
+θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = M, neighbour_parameter = neighbour_parameter, clustering = true)
+θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = M, neighbour_parameter = neighbour_parameter, clustering = true)
+seed!(1)
+train(gnn_Smatern, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_Smatern", epochs = epochs)
+seed!(1)
+train(wgnn_Smatern, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_Smatern", epochs = epochs)
+
+
 # ---- Load the trained estimators ----
 
 Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_S"))
@@ -148,15 +159,17 @@ Flux.loadparams!(gnn_Svariable,  loadbestweights(path * "/runs_GNN_Svariable"))
 Flux.loadparams!(wgnn_Svariable, loadbestweights(path * "/runs_WGNN_Svariable"))
 Flux.loadparams!(gnn_Sclustered,  loadbestweights(path * "/runs_GNN_Sclustered"))
 Flux.loadparams!(wgnn_Sclustered, loadbestweights(path * "/runs_WGNN_Sclustered"))
+Flux.loadparams!(gnn_Smatern,  loadbestweights(path * "/runs_GNN_Smatern"))
+Flux.loadparams!(wgnn_Smatern, loadbestweights(path * "/runs_WGNN_Smatern"))
 
 
 # ---- Assess the estimators ----
 
 function assessestimators(θ, Z, g, ξ)
 	assessment = assess(
-		[gnn, gnn_Svariable, gnn_Sclustered, wgnn, wgnn_Svariable, wgnn_Sclustered],
+		[gnn, gnn_Svariable, gnn_Sclustered, gnn_Smatern, wgnn, wgnn_Svariable, wgnn_Sclustered, wgnn_Smatern],
 		θ, reshapedataGNN(Z, g);
-		estimator_names = ["GNN_S", "GNN_Svariable", "GNN_Sclustered", "WGNN_S", "WGNN_Svariable", "WGNN_Sclustered"],
+		estimator_names = ["GNN_S", "GNN_Svariable", "GNN_Sclustered", "GNN_Smatern", "WGNN_S", "WGNN_Svariable", "WGNN_Sclustered", "WGNN_Smatern"],
 		parameter_names = ξ.parameter_names
 	)
 	assessment = merge(assessment, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ))

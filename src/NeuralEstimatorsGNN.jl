@@ -8,6 +8,7 @@ using GraphNeuralNetworks
 using GraphNeuralNetworks: check_num_nodes
 using Random: seed!
 using Statistics: mean
+using Distributions #for random simulations
 export seed!
 
 export WeightedGraphConv
@@ -525,11 +526,22 @@ end
 
 
 # Note that neighbour_parameter can be a float or an integer
-function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter) where {R <: AbstractRange{I}} where I <: Integer
+# note that clustering is set to false by default for backwards compatability
+function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter, clustering::Bool = false) where {R <: AbstractRange{I}} where I <: Integer
+
+	λdist = Uniform(10, 90) # λ is uniform between 10 and 90
 
 	ñ = rand(n, K)
 	D = map(1:K) do k
-		S = rand(ñ[k], 2)
+		n = ñ[k]
+		if clustering
+			n = ñ[k]
+			λ = rand(λdist)
+			μ = n / λ
+			S = maternclusterprocess(λ = λ, μ = μ)
+		else
+			S = rand(n, 2)
+		end
 		D = pairwise(Euclidean(), S, S, dims = 1)
 		D
 	end
@@ -541,11 +553,93 @@ function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_
 	Z = [simulate(θ, mᵢ) for mᵢ ∈ m]
 
 	g = repeat(g, inner = J)
-	Z = reshapedataGNN.(Z, Ref(g)) 
+	Z = reshapedataGNN.(Z, Ref(g))
 
 	return_ξ ? (θ, Z, ξ) : (θ, Z)
 end
 variableirregularsetup(ξ, n::Integer; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter) = variableirregularsetup(ξ, range(n, n); K = K, m = m, J = J, return_ξ = return_ξ, neighbour_parameter = neighbour_parameter)
+
+
+
+
+# ---- Spatial point process ----
+
+#NB One may also use the R package spatstat using RCall.
+
+export maternclusterprocess
+
+"""
+	maternclusterprocess(; λ = 10, μ = 10, r = 0.1, xmin=0, xmax=1, ymin=0, ymax=1)
+
+Simulates a Matérn cluster process with density of parent Poisson point process
+`λ`, mean number of daughter points `μ`, and radius of cluster disk `r`, over the
+simulation window defined by `{x/y}min` and `{x/y}max`.
+
+# Examples
+```
+using UnicodePlots
+
+S = maternclusterprocess()
+scatterplot(S[:, 1], S[:, 2])
+
+n = 250
+λ = [10, 25, 50, 90]
+μ = n ./ λ
+plots = map(eachindex(λ)) do i
+	S = maternclusterprocess(λ = λ[i], μ = μ[i])
+	scatterplot(S[:, 1], S[:, 2])
+end
+```
+"""
+function maternclusterprocess(; λ = 10, μ = 10, r = 0.1, xmin = 0, xmax = 1, ymin = 0, ymax = 1)
+
+	#Extended simulation windows parameters
+	rExt=r #extension parameter -- use cluster radius
+	xminExt=xmin-rExt
+	xmaxExt=xmax+rExt
+	yminExt=ymin-rExt
+	ymaxExt=ymax+rExt
+	#rectangle dimensions
+	xDeltaExt=xmaxExt-xminExt
+	yDeltaExt=ymaxExt-yminExt
+	areaTotalExt=xDeltaExt*yDeltaExt #area of extended rectangle
+
+	#Simulate Poisson point process
+	numbPointsParent=rand(Poisson(areaTotalExt*λ)) #Poisson number of points
+
+	#x and y coordinates of Poisson points for the parent
+	xxParent=xminExt.+xDeltaExt*rand(numbPointsParent)
+	yyParent=yminExt.+yDeltaExt*rand(numbPointsParent)
+
+	#Simulate Poisson point process for the daughters (ie final poiint process)
+	numbPointsDaughter=rand(Poisson(μ),numbPointsParent)
+	numbPoints=sum(numbPointsDaughter) #total number of points
+
+	#Generate the (relative) locations in polar coordinates by
+	#simulating independent variables.
+	theta=2*pi*rand(numbPoints) #angular coordinates
+	rho=r*sqrt.(rand(numbPoints)) #radial coordinates
+
+	#Convert polar to Cartesian coordinates
+	xx0=rho.*cos.(theta)
+	yy0=rho.*sin.(theta)
+
+	#replicate parent points (ie centres of disks/clusters)
+	xx=vcat(fill.(xxParent, numbPointsDaughter)...)
+	yy=vcat(fill.(yyParent, numbPointsDaughter)...)
+
+	#Shift centre of disk to (xx0,yy0)
+	xx=xx.+xx0
+	yy=yy.+yy0
+
+	#thin points if outside the simulation window
+	booleInside=((xx.>=xmin).&(xx.<=xmax).&(yy.>=ymin).&(yy.<=ymax))
+	xx=xx[booleInside]
+	yy=yy[booleInside]
+
+	hcat(xx, yy)
+end
+
 
 #module
 end

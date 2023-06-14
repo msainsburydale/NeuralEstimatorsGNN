@@ -22,8 +22,12 @@ estimator_labels <- c(
   "CNN" = "CNN",
   "DNN" = "DNN", 
   "MAP" = "MAP", 
-  "GNN_S" = bquote(GNN[S]),
-  "GNN_Svariable" = "GNN"
+  # "GNN_S1" = TeX("GNN$_{S}$"),
+  # "GNN_S2" = TeX("GNN$_{S'}$"),
+  # "GNN_S3" = TeX("GNN$_{S''}$")
+  "GNN_S1" = TeX("GNN: $S$"),
+  "GNN_S2" = TeX("GNN: $S'$"),
+  "GNN_S3" = TeX("GNN: $S''$")
 )
 
 # Legend labelling 
@@ -39,17 +43,22 @@ scale_estimator <- function(df, scale = "colour", values = estimator_colours, ..
   )
 }
 
+# for more colours, see: http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf
 estimator_colours <- c(
-  "MAP" = "#FDE725FF",
-  "GNN" = "#21908CFF",
+  "MAP" = "gold",
+  "GNN" = "chartreuse4",
   "CNN" = "#440154FF",
   "DNN" = "red",
   # Variable sample size experiment:
   "GNN1" = "red",
-  "GNN2" = "orange",
+  "GNN2" = "dodgerblue4",
   "GNN3" = "#440154FF",
   "GNN3 radius" = "#440154FF",
-  "GNN3 fixednum" = "#21908CFF"
+  "GNN3 fixednum" = "chartreuse4",
+  # Graph structure experiment:
+  "GNN_S1" = "dodgerblue4",
+  "GNN_S2" = "chartreuse4",
+  "GNN_S3" = "#440154FF"
 )
 
 parameter_labels <- c(
