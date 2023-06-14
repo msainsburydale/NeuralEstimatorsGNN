@@ -25,8 +25,6 @@ m = let expr = Meta.parse(parsed_args["m"])
     Int.(expr.args)
 end
 
-#TODO need to save the data after inverse transforming
-
 # model="Schlather"
 # m=[1, 30]
 # skip_training = true
@@ -72,22 +70,27 @@ dnn = DeepSet(dnnarchitecture(n, p)...)
 
 # ---- Training ----
 
-# Note that we have to use different training data for the two estimators,
-# because CNNs require gridded data whilst GNNs require training with irregular
-# data if they are to generalise well.
+# Note that we use different training data for the two estimators because CNNs require gridded data.
 
 const J = 3
 
 if !skip_training
 
-	# CNN estimator
-	@info "training the CNN..."
-	seed!(1)
-	θ_val   = Parameters(K_val, ξ, J = J)
-	θ_train = Parameters(K_train, ξ, J = J)
-	Z_val   = simulate(θ_val, M)
-	Z_train = simulate(θ_train, M)
-	trainx(cnn, θ_train, θ_val, reshapedataCNN(Z_train), reshapedataCNN(Z_val), m, savepath = path * "/runs_CNN", epochs = epochs)
+
+	if model != "BrownResnick"
+
+		# CNN estimator
+		@info "training the CNN..."
+		seed!(1)
+		θ_val   = Parameters(K_val, ξ, J = J)
+		θ_train = Parameters(K_train, ξ, J = J)
+		Z_val   = simulate(θ_val, M)
+		Z_train = simulate(θ_train, M)
+		trainx(cnn, θ_train, θ_val, reshapedataCNN(Z_train), reshapedataCNN(Z_val), m, savepath = path * "/runs_CNN", epochs = epochs)
+
+	end
+
+
 
 	# GNN estimator
 	@info "training the GNN..."

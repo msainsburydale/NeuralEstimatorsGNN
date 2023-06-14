@@ -89,10 +89,12 @@ gnn  = gnnarchitecture(p; propagation = "GraphConv")
 wgnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
 gnn_Svariable  = gnnarchitecture(p; propagation = "GraphConv")
 wgnn_Svariable = gnnarchitecture(p; propagation = "WeightedGraphConv")
+gnn_Sclustered  = gnnarchitecture(p; propagation = "GraphConv")
+wgnn_Sclustered = gnnarchitecture(p; propagation = "WeightedGraphConv")
 
 # ---- Training ----
 
-# Construct a specific set of irregular locations, S
+# Estimators trained under a specific set of irregular locations, S
 seed!(1)
 S = rand(n, 2)
 D = pairwise(Euclidean(), S, S, dims = 1)
@@ -101,14 +103,12 @@ g = GNNGraph(A)
 ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D
 θ_val,   Z_val   = irregularsetup(ξ, g, K = K_val, m = M)
 θ_train, Z_train = irregularsetup(ξ, g, K = K_train, m = M)
-
-# GNN estimators trained under S
 seed!(1)
 train(gnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_S", epochs = epochs)
 seed!(1)
 train(wgnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_S", epochs = epochs)
 
-# GNN estimators trained under a variable set of irregular locations {Sₖ : k = 1, …, K}
+# Estimators trained under a variable set of irregular locations {Sₖ : k = 1, …, K}
 θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = M, neighbour_parameter = neighbour_parameter)
 θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = M, neighbour_parameter = neighbour_parameter)
 seed!(1)
@@ -116,19 +116,47 @@ train(gnn_Svariable, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_
 seed!(1)
 train(wgnn_Svariable, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_Svariable", epochs = epochs)
 
+# Estimators trained under a specific set of clustered locations. The pattern
+# looks like this:
+#         . . .
+#         . . .
+#         . . .
+#  . . .
+#  . . .
+#  . . .
+seed!(0)
+S₁ = 0.5 * rand(n÷2, 2)
+S₂ = 0.5 * rand(n÷2, 2) .+ 0.5
+Sclustered = vcat(S₁, S₂)
+D = pairwise(Euclidean(), Sclustered, Sclustered, dims = 1)
+A = adjacencymatrix(D, neighbour_parameter)
+g = GNNGraph(A)
+ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D
+θ_val,   Z_val   = irregularsetup(ξ, g, K = K_val, m = M)
+θ_train, Z_train = irregularsetup(ξ, g, K = K_train, m = M)
+seed!(1)
+train(gnn_Sclustered, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_Sclustered", epochs = epochs)
+seed!(1)
+train(wgnn_Sclustered, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_Sclustered", epochs = epochs)
+
+
 # ---- Load the trained estimators ----
 
 Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_S"))
 Flux.loadparams!(wgnn, loadbestweights(path * "/runs_WGNN_S"))
 Flux.loadparams!(gnn_Svariable,  loadbestweights(path * "/runs_GNN_Svariable"))
 Flux.loadparams!(wgnn_Svariable, loadbestweights(path * "/runs_WGNN_Svariable"))
+Flux.loadparams!(gnn_Sclustered,  loadbestweights(path * "/runs_GNN_Sclustered"))
+Flux.loadparams!(wgnn_Sclustered, loadbestweights(path * "/runs_WGNN_Sclustered"))
+
 
 # ---- Assess the estimators ----
 
 function assessestimators(θ, Z, g, ξ)
 	assessment = assess(
-		[gnn, gnn_Svariable, wgnn, wgnn_Svariable], θ, reshapedataGNN(Z, g);
-		estimator_names = ["GNN_S", "GNN_Svariable", "WGNN_S", "WGNN_Svariable"],
+		[gnn, gnn_Svariable, gnn_Sclustered, wgnn, wgnn_Svariable, wgnn_Sclustered],
+		θ, reshapedataGNN(Z, g);
+		estimator_names = ["GNN_S", "GNN_Svariable", "GNN_Sclustered", "WGNN_S", "WGNN_Svariable", "WGNN_Sclustered"],
 		parameter_names = ξ.parameter_names
 	)
 	assessment = merge(assessment, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ))
@@ -184,15 +212,5 @@ S̃ = rand(n, 2)
 assessestimators(S̃, ξ, K_test, "Stilde")
 
 # Test whether a GNN trained on uniformly sampled locations does well on
-# clustered data locations. The pattern looks like this:
-#         . . .
-#         . . .
-#         . . .
-#  . . .
-#  . . .
-#  . . .
-seed!(0)
-S₁ = 0.5 * rand(n÷2, 2)
-S₂ = 0.5 * rand(n÷2, 2) .+ 0.5
-Sclustered = vcat(S₁, S₂)
+# clustered data locations.
 assessestimators(Sclustered, ξ, K_test, "Sclustered")

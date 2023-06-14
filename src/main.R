@@ -152,7 +152,6 @@ figures <- lapply(unique(df$k), function(K) {
   figure1  <- ggpubr::ggarrange(plotlist = plotlist, nrow = 2, ncol = 5, heights = c(1.25, 2))
   figure2  <- ggpubr::ggarrange(data_legend, box_legend, ncol = 1, heights = c(1, 2.5))
   figure   <- ggpubr::ggarrange(figure1, figure2, widths = c(1, 0.15))
-  figure
   
   ggsave(
     figure, 
@@ -184,6 +183,7 @@ figures <- lapply(unique(df$k), function(K) {
                              axis.title.y = element_blank()))
   
   # limits: 
+  g <- joint[[1]]
   xname <- quo_name(g$layers[[1]]$mapping$x); xname <- gsub("estimate_", "", xname)
   yname <- quo_name(g$layers[[1]]$mapping$y); yname <- gsub("estimate_", "", yname)
   xlims <- df %>% filter(parameter == xname) %>% summarise(range(estimate)) %>% as.matrix %>% c
