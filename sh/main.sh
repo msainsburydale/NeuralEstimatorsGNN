@@ -27,6 +27,6 @@ do
         m="[1,30]"
     fi
 
-    julia --threads=auto --project=. src/main.jl --model=$model $quick --m=$m --skip_training
+    julia --threads=auto --project=. src/main.jl --model=$model $quick --m=$m # --skip_training
     #Rscript src/main.R   --model=$model
 done
