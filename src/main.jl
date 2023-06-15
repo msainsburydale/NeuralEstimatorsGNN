@@ -95,7 +95,7 @@ if !skip_training
 	# GNN estimator
 	@info "training the GNN..."
 	seed!(1)
-	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, neighbour_parameter = r, J = J, clustering = true),
+	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, neighbour_parameter = r, J = J, clustering = true)
 	θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, neighbour_parameter = r, J = J, clustering = true)
 	trainx(gnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16)
 

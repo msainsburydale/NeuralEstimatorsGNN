@@ -23,7 +23,7 @@ estimator_labels <- c(
   "DNN" = "DNN", 
   "MAP" = "MAP", 
   "GNN_S1" = TeX("GNN$_{S}$"),
-  "GNN_S2" = TeX("GNN$_{S'}$"),
+  # "GNN_S2" = TeX("GNN$_{S'}$"),
   "GNN_S3" = TeX("GNN$_{S''}$"),
   "GNN_S4" = TeX("GNN$_c$")
 )
@@ -54,9 +54,9 @@ estimator_colours <- c(
   "GNN3 radius" = "#440154FF",
   "GNN3 fixednum" = "chartreuse4",
   # Graph structure experiment:
-  "GNN_S4" = "pink",
+  "GNN_S4" = "chartreuse4",
   "GNN_S1" = "dodgerblue4",
-  "GNN_S2" = "chartreuse4",
+  # "GNN_S2" = "chartreuse4",
   "GNN_S3" = "#440154FF"
 )
 
