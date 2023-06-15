@@ -529,18 +529,16 @@ end
 # note that clustering is set to false by default for backwards compatability
 function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter, clustering::Bool = false) where {R <: AbstractRange{I}} where I <: Integer
 
-	λdist = Uniform(10, 90) # λ is uniform between 10 and 90
+	λ_prior = Uniform(10, 90) # λ is uniform between 10 and 90
 
-	ñ = rand(n, K)
 	D = map(1:K) do k
-		n = ñ[k]
+		nₖ = rand(n)
 		if clustering
-			n = ñ[k]
-			λ = rand(λdist)
-			μ = n / λ
+			λ = rand(λ_prior)
+			μ = nₖ / λ
 			S = maternclusterprocess(λ = λ, μ = μ)
 		else
-			S = rand(n, 2)
+			S = rand(nₖ, 2)
 		end
 		D = pairwise(Euclidean(), S, S, dims = 1)
 		D
