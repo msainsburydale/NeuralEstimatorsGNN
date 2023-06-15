@@ -77,7 +77,7 @@ const J = 3
 if !skip_training
 
 
-	if model != "BrownResnick"
+	# if model != "BrownResnick"
 
 		# CNN estimator
 		@info "training the CNN..."
@@ -88,7 +88,7 @@ if !skip_training
 		Z_train = simulate(θ_train, M)
 		trainx(cnn, θ_train, θ_val, reshapedataCNN(Z_train), reshapedataCNN(Z_val), m, savepath = path * "/runs_CNN", epochs = epochs)
 
-	end
+	# end
 
 
 

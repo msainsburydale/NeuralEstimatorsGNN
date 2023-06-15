@@ -55,18 +55,18 @@ loaddata <- function(set) {
 
 df <- loadestimates("S") %>%
   rbind(loadestimates("Stilde")) %>%
-  rbind(loadestimates("Sclustered")) %>% 
-  filter(estimator %in% estimators)
+  rbind(loadestimates("Sclustered")) 
 
 # Relabel to control the order of boxplots
 # df$estimator <- as.factor(df$estimator)
 # levels(df$estimator) <- c("GNN_S", "GNN_Svariable", "GNN_Sclustered", "MAP")
-df$estimator[df$estimator == "GNN_S"] <- "GNN_S1"
-df$estimator[df$estimator == "GNN_Svariable"] <- "GNN_S2"
-df$estimator[df$estimator == "GNN_Sclustered"] <- "GNN_S3"
+df$estimator[df$estimator == "WGNN_S"] <- "GNN_S1"
+df$estimator[df$estimator == "WGNN_Svariable"] <- "GNN_S2"
+df$estimator[df$estimator == "WGNN_Sclustered"] <- "GNN_S3"
+df$estimator[df$estimator == "WGNN_Smatern"] <- "GNN_S4"
 
+df <- df %>% filter(estimator %in% estimators)
 
-df$estimator %>% unique
 
 zdf <- loaddata("S") %>%
   rbind(loaddata("Stilde")) %>%

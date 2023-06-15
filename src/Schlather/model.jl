@@ -7,8 +7,8 @@ using LinearAlgebra
 using Folds
 
 Ω = (
-	ρ = Uniform(0.05, 0.5),
-	ν = Uniform(0.5, 2.0)
+	ρ = Uniform(0.05, 0.3),
+	ν = Uniform(0.5, 1.5)
 )
 
 #TODO probably shouldn't define S here, do it in the scripts that use gridded data

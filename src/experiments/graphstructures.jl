@@ -143,6 +143,7 @@ train(wgnn_Sclustered, θ_train, θ_val, Z_train, Z_val, savepath = path * "/run
 
 
 # Estimators trained under a Matern clustering process
+seed!(1)
 θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = M, neighbour_parameter = neighbour_parameter, clustering = true)
 θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = M, neighbour_parameter = neighbour_parameter, clustering = true)
 seed!(1)
@@ -217,6 +218,7 @@ end
 
 # Test with respect to the fixed set of irregular uniformly sampled locations, S
 seed!(1)
+S = rand(n, 2)
 assessestimators(S, ξ, K_test, "S")
 
 # Test with respect to another specific set of irregular uniformly sampled locations, S̃
