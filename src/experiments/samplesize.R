@@ -62,9 +62,6 @@ figure <- figure +
   geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), 
             linewidth = 0.3, colour = "grey50", fill = "transparent")
 
-
-#TODO Could add another window focusing around small sample sizes (n = 30)
-
 # Extract the legend and convert it to a ggplot object so that it can be added
 # to figure in a custom position
 legend_plot <- figure %>% get_legend %>% as_ggplot

@@ -45,8 +45,6 @@ if !isdir(path) mkpath(path) end
 # ---- Experiment ----
 # --------------------
 
-#TODO Implement local pooling between propagation layers.
-
 # Factorial experiment to investigate key considerations different
 # GNN architectures. In the propagation module, we consider the class of
 # propagation layer; its complexity in terms of the number of channels in each
@@ -109,18 +107,9 @@ CSV.write(path * "/traintime.csv", DataFrame(hcat(times, estimator_names), [:tim
 
 #  ---- assess the estimators  ----
 
-# Compute the risk function several times for accurate results
-#TODO don't need to do this!
-seed!(1)
-assessments = map(1:10) do i
-	θ = Parameters(ξ, K_test)
-	Z = simulate(θ, M)
-	Z = reshapedataGNN(Z, g)
-	assessment = assess(estimators, θ, Z; estimator_names = estimator_names, parameter_names = ξ.parameter_names)
-	assessment.df[:, :trial]   .= i
-	assessment.runtime[:, :trial] .= i
-	assessment
-end
-assessment = merge(assessments...)
+θ = Parameters(ξ, K_test)
+Z = simulate(θ, M)
+Z = reshapedataGNN(Z, g)
+assessment = assess(estimators, θ, Z; estimator_names = estimator_names, parameter_names = ξ.parameter_names)
 CSV.write(path * "/estimates.csv", assessment.df)
 CSV.write(path * "/runtime.csv", assessment.runtime)

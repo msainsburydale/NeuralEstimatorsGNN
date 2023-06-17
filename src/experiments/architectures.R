@@ -18,16 +18,13 @@ dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 df <- read.csv(paste0(int_path, "/estimates_test.csv"))
 
 df %>%
-  mutate(loss = loss(estimate, truth)) %>% 
-  group_by(estimator) %>% 
+  mutate(loss = loss(estimate, truth)) %>%
+  group_by(estimator) %>%
   summarise(risk = mean(loss), sd = sd(loss)/sqrt(length(loss))) %>%
   write.csv(file = paste0(img_path, "/risk.csv"), row.names = F)
 
 
 # ---- Sampling distributions ----
-
-#TODO show data alongside the parameter estimate, construct with field_plot()
-#TODO need MAP estimates too for comparison to the GNNs
 
 # Load in estimates + true parameters
 df <- read.csv(paste0(int_path, "/estimates_scenarios.csv"))
@@ -43,6 +40,6 @@ snk <- lapply(unique(df$k), function(K) {
     file = paste0("scatterplot", K, ".pdf"),
     width = 5, height = 5, device = "pdf", path = img_path
   )
-  
+
   0
 })

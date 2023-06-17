@@ -52,7 +52,7 @@ end
 K_test = K_val
 
 p = ξ.p
-n = size(ξ.D, 1)
+n = ξ.n
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
@@ -70,7 +70,7 @@ gnn = gnnarchitecture(p; propagation = "GraphConv")
 wgnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
 
 # Compare the number of trainable parameters
-#TODO the differing number of parameters means that overfitting is a possibility: should use on-the-fly simulation
+#NB the differing number of parameters means that overfitting is a possibility: should use on-the-fly simulation
 nparams(cnn)  # 636062
 nparams(dnn)  # 238658
 nparams(gnn)  # 181890
@@ -82,24 +82,6 @@ seed!(1)
 θ_train = Parameters(K_train, ξ, J = 5)
 Z_val   = [simulate(θ_val, mᵢ)   for mᵢ ∈ m]
 Z_train = [simulate(θ_train, mᵢ) for mᵢ ∈ m]
-
-
-# # Testing (on my office linux)
-# Z = Z_val[1][1:10];
-# @time cnn(Z);  # 0.053236 seconds (359 allocations: 1.093 MiB)
-# Z = Z |> gpu;
-# cnn = cnn |> gpu;
-# @time cnn(Z);  # 0.000693 seconds (1.78 k allocations: 101.469 KiB)
-#
-# Z = reshapedataGNN(Z_val[1][1:10], g);
-# @time gnn(Z);  # 0.022901 seconds (2.15 k allocations: 83.138 MiB)
-# @time wgnn(Z); # 0.050404 seconds (2.28 k allocations: 221.230 MiB, 6.87% gc time)
-# Z = Z |> gpu;
-# gnn  = gnn |> gpu;
-# wgnn = wgnn |> gpu;
-# @time gnn(Z);  # 0.004413 seconds (5.45 k allocations: 282.469 KiB)
-# @time wgnn(Z); # 0.008089 seconds (5.77 k allocations: 298.469 KiB)
-
 
 # ---- Training ----
 

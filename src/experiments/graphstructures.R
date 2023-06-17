@@ -59,8 +59,6 @@ loaddata <- function(set) {
   df
 }
 
-
-# TODO Why don't we have estimates here?
 df <- loadestimates("S") %>%
   rbind(loadestimates("Stilde")) %>%
   rbind(loadestimates("Sclustered")) 

@@ -71,15 +71,10 @@ end
 
 # ---- WeightedGraphConv ----
 
-#TODO change documentation
 @doc raw"""
     WeightedGraphConv(in => out, σ=identity; aggr=+, bias=true, init=glorot_uniform)
-Graph convolution layer from Reference: [Weisfeiler and Leman Go Neural: Higher-order Graph Neural Networks](https://arxiv.org/abs/1810.02244).
-Performs:
-```math
-\mathbf{x}_i' = W_1 \mathbf{x}_i + \square_{j \in \mathcal{N}(i)} W_2 \mathbf{x}_j
-```
-where the aggregation type is selected by `aggr`.
+Same as regular `GraphConv` layer, but weights the neighbours by spatial distance.
+
 # Arguments
 - `in`: The dimension of input features.
 - `out`: The dimension of output features.
@@ -193,8 +188,6 @@ end
 (l::DeepSetPool)(g::GNNGraph) = GNNGraph(g, gdata = l(g, node_features(g)))
 
 
-
-
 # ---- Adjacency matrices ----
 
 # See https://en.wikipedia.org/wiki/Heap_(data_structure) for a description
@@ -206,7 +199,7 @@ using SparseArrays
 using LinearAlgebra
 using Distances
 
-#TODO could easily parallelise this to speed it up
+#NB could easily parallelise this to speed it up
 
 """
 	adjacencymatrix(M::Matrix, k::Integer)
@@ -499,7 +492,7 @@ function reshapedataGNN2(Z::V, g::GNNGraph) where {V <: AbstractVector{A}} where
 	reshapedataGNN2.(Z, Ref(g))
 end
 
-# Here v is a vector of graphs TODO clean this up
+# Here v is a vector of graphs
 function reshapedataGNN2(Z, v::V) where {V <: AbstractVector{A}} where A
 	@assert length(Z) == length(v)
 	l = length(Z)

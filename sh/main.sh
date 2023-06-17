@@ -14,7 +14,7 @@ else
     exit 1
 fi
 
-for model in GP/nuFixed Schlather BrownResnick GP/nuVaried
+for model in GP/nuFixed Schlather BrownResnick
 do
 
     echo ""
@@ -23,10 +23,12 @@ do
 
     if [[ $model == "GP/nuFixed" ]]; then
         m="[1]"
+    else if [[ $model == "BrownResnick" ]]; then
+        m="[1,50]"
     else
-        m="[1,30]"
+        m="[1,20]"
     fi
 
-    julia --threads=auto --project=. src/main.jl --model=$model $quick --m=$m # --skip_training
+    julia --threads=auto --project=. src/main.jl --model=$model $quick --m=$m --skip_training
     #Rscript src/main.R   --model=$model
 done

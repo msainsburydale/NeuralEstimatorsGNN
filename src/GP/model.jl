@@ -5,18 +5,11 @@ using Distances: pairwise, Euclidean
 using LinearAlgebra
 using Folds
 
-pts = range(0, 1, length = 16)
-S = expandgrid(pts, pts)
 parameter_names = String.(collect(keys(Ω)))
-
-#TODO Don't define S here, do it in the scripts that use gridded data
 ξ = (
 	Ω = Ω,
-	pts = pts,
-	S = S,
-	D = pairwise(Euclidean(), S, S, dims = 1),
 	p = length(Ω),
-	d = size(S, 1),
+	n = 256,
 	parameter_names = parameter_names,
 	ρ_idx = findfirst(parameter_names .== "ρ"),
 	ν_idx = findfirst(parameter_names .== "ν"),

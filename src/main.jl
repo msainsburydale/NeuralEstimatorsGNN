@@ -54,7 +54,7 @@ end
 K_test = K_val
 
 p = ξ.p
-n = size(ξ.D, 1)
+n = ξ.n
 r = ξ.r
 
 # The number of epochs used during training: note that early stopping means that
@@ -82,6 +82,10 @@ if !skip_training
 		# # CNN estimator
 		# @info "training the CNN..."
 		# seed!(1)
+		# pts = range(0, 1, length = isqrt(n))
+		# S = expandgrid(pts, pts)
+		# D = pairwise(Euclidean(), S, S, dims = 1)
+		# ξ = (ξ..., D = D)
 		# θ_val   = Parameters(K_val, ξ, J = J)
 		# θ_train = Parameters(K_train, ξ, J = J)
 		# Z_val   = simulate(θ_val, M)
@@ -201,7 +205,7 @@ end
 
 # Test with respect to gridded data (used to compare against CNN)
 # set = "gridded"
-# pts = range(0, 1, length = 16)
+# pts = range(0, 1, length = isqrt(n))
 # S   = expandgrid(pts, pts)
 # # dnn = trainDNN(dnn, ξ, S, set, skip_training)
 # seed!(1)

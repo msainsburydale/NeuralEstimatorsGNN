@@ -10,18 +10,12 @@ using Folds
 	ρ = Uniform(0.05, 0.3),
 	ν = Uniform(0.5, 1.5)
 )
-
-#TODO probably shouldn't define S here, do it in the scripts that use gridded data
-pts = range(0, 1, length = 16)
-S   = expandgrid(pts, pts)
 parameter_names = String.(collect(keys(Ω)))
 
 ξ = (
 	Ω = Ω,
-	S = S,
-	D = pairwise(Euclidean(), S, S, dims = 1),
 	p = length(Ω),
-	d = size(S, 1),
+	n = 256,
 	parameter_names = parameter_names,
 	ρ_idx = findfirst(parameter_names .== "ρ"),
 	ν_idx = findfirst(parameter_names .== "ν"),

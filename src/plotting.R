@@ -8,6 +8,7 @@ suppressMessages({
   library("tidyr")
   library("latex2exp")  
   library("ggExtra") # ggMarginal
+  library("cowplot") # get_x_axis
 })
 
 
@@ -106,8 +107,10 @@ RMSE <- function(x, y) sqrt(mean((x - y)^2))
 MAD <- mad
 zeroone <- function(x, y, eps = y/10) mean(abs(x - y) > eps)
 
-# TODO determine a way to transfer the facet labels to the title
+
 splitfacet <- function(x){
+  
+  # NB For this function be useful, need to transfer the facet labels to the title
   
   facet_vars <- names(x$facet$params$facets)         # get the names of the variables used for faceting
   x$facet    <- ggplot2::ggplot()$facet              # overwrite the facet element of our plot object with the one from the empty ggplot object (so if we print it at this stage facets are gone)

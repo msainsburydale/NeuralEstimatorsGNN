@@ -58,6 +58,5 @@ end
 
 
 # Z = simulatebrownresnick(ξ.S, 0.5, 1.2, 30)
-# # TODO The following suggests that we should reorder the first two parameters for one of the functions
 # nll([1.0, 1.0], Z, ξ.D, [ξ.Ω...])
 # MAP(Z, [1.0, 1.0], ξ.D, [ξ.Ω...])
