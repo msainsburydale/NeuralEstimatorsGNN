@@ -11,7 +11,7 @@ R"""
 ## dist: distance matrix between all pairs of sites
 ## hmax: maximum cutoff distance for the inclusion of pairs in pairwise likelihood
 
-dyn.load("src/BrownResnick/BrownResnickC/PairwiseLikelihoodBR.so") ## load C code
+dyn.load("src/BrownResnick/PairwiseLikelihoodBR.so") ## load C code
 
 NegLogPairwiseLikelihoodBR <- function(par, data, distmat, hmax) {
   range  <- par[1]
