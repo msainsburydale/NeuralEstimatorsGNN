@@ -14,8 +14,8 @@ using LinearAlgebra
 )
 
 #TODO probably shouldn't define S here, do it in the scripts that use gridded data
-pts = range(0, 1, length = 16)
-# pts = range(0, 1, length = 8)
+# pts = range(0, 1, length = 16)
+pts = range(0, 1, length = 10)
 S   = expandgrid(pts, pts)
 parameter_names = String.(collect(keys(Ω)))
 

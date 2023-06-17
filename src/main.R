@@ -9,13 +9,13 @@ int_path <- paste0("intermediates/", model)
 img_path <- paste0("img/", model)
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
+source("src/plotting.R")
+
 loadestimates <- function(set, type = "scenarios") {
   df <- read.csv(paste0(int_path, "/estimates_", type, "_", set, ".csv"))
   df$set <- set
   df
 }
-
-source("src/plotting.R")
 
 loaddata <- function(set) {
   df <- read.csv(paste0(int_path, "/Z_", set, ".csv"))
@@ -23,8 +23,11 @@ loaddata <- function(set) {
   df
 }
 
-estimators <- c("GNN", "CNN", "MAP") 
+estimators <- c("GNN", "MAP") 
 
+if (model %in% c("Schlather", "BrownResnick")) {
+  estimator_labels["MAP"] <- "PL"
+}
 
 # ---- Simple plot used in the main text ----
 
@@ -90,35 +93,28 @@ df %>%
 
 # ---- Sampling distributions ----
 
-df <- loadestimates("gridded") %>%
-  rbind(loadestimates("uniform")) %>%
-  rbind(loadestimates("quadrants")) %>%
-  rbind(loadestimates("mixedsparsity")) %>%
-  rbind(loadestimates("cup")) %>%
-  filter(estimator %in% estimators)
+# load data
 
-zdf <- loaddata("gridded") %>%
-  rbind(loaddata("uniform")) %>%
-  rbind(loaddata("quadrants")) %>%
-  rbind(loaddata("mixedsparsity")) %>%
-  rbind(loaddata("cup"))
+sets <- c("uniform", "quadrants", "mixedsparsity", "cup")
+df  <- lapply(sets, loadestimates); df  <- do.call(rbind, df); df <- filter(df, estimator %in% estimators)
+zdf <- lapply(sets, loaddata);      zdf <- do.call(rbind, zdf)
 
 figures <- lapply(unique(df$k), function(K) {
   
   df  <- df  %>% filter(k == K)
   zdf <- zdf %>% filter(k == K)
   
-  ggz_1  <- field_plot(filter(zdf, set == "gridded"), regular = T) # NB set regular = F for consistency
-  ggz_1  <- ggz_1 + scale_x_continuous(breaks = c(0.25, 0.5, 0.75), expand = c(0, 0)) + scale_y_continuous(breaks = c(0.25, 0.5, 0.75), expand = c(0, 0))  
-  ggz_2  <- field_plot(filter(zdf, set == "uniform"), regular = F) 
-  ggz_3  <- field_plot(filter(zdf, set == "quadrants"), regular = F)
-  ggz_4  <- field_plot(filter(zdf, set == "mixedsparsity"), regular = F)
-  ggz_5  <- field_plot(filter(zdf, set == "cup"), regular = F)
-  ggz_1  <- ggz_1 + labs(fill = "Z") + theme(legend.title.align = 0.25, legend.title = element_text(face = "bold"))
-  data_legend <- get_legend(ggz_1)
-  data <- list(ggz_1, ggz_2, ggz_3, ggz_4, ggz_5)
-  data <- lapply(
-    data, function(gg) gg + 
+  data <- lapply(sets, function(st) {
+    field_plot(filter(zdf, set == st), regular = F) 
+  })
+  data[[1]] <- data[[1]] + 
+    scale_x_continuous(breaks = c(0.25, 0.5, 0.75), expand = c(0, 0)) + 
+    scale_y_continuous(breaks = c(0.25, 0.5, 0.75), expand = c(0, 0)) + 
+    labs(fill = "Z") + 
+    theme(legend.title.align = 0.25, legend.title = element_text(face = "bold"))
+  data_legend <- get_legend(data[[1]])
+  
+  data <- lapply(data, function(gg) gg + 
       theme(legend.position = "none") + 
       theme(plot.title = element_text(hjust = 0.5)) #+ coord_fixed()
     )
@@ -129,54 +125,65 @@ figures <- lapply(unique(df$k), function(K) {
                              axis.title.y = element_blank()))
   
   
-  # Marginal distributions
-  box_1  <- plotdistribution(filter(df, set == "gridded"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1) + scale_estimator(df)
-  box_2  <- plotdistribution(filter(df, set == "uniform"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1)  + scale_estimator(df)
-  box_3  <- plotdistribution(filter(df, set == "quadrants"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1)  + scale_estimator(df)
-  box_4  <- plotdistribution(filter(df, set == "mixedsparsity"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1) + scale_estimator(df)
-  box_5  <- plotdistribution(filter(df, set == "cup"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1) + scale_estimator(df)
-  box_legend <- get_legend(box_1)
-  box <- list(box_1, box_2, box_3, box_4, box_5)
+  # ---- Marginal sampling distributions ---- 
+  
+  #TODO move parameter labels to the y-axis
+  
+  box <- lapply(sets, function(st) {
+    plotdistribution(filter(df, set == st), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1, return_list = TRUE) 
+  })
+  p <- length(unique(df$parameter))
+  box_split <- lapply(1:p, function(i) {
+    lapply(1:length(box), function(j) box[[j]][[i]])
+  })
+  
+  # Modify the axes for pretty plotting
+  for (i in 1:p) {
+    
+    # Remove axis labels for internal panels
+    box_split[[i]][-1] <- lapply(box_split[[i]][-1], function(gg) gg + 
+                                   theme(axis.text.y = element_blank(),
+                                         axis.ticks.y = element_blank(),
+                                         axis.title.y = element_blank()))
+    
+    # Ensure axis limits are consistent for all panels in a given row (parameter)
+    ylims <- df %>% filter(parameter == unique(df$parameter)[i]) %>% summarise(range(estimate)) %>% as.matrix %>% c
+    box_split[[i]] <- lapply(box_split[[i]], function(gg) gg + ylim(ylims))
+  }
+  
+  box <- do.call(c, box_split)
+  box <- lapply(box, function(gg) gg + scale_estimator(df))
+  box_legend <- get_legend(box[[1]])
   box <- lapply(box, function(gg) {
     gg$facet$params$nrow <- 2
     gg$facet$params$strip.position <- "bottom"
-    gg + 
-      theme(legend.position = "none") +
-      theme(
-        strip.background = element_blank(),
-        axis.title.y = element_blank()
-      )
+    gg + theme(legend.position = "none", strip.background = element_blank(), axis.title.y = element_blank()) +
+      scale_estimator(df)
   })
   
+  
   plotlist <- c(data, box)
-  figure1  <- ggpubr::ggarrange(plotlist = plotlist, nrow = 2, ncol = 5, heights = c(1.25, 2))
-  figure2  <- ggpubr::ggarrange(data_legend, box_legend, ncol = 1, heights = c(1, 2.5))
+  figure1  <- egg::ggarrange(plots = plotlist, nrow = 3, ncol = length(sets), heights = c(1.5, 1, 1))
+  figure2  <- ggpubr::ggarrange(data_legend, box_legend, ncol = 1, heights = c(1.2, 2.2))
   figure   <- ggpubr::ggarrange(figure1, figure2, widths = c(1, 0.15))
   
   ggsave(
     figure, 
     file = paste0("samplingdistributions_marginal", K, ".pdf"),
-    width = 12.5, height = 6, device = "pdf", path = img_path
+    width = 8.5, height = 4.6, device = "pdf", path = img_path
   )
   
-  # Joint distributions
-  joint_1  <- plotdistribution(filter(df, set == "gridded"), type = "scatter", parameter_labels = parameter_labels, estimator_labels = estimator_labels)[[1]] + scale_estimator(df)
-  joint_2  <- plotdistribution(filter(df, set == "uniform"), type = "scatter", parameter_labels = parameter_labels, estimator_labels = estimator_labels)[[1]] + scale_estimator(df)
-  joint_3  <- plotdistribution(filter(df, set == "quadrants"), type = "scatter", parameter_labels = parameter_labels, estimator_labels = estimator_labels)[[1]] + scale_estimator(df)
-  joint_4  <- plotdistribution(filter(df, set == "mixedsparsity"), type = "scatter", parameter_labels = parameter_labels, estimator_labels = estimator_labels)[[1]] + scale_estimator(df)
-  joint_5  <- plotdistribution(filter(df, set == "cup"), type = "scatter", parameter_labels = parameter_labels, estimator_labels = estimator_labels)[[1]] + scale_estimator(df)
-  joint_legend <- get_legend(joint_1)
-  joint <- list(joint_1, joint_2, joint_3, joint_4, joint_5)
+  # ---- Joint sampling distributions ----
+  
+  joint <- lapply(sets, function(st) {
+    plotdistribution(filter(df, set == st), type = "scatter", parameter_labels = parameter_labels, estimator_labels = estimator_labels)[[1]] + scale_estimator(df)
+  })
+  joint_legend <- get_legend(joint[[1]])
   joint <- lapply(joint, function(gg) {
     gg$facet$params$nrow <- 2
     gg$facet$params$strip.position <- "bottom"
-    gg + 
-      theme(legend.position = "none") +
-      theme(
-        strip.background = element_blank()
-      )
+    gg + theme(legend.position = "none", strip.background = element_blank()) 
   })
-  
   joint[-1] <- lapply(joint[-1], function(gg) gg + 
                        theme(axis.text.y = element_blank(),
                              axis.ticks.y = element_blank(),
@@ -191,14 +198,14 @@ figures <- lapply(unique(df$k), function(K) {
   joint <- lapply(joint, function(gg) gg + xlim(xlims) + ylim(ylims))
   
   plots <- c(data, joint)
-  figure1  <- egg::ggarrange(plots = plots, nrow = 2, ncol = 5, align = "hv")
+  figure1  <- egg::ggarrange(plots = plots, nrow = 2, ncol = length(sets), align = "hv")
   figure2  <- ggpubr::ggarrange(data_legend, joint_legend, ncol = 1, heights = c(1, 1))
   figure   <- ggpubr::ggarrange(figure1, figure2, widths = c(1, 0.15))
   
   ggsave(
     figure, 
     file = paste0("samplingdistributions_joint", K, ".pdf"),
-    width = 12.5, height = 4, device = "pdf", path = img_path
+    width = 8, height = 4, device = "pdf", path = img_path
   )
   
   figure

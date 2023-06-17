@@ -15,12 +15,18 @@ loadestimates <- function(set, type = "scenarios") {
   df <- read.csv(paste0(int_path, "/estimates_", type, "_", set, ".csv"))
   df$set <- set
   df
+  # Relabel to control the order of boxplots
+  # df$estimator <- as.factor(df$estimator)
+  # levels(df$estimator) <- c("GNN_S", "GNN_Svariable", "GNN_Sclustered", "MAP")
+  df$estimator[df$estimator == "WGNN_S"] <- "GNN_S1"
+  df$estimator[df$estimator == "WGNN_Svariable"] <- "GNN_S2"
+  df$estimator[df$estimator == "WGNN_Sclustered"] <- "GNN_S3"
+  df$estimator[df$estimator == "WGNN_Smatern"] <- "GNN_S4"
+  
+  df
 }
 
 source("src/plotting.R")
-
-boldtheta <- bquote(bold(theta))
-estimators <- names(estimator_labels)
 
 # ---- Risk function ----
 
@@ -37,7 +43,7 @@ df %>%
   write.csv(file = paste0(img_path, "/risk.csv"), row.names = F)
 
 
-## RMSE  ## TODO can I get an estimate of the sd? 
+## RMSE  
 df %>%
   mutate(loss = (estimate - truth)^2) %>% 
   group_by(set, estimator) %>% 
@@ -53,17 +59,12 @@ loaddata <- function(set) {
   df
 }
 
+
+# TODO Why don't we have estimates here?
 df <- loadestimates("S") %>%
   rbind(loadestimates("Stilde")) %>%
   rbind(loadestimates("Sclustered")) 
 
-# Relabel to control the order of boxplots
-# df$estimator <- as.factor(df$estimator)
-# levels(df$estimator) <- c("GNN_S", "GNN_Svariable", "GNN_Sclustered", "MAP")
-df$estimator[df$estimator == "WGNN_S"] <- "GNN_S1"
-df$estimator[df$estimator == "WGNN_Svariable"] <- "GNN_S2"
-df$estimator[df$estimator == "WGNN_Sclustered"] <- "GNN_S3"
-df$estimator[df$estimator == "WGNN_Smatern"] <- "GNN_S4"
 
 df <- df %>% filter(estimator %in% estimators)
 
@@ -76,31 +77,6 @@ figures <- lapply(unique(df$k), function(K) {
   
   df  <- df  %>% filter(k == K)
   zdf <- zdf %>% filter(k == K)
-  
-  # #TODO histogram of spatial distances 
-  # hdf <- zdf %>% 
-  #   group_by(set) %>% 
-  #   summarise(h = c(dist(matrix(c(s1, s2), ncol = 2, byrow = F))))
-  # 
-  # if (neighbours == "radius") {
-  #   hdf <- filter(hdf, h < 0.15)
-  # } else {
-  #   #TODO for fixednum approach, need to know which nodes are neighbours
-  # }
-  # 
-  # # TODO need to change the ordering here
-  # ggh <- ggplot(hdf) + 
-  #   geom_histogram(aes(x = h)) + 
-  #   facet_wrap(~set)
-  # 
-  # x <- split(zdf, zdf$set)
-  # x <- lapply(x, function(df) {
-  #   S = df[, c("s1", "s2")]
-  #   S = expand.grid(S)
-  #   D = apply(S, 1, function(x) sqrt(sum(x^2)))
-  #   df = data.frame(D = D, set = )  
-  # })
-  
   
   ggz_1  <- field_plot(filter(zdf, set == "S"), regular = F) + labs(title = "S")
   ggz_2  <- field_plot(filter(zdf, set == "Stilde"), regular = F) + labs(title = "S'")

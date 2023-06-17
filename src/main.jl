@@ -64,9 +64,9 @@ epochs = quick ? 2 : 1000
 # ---- Estimators ----
 
 seed!(1)
-cnn = DeepSet(cnnarchitecture(p)...)
+# cnn = DeepSet(cnnarchitecture(p)...)
 gnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
-dnn = DeepSet(dnnarchitecture(n, p)...)
+# dnn = DeepSet(dnnarchitecture(n, p)...)
 
 # ---- Training ----
 
@@ -79,14 +79,14 @@ if !skip_training
 
 	# if model != "BrownResnick"
 
-		# CNN estimator
-		@info "training the CNN..."
-		seed!(1)
-		θ_val   = Parameters(K_val, ξ, J = J)
-		θ_train = Parameters(K_train, ξ, J = J)
-		Z_val   = simulate(θ_val, M)
-		Z_train = simulate(θ_train, M)
-		trainx(cnn, θ_train, θ_val, reshapedataCNN(Z_train), reshapedataCNN(Z_val), m, savepath = path * "/runs_CNN", epochs = epochs)
+		# # CNN estimator
+		# @info "training the CNN..."
+		# seed!(1)
+		# θ_val   = Parameters(K_val, ξ, J = J)
+		# θ_train = Parameters(K_train, ξ, J = J)
+		# Z_val   = simulate(θ_val, M)
+		# Z_train = simulate(θ_train, M)
+		# trainx(cnn, θ_train, θ_val, reshapedataCNN(Z_train), reshapedataCNN(Z_val), m, savepath = path * "/runs_CNN", epochs = epochs)
 
 	# end
 
@@ -127,7 +127,7 @@ end
 
 # ---- Load the trained estimators ----
 
-Flux.loadparams!(cnn,  loadbestweights(path * "/runs_CNN_m$M"))
+# Flux.loadparams!(cnn,  loadbestweights(path * "/runs_CNN_m$M"))
 Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_m$M"))
 
 # ---- Assess the estimators ----
@@ -199,13 +199,13 @@ function assessestimators(S, ξ, K::Integer, set::String)
 end
 
 
-# Test with respect to gridded data
-set = "gridded"
-pts = range(0, 1, length = 16)
-S   = expandgrid(pts, pts)
-# dnn = trainDNN(dnn, ξ, S, set, skip_training)
-seed!(1)
-assessestimators(S, ξ, K_test, set)
+# Test with respect to gridded data (used to compare against CNN)
+# set = "gridded"
+# pts = range(0, 1, length = 16)
+# S   = expandgrid(pts, pts)
+# # dnn = trainDNN(dnn, ξ, S, set, skip_training)
+# seed!(1)
+# assessestimators(S, ξ, K_test, set)
 
 # Test with respect to a set of irregular uniformly sampled locations
 seed!(1)

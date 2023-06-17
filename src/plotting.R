@@ -28,6 +28,8 @@ estimator_labels <- c(
   "GNN_S4" = TeX("GNN$_c$")
 )
 
+estimators <- names(estimator_labels)
+
 # Legend labelling 
 estimator_order <- names(estimator_labels) # specifies the order that the estimators should appear in the plot legends.
 scale_estimator <- function(df, scale = "colour", values = estimator_colours, ...) {
