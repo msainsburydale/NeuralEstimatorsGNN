@@ -22,7 +22,7 @@ estimator_labels <- c(
   "GNN" = "GNN",
   "CNN" = "CNN",
   "DNN" = "DNN", 
-  "MAP" = "MAP", 
+  "MAP" = "ML", 
   "GNN_S1" = TeX("GNN$_{S}$"),
   # "GNN_S2" = TeX("GNN$_{S'}$"),
   "GNN_S3" = TeX("GNN$_{S''}$"),
