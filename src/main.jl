@@ -76,7 +76,6 @@ const J = 3
 
 if !skip_training
 
-
 	# if model != "BrownResnick"
 
 		# # CNN estimator
@@ -94,11 +93,8 @@ if !skip_training
 
 	# end
 
-
-
-	# GNN estimator
 	seed!(1)
-	@info "simulating data for the GNN..."
+	@info "simulating training data for the GNN..."
 	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, neighbour_parameter = r, J = J, clustering = true)
 	θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, neighbour_parameter = r, J = J, clustering = true)
 	@info "training the GNN..."

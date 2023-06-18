@@ -546,8 +546,11 @@ function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_
 	θ = Parameters(K, ξ, J = J)
 	Z = [simulate(θ, mᵢ) for mᵢ ∈ m]
 
+	# g = repeat(g, inner = J)
+	# Z = reshapedataGNN.(Z, Ref(g)) # FIXME error here
+
 	g = repeat(g, inner = J)
-	Z = reshapedataGNN.(Z, Ref(g))
+	Z = reshapedataGNN.(Z, Ref(g)) # FIXME error here
 
 	return_ξ ? (θ, Z, ξ) : (θ, Z)
 end
