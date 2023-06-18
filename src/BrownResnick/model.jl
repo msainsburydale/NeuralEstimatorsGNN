@@ -44,7 +44,6 @@ function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} wh
 		loc = locs[loc_pointer[k]][:, :]
 		z = simulatebrownresnick(loc, ρ[k], ν[k], m̃[k])
 		z = Float32.(z)
-		z = permutedims(z)
 		z
 	end
 
