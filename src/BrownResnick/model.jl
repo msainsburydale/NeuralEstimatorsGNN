@@ -62,8 +62,13 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 
 	# locations are stored in ξ
 	locs = ξ.S
-	@assert length(locs) == K
-	loc_pointer = repeat(1:K, inner = J)
+	if typeof(S) <: Matrix
+		loc_pointer = repeat([1], K*J)
+	else
+		@assert length(locs) == K
+		loc_pointer = repeat(1:K, inner = J)
+	end
+
 
 	Parameters(θ, locs, loc_pointer)
 end
