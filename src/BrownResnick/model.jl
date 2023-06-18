@@ -64,6 +64,7 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	locs = ξ.S
 	if typeof(locs) <: Matrix
 		loc_pointer = repeat([1], K*J)
+		locs = [locs]
 	else
 		@assert length(locs) == K
 		loc_pointer = repeat(1:K, inner = J)
