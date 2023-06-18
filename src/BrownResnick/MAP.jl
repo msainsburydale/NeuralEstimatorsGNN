@@ -57,6 +57,6 @@ function nll(θ, Z, D, Ω)
 end
 
 
-# Z = simulatebrownresnick(ξ.S, 0.5, 1.2, 30)
+# Z = simulatebrownresnick(rand(n, 2), 0.5, 1.2, 30)
 # nll([1.0, 1.0], Z, ξ.D, [ξ.Ω...])
 # MAP(Z, [1.0, 1.0], ξ.D, [ξ.Ω...])

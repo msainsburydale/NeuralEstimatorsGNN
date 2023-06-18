@@ -60,9 +60,14 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	θ = [rand(ϑ, K*J) for ϑ in ξ.Ω]
 	θ = permutedims(hcat(θ...))
 
+	# # the locations are stored in ξ
+	# # note that this assumes that we have only a single set of locations
+	# locs = [ξ.S]
+	# loc_pointer = repeat([1], K*J)
+
 	# the locations are stored in ξ
 	# note that this assumes that we have only a single set of locations
-	locs = [ξ.S]
+	locs = ξ.S
 	loc_pointer = repeat([1], K*J)
 
 	Parameters(θ, locs, loc_pointer) # pointer here implies only one set of

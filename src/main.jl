@@ -162,7 +162,7 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	D = pairwise(Euclidean(), S, S, dims = 1)
 	A = adjacencymatrix(D, r)
 	g = GNNGraph(A)
-	ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
+	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
 
 	assess_CNN = set == "gridded"
 	assess_MAP = isdefined(Main, :MAP)

@@ -524,7 +524,8 @@ function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_
 
 	λ_prior = Uniform(10, 90) # λ is uniform between 10 and 90
 
-	D = map(1:K) do k
+	# Generate spatial configurations
+	S = map(1:K) do k
 		nₖ = rand(n)
 		if clustering
 			λ = rand(λ_prior)
@@ -533,13 +534,15 @@ function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_
 		else
 			S = rand(nₖ, 2)
 		end
-		D = pairwise(Euclidean(), S, S, dims = 1)
-		D
+		S
 	end
+
+	# Compute distance matrices
+	D = pairwise.(Ref(Euclidean()), S, S, dims = 1)
 	A = adjacencymatrix.(D, neighbour_parameter)
 	g = GNNGraph.(A)
 
-	ξ = (ξ..., D = D) # update ξ to contain the new distance matrices (note that Parameters can handle a vector of distance matrices because of maternchols())
+	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrices (note that Parameters can handle a vector of distance matrices because of maternchols())
 	θ = Parameters(K, ξ, J = J)
 	Z = [simulate(θ, mᵢ) for mᵢ ∈ m]
 
