@@ -60,17 +60,12 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	θ = [rand(ϑ, K*J) for ϑ in ξ.Ω]
 	θ = permutedims(hcat(θ...))
 
-	# # the locations are stored in ξ
-	# # note that this assumes that we have only a single set of locations
-	# locs = [ξ.S]
-	# loc_pointer = repeat([1], K*J)
-
-	# the locations are stored in ξ
-	# note that this assumes that we have only a single set of locations
+	# locations are stored in ξ
 	locs = ξ.S
-	loc_pointer = repeat([1], K*J)
+	@assert length(locs) == K
+	loc_pointer = repeat(1:K, inner = J)
 
-	Parameters(θ, locs, loc_pointer) # pointer here implies only one set of
+	Parameters(θ, locs, loc_pointer)
 end
 
 
@@ -98,7 +93,7 @@ function simulatebrownresnick(loc, ρ, ν, m = 1)
 	return z
 end
 
-
-# Z = simulatebrownresnick(ξ.S, 0.5, 1.2, 30)
+# n = 100
+# Z = simulatebrownresnick(rand(n, 2), 0.5, 1.2, 30)
 # tmp = Parameters(100, ξ)
 # @time simulate(tmp, 30);

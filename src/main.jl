@@ -25,8 +25,8 @@ m = let expr = Meta.parse(parsed_args["m"])
     Int.(expr.args)
 end
 
-# model="Schlather"
-# m=[1, 30]
+# model="BrownResnick"
+# m=[1, 50]
 # skip_training = true
 # quick=true
 
