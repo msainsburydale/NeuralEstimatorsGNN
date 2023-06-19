@@ -60,3 +60,76 @@ end
 # Z = simulatebrownresnick(rand(n, 2), 0.5, 1.2, 30)
 # nll([1.0, 1.0], Z, ξ.D, [ξ.Ω...])
 # MAP(Z, [1.0, 1.0], ξ.D, [ξ.Ω...])
+
+
+
+# This is a copy of the MAP function in src/MAP.jl, but without parallelisation,
+# since the above approach is not parallelisable.
+
+function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVector{A}}
+
+	# Compress the data from an n-dimensional array to a matrix
+	Z = flatten.(Z)
+
+	# inverse of the variance-stabilising transform
+	Z = broadcast.(ξ.invtransform, Z)
+
+	# intitialise the estimates to the true parameters. Since we logistic-transform
+	# the parameters during optimisation to force the estimates to be within the
+	# prior support, here we provide the logit-transformed values.
+	Ω = ξ.Ω
+	Ω = [Ω...] # convert to array since broadcasting over dictionaries and NamedTuples is reserved
+	# "Widen" the prior support so we don't get so many estimates on the boundary
+	Ω = map(Ω) do x
+		[minimum(x)/3, maximum(x)*3]
+	end
+	θ₀ = scaledlogit.(ξ.θ₀, Ω)
+
+	# Convert to Float64 so that Cholesky factorisation doesn't throw positive
+	# definite error due to rounding.
+	# (When you want to broadcast broadcast, then broadcast broadcast)
+	Z  = broadcast.(Float64, Z)
+	θ₀ = Float64.(θ₀)
+
+	# If Z is replicated, try to replicate θ₀ accordingly.
+	K = size(θ₀, 2)
+	m = length(Z)
+	if m != K
+		if (m ÷ K) == (m / K)
+			θ₀ = repeat(θ₀, outer = (1, m ÷ K))
+		else
+			error("The length of the data vector, m = $m, and the number of parameter configurations, K = $K, do not match; further, m is not a multiple of K, so we cannot replicate θ to match Z.")
+		end
+		K = size(θ₀, 2) # update K
+	end
+
+	# Distance matrix: D may be a single matrix or a vector of matrices
+	D = ξ.D
+	if typeof(D) <: AbstractVector
+		# If θ₀ is replicated, try to create an approporiate pointer for D based
+		# on same way that chol_pointer is constructed.
+		L = length(D)
+		if L != K && (K ÷ L) != (K / L)
+			error("The number of parameter configurations, K = $K, and the number of distances matrics, L = $L, do not match; further, K is not a multiple of L, so we cannot replicate D to match θ.")
+		end
+		D_pointer = repeat(1:L, inner = K ÷ L) # Note that this is exactly the same as the field chol_pointer in objects of type Parameters
+	else
+		D = [D]
+		D_pointer = repeat([1], K)
+	end
+	@assert length(D_pointer) == K
+
+	# Convert from matrix to vector of vectors
+	θ₀ = [θ₀[:, k] for k ∈ 1:K]
+
+	# Optimise
+	θ̂ = map(1:K) do k
+		 Dₖ = D[D_pointer[k]]
+		 MAP(Z[k], θ₀[k], Dₖ, Ω)
+	end
+
+	# Convert to matrix
+	θ̂ = hcat(θ̂...)
+
+	return θ̂
+end

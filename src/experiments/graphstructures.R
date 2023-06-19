@@ -11,6 +11,8 @@ int_path <- paste("intermediates/experiments/graphstructures", model, neighbours
 img_path <- paste("img/experiments/graphstructures", model, neighbours, sep = "/")
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
+
+
 loadestimates <- function(set, type = "scenarios") {
   df <- read.csv(paste0(int_path, "/estimates_", type, "_", set, ".csv"))
   df$set <- set
@@ -53,69 +55,113 @@ df %>%
 
 # ---- Sampling distributions ----
 
+loadestimates <- function(set, type = "scenarios") {
+  df <- read.csv(paste0(int_path, "/estimates_", type, "_", set, ".csv"))
+  df$set <- set
+  
+  # Relabel to control the order of boxplots
+  # df$estimator <- as.factor(df$estimator)
+  # levels(df$estimator) <- c("GNN_S", "GNN_Svariable", "GNN_Sclustered", "MAP")
+  df$estimator[df$estimator == "WGNN_S"] <- "GNN_S1"
+  df$estimator[df$estimator == "WGNN_Svariable"] <- "GNN_S2"
+  df$estimator[df$estimator == "WGNN_Sclustered"] <- "GNN_S3"
+  df$estimator[df$estimator == "WGNN_Smatern"] <- "GNN_S4"
+  
+  df
+}
+
 loaddata <- function(set) {
   df <- read.csv(paste0(int_path, "/Z_", set, ".csv"))
   df$set <- set
   df
 }
 
-df <- loadestimates("S") %>%
-  rbind(loadestimates("Stilde")) %>%
-  rbind(loadestimates("Sclustered")) 
 
-
-df <- df %>% filter(estimator %in% estimators)
-
-
-zdf <- loaddata("S") %>%
-  rbind(loaddata("Stilde")) %>%
-  rbind(loaddata("Sclustered"))
+# load data
+sets <- c("S", "Stilde", "Sclustered")
+df  <- lapply(sets, loadestimates); df  <- do.call(rbind, df); df <- filter(df, estimator %in% estimators)
+zdf <- lapply(sets, loaddata);      zdf <- do.call(rbind, zdf)
 
 figures <- lapply(unique(df$k), function(K) {
   
   df  <- df  %>% filter(k == K)
   zdf <- zdf %>% filter(k == K)
   
-  ggz_1  <- field_plot(filter(zdf, set == "S"), regular = F) + labs(title = "S")
-  ggz_2  <- field_plot(filter(zdf, set == "Stilde"), regular = F) + labs(title = "S'")
-  ggz_3  <- field_plot(filter(zdf, set == "Sclustered"), regular = F) + labs(title = "S''")
-  ggz_1  <- ggz_1 + labs(fill = "Z") + theme(legend.title.align=0.25, legend.title = element_text(face = "bold"))
-  data_legend <- get_legend(ggz_1)
-  data <- list(ggz_1, ggz_2, ggz_3)
-  data <- lapply(data, function(gg) gg + 
-                   theme(legend.position = "none") + 
-                   theme(plot.title = element_text(hjust = 0.5)) + 
-                   coord_fixed())
+  data <- lapply(sets, function(st) {
+    field_plot(filter(zdf, set == st), regular = F)
+  })
+  data[[1]] <- data[[1]] +
+    scale_x_continuous(breaks = c(0.25, 0.5, 0.75), expand = c(0, 0)) +
+    scale_y_continuous(breaks = c(0.25, 0.5, 0.75), expand = c(0, 0)) +
+    labs(fill = "Z") +
+    theme(legend.title.align = 0.25, legend.title = element_text(face = "bold"))
+  data_legend <- get_legend(data[[1]])
+  
+  data[[1]] <- data[[1]] + labs(title = "S")
+  data[[2]] <- data[[2]] + labs(title = "S'")
+  data[[3]] <- data[[3]] + labs(title = "S'")
   
   
-  box_1  <- plotdistribution(filter(df, set == "S"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1)  + scale_estimator(df)
-  box_2   <- plotdistribution(filter(df, set == "Stilde"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1)  + scale_estimator(df)
-  box_3   <- plotdistribution(filter(df, set == "Sclustered"), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1)  + scale_estimator(df)
-  box_legend <- get_legend(box_2)
-  box <- list(box_1, box_2, box_3)
+  data <- lapply(data, function(gg) gg +
+                   theme(legend.position = "none") +
+                   theme(plot.title = element_text(hjust = 0.5)) #+ coord_fixed()
+  )
+  
+  data[-1] <- lapply(data[-1], function(gg) gg +
+                       theme(axis.text.y = element_blank(),
+                             axis.ticks.y = element_blank(),
+                             axis.title.y = element_blank()))
+  
+  
+  # ---- Marginal sampling distributions ----
+  
+  box <- lapply(sets, function(st) {
+    plotdistribution(filter(df, set == st), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1, return_list = TRUE)
+  })
+  p <- length(unique(df$parameter))
+  box_split <- lapply(1:p, function(i) {
+    lapply(1:length(box), function(j) box[[j]][[i]])
+  })
+  
+  # Modify the axes for pretty plotting
+  for (i in 1:p) {
+    
+    box_split[[i]][[1]] <- box_split[[i]][[1]] + labs(y = box_split[[i]][[1]]$labels$x)
+    
+    # Remove axis labels for internal panels
+    box_split[[i]][-1] <- lapply(box_split[[i]][-1], function(gg) gg +
+                                   theme(axis.text.y = element_blank(),
+                                         axis.ticks.y = element_blank(),
+                                         axis.title.y = element_blank()))
+    
+    # Ensure axis limits are consistent for all panels in a given row (parameter)
+    ylims <- df %>% filter(parameter == unique(df$parameter)[i]) %>% summarise(range(estimate)) %>% as.matrix %>% c
+    box_split[[i]] <- lapply(box_split[[i]], function(gg) gg + ylim(ylims))
+  }
+  
+  box <- do.call(c, box_split)
+  box <- lapply(box, function(gg) gg + scale_estimator(df))
+  box_legend <- get_legend(box[[1]])
   box <- lapply(box, function(gg) {
     gg$facet$params$nrow <- 2
     gg$facet$params$strip.position <- "bottom"
-    gg + 
-      theme(legend.position = "none") +
-      theme(
-        strip.background = element_blank(),
-        # strip.text.x = element_blank(),
-        axis.title.y = element_blank()
-      )
+    gg + theme(legend.position = "none", axis.title.x = element_blank()) +scale_estimator(df)
   })
   
+  
+  
+  
   plotlist <- c(data, box)
-  figure1  <- ggpubr::ggarrange(plotlist = plotlist, nrow = 2, ncol = 3, heights = c(1.25, 2))
-  figure2  <- ggpubr::ggarrange(data_legend, box_legend, ncol = 1, heights = c(1, 2.5))
+  figure1  <- egg::ggarrange(plots = plotlist, nrow = 3, ncol = length(sets), heights = c(1.5, 1, 1))
+  figure2  <- ggpubr::ggarrange(data_legend, box_legend, ncol = 1, heights = c(1.2, 2.2))
   figure   <- ggpubr::ggarrange(figure1, figure2, widths = c(1, 0.15))
-  figure
   
   ggsave(
-    figure, 
+    figure,
     file = paste0("samplingdistributions", K, ".pdf"),
-    width = 8.5, height = 6, device = "pdf", path = img_path
+    width = 8.5, height = 4.6, device = "pdf", path = img_path
   )
   
   figure
 })
+

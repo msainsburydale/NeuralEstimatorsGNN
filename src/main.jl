@@ -248,9 +248,7 @@ assessestimators(S, ξ, K_test, set)
 # .             .
 seed!(1)
 set = "mixedsparsity"
-n_centre = 200
-@assert n_centre < n
-@assert (n - n_centre) % 4 == 0
+n_centre = (3 * n) ÷ 4
 n_corner = (n - n_centre) ÷ 4
 S_centre  = 1/3 * rand(n_centre, 2) .+ 1/3
 S_corner1 = 1/3 * rand(n_corner, 2)

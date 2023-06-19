@@ -26,7 +26,7 @@ loaddata <- function(set) {
 estimators <- c("GNN", "MAP")
 
 if (model %in% c("Schlather", "BrownResnick")) {
-  estimator_labels["MAP"] <- "PL"
+  estimator_labels["MAP"] <- "MPL"
 }
 
 # ---- Simple plot used in the main text ----
@@ -68,17 +68,16 @@ figures <- lapply(unique(df$k), function(K) {
 
 # ---- Risk function ----
 
-df <- loadestimates("gridded", "test") %>%
-  rbind(loadestimates("uniform", "test")) %>%
-  rbind(loadestimates("quadrants", "test")) %>%
-  rbind(loadestimates("mixedsparsity", "test")) %>%
-  rbind(loadestimates("cup", "test")) %>%
-  filter(estimator %in% estimators)
+sets <- c("uniform", "quadrants", "mixedsparsity", "cup")
+df <- lapply(sets, loadestimates, type = "test")
+df <- do.call(rbind, df)
+df <- filter(df, estimator %in% estimators)
 
 ## Bayes risk with respect to absolute error
 df %>%
   mutate(loss = abs(estimate - truth)) %>%
-  group_by(set, estimator) %>%
+  # group_by(set, estimator) %>%
+  group_by(estimator) %>%
   summarise(risk = mean(loss), sd = sd(loss)/sqrt(length(loss))) %>%
   write.csv(file = paste0(img_path, "/risk.csv"), row.names = F)
 
@@ -86,7 +85,8 @@ df %>%
 ## RMSE 
 df %>%
   mutate(loss = (estimate - truth)^2) %>%
-  group_by(set, estimator) %>%
+  # group_by(set, estimator) %>%
+  group_by(estimator) %>%
   summarise(RMSE = sqrt(mean(loss))) %>%
   write.csv(file = paste0(img_path, "/RMSE.csv"), row.names = F)
 
@@ -209,4 +209,9 @@ figures <- lapply(unique(df$k), function(K) {
   )
 
   figure
+  
+  
+  # ---- All plots ----
+  
+  
 })

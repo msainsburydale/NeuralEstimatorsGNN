@@ -1,4 +1,4 @@
-using RCall # this is needed to interact with the R scripts that define model simulation.
+using RCall # call R functions that define model simulation 
 
 using NeuralEstimators
 import NeuralEstimators: simulate
