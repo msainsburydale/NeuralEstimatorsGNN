@@ -74,9 +74,9 @@ function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVecto
 	# inverse of the variance-stabilising transform
 	Z = broadcast.(ξ.invtransform, Z)
 
-	# intitialise the estimates to the true parameters. Since we logistic-transform
-	# the parameters during optimisation to force the estimates to be within the
-	# prior support, here we provide the logit-transformed values.
+	# Since we logistic-transform the parameters during optimisation to force
+	# the estimates to take reasonable values, here we provide logit-transformed
+	# initial values.
 	Ω = ξ.Ω
 	Ω = [Ω...] # convert to array since broadcasting over dictionaries and NamedTuples is reserved
 	# "Widen" the prior support so we don't get so many estimates on the boundary

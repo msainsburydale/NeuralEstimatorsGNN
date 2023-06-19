@@ -33,8 +33,9 @@ end
 M = maximum(m)
 using NeuralEstimators
 using NeuralEstimatorsGNN
-using DataFrames
 using GraphNeuralNetworks
+using BenchmarkTools
+using DataFrames
 using CSV
 
 include(joinpath(pwd(), "src/$model/model.jl"))
@@ -282,3 +283,28 @@ S = vcat(S_strip1, S_strip2, S_strip3)
 # dnn = trainDNN(dnn, ξ, S, set, skip_training)
 seed!(1)
 assessestimators(S, ξ, K_test, set)
+
+
+
+# Finally, accurately assess the run-time for a single parameter estimate:
+seed!(1)
+S = rand(n, 2)
+D = pairwise(Euclidean(), S, S, dims = 1)
+A = adjacencymatrix(D, r)
+g = GNNGraph(A)
+ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
+
+θ = Parameters(1, ξ, J = 1)
+Z = simulate(θ, M)
+
+θ₀ = mean.([ξ.Ω...])
+ξ = (ξ..., S = S, D = D, θ₀ = θ₀)
+tmap = @belapsed MAP(Z, ξ)
+
+Z = reshapedataGNN(Z, g)
+Z = Z |> gpu
+gnn = gnn|> gpu
+tgnn = @elapsed gnn(Z)
+
+t = DataFrame((time = [tgnn, tmap], estimator = ["GNN", "MAP"]))
+CSV.write(path * "/runtime.csv", t)
