@@ -69,7 +69,7 @@ function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} wh
 	loc_pointer = parameters.chol_pointer
 
 	# Providing R with only a single parameter vector at a time
-	# Z = map(1:K) do k
+	# z = map(1:K) do k
 	# 	loc = locs[loc_pointer[k]][:, :]
 	# 	z = simulatebrownresnick(loc, ρ[k], ν[k], m̃[k])
 	# 	z = Float32.(z)
@@ -78,10 +78,10 @@ function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} wh
 
 	# Providing R with multiple parameter vectors
 	loc = [locs[loc_pointer[k]][:, :] for k ∈ 1:K] # need length(loc) == K
-	Z = simulatebrownresnick(loc, ρ, ν, m̃)
-	Z = broadcast.(Float32, z)
+	z = simulatebrownresnick(loc, ρ, ν, m̃)
+	z = broadcast.(Float32, z)
 
-	return Z
+	return z
 end
 simulate(parameters::Parameters, m::Integer) = simulate(parameters, range(m, m))
 simulate(parameters::Parameters) = stackarrays(simulate(parameters, 1))
