@@ -96,7 +96,7 @@ vario <- function(x, range, smooth){
 }
 """
 
-# Providing R with multiple parameter vectors
+# Providing R with only a single parameter vector at a time
 # function simulatebrownresnick(loc, ρ, ν, m, Gumbel = true)
 # 	range  = ρ
 # 	smooth = ν
@@ -121,7 +121,7 @@ vario <- function(x, range, smooth){
 # end
 
 
-# For multiple parameter vectors
+# Providing R with multiple parameter vectors
 function simulatebrownresnick(loc::V, ρ, ν, m, Gumbel = true) where {V <: AbstractVector{M}} where {M <: AbstractMatrix{T}} where {T}
 
 	@assert length(loc) == length(ρ) == length(ν) == length(m)
@@ -139,7 +139,7 @@ function simulatebrownresnick(loc::V, ρ, ν, m, Gumbel = true) where {V <: Abst
 	z = mclapply(1:K, function(k) {
 			z = simu_extrfcts(model='brownresnick',m=m[k],coord=loc[[k]],vario=vario, range=range[k], smooth=smooth[k])$res
 			z = as.matrix(z)
-			# if (m > 1) z = t(z)
+			if (m > 1) z = t(z)
 			z
 	})
 	"""
