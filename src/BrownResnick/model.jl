@@ -78,8 +78,8 @@ function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} wh
 
 	# Providing R with multiple parameter vectors
 	loc = [locs[loc_pointer[k]][:, :] for k ∈ 1:K] # need length(loc) == K
-	z = simulatebrownresnick(loc, ρ, ν, m̃)
-	z = broadcast.(Float32, z)
+	Z = simulatebrownresnick(loc, ρ, ν, m̃)
+	Z = broadcast.(Float32, z)
 
 	return Z
 end
@@ -111,6 +111,12 @@ vario <- function(x, range, smooth){
 # 	"""
 # 	@rget z
 # 	if Gumbel z = log.(z) end # transform from the unit-Fréchet scale (extremely heavy tailed) to the Gumbel scale
+#
+# 	R"""
+# 	# remove data from memory to alleviate memory pressure
+# 	rm(z)
+# 	"""
+#
 # 	return z
 # end
 
@@ -137,8 +143,15 @@ function simulatebrownresnick(loc::V, ρ, ν, m, Gumbel = true) where {V <: Abst
 			z
 	})
 	"""
+
 	@rget z
 	if Gumbel z = broadcast.(log, z) end # transform from the unit-Fréchet scale (extremely heavy tailed) to the Gumbel scale
+
+	R"""
+	# remove data from memory to alleviate memory pressure
+	rm(z)
+	"""
+
 	return z
 end
 
