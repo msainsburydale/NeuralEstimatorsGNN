@@ -76,10 +76,10 @@ function gnnarchitecture(
 		ffeat = Dense(nh, no)
 		GlobalAttentionPool(fgate, ffeat)
 	elseif globalpool == "deepset"
-		nt = 32  # dimension of the summary vector for each node
-		no = 64  # dimension of the final summary vector for each graph
-		ψ = Dense(nh, nt)
-		ϕ = Dense(nt, no)
+		nt = 128  # dimension of the summary vector for each node
+		no = 128  # dimension of the final summary vector for each graph
+		ψ = Chain(Dense(nh, nt), Dense(nt, nt))
+		ϕ = Chain(Dense(nt, no), Dense(no, no))
 		DeepSetPool(ψ, ϕ)
 	else
 		error("global pooling module not recognised")
@@ -110,3 +110,20 @@ function gnnarchitecture(
 
 	return estimator
 end
+
+# ?GNN
+# p = 3
+# gnn1 = gnnarchitecture(p, nh = 128, globalpool = "mean")
+# nparams(gnn1)
+#
+# gnn2 = gnnarchitecture(p, nh = 64, globalpool = "deepset")
+# nparams(gnn2)
+#
+# n₁, n₂ = 200, 500                             # number of nodes
+# e₁, e₂ = 30, 50                             # number of edges
+# g₁ = rand_graph(n₁, e₁, ndata=rand(d, n₁))
+# g₂ = rand_graph(n₂, e₂, ndata=rand(d, n₂))
+# z = batch([g₁, g₂])
+#
+# @btime gnn1(z)
+# @btime gnn2(z)

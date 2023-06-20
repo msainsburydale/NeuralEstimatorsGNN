@@ -1,3 +1,5 @@
+library("parallel")
+
 ## internal functions: do not use any of them directly!
 simu_px_brownresnick <- function(m=1, idx,  N, trend, chol.mat) {
   stopifnot(length(idx)==1 || length(idx)==m)
@@ -58,7 +60,11 @@ simu_px_dirichlet <- function(m, idx, N, weights, alpha, norm.alpha) {
 ## main functions
 
 simu_extrfcts <- function(model, N, loc=1, scale=1, shape=1, m=1,
-                          coord, vario, corr, dof, theta, weights, alpha) {
+                          coord, vario, corr, dof, theta, weights, alpha, 
+                          range = NULL, smooth = NULL) {
+  
+  if (is.null(range) & model == "brownresnick") stop("Must provide the range parameter for the Brown-Resnick process") 
+  if (is.null(smooth) & model == "brownresnick") stop("Must provide the smoothness parameter for the Brown-Resnick process") 
 
   stopifnot(model %in% c("brownresnick", "extremalt", "logistic", "neglogistic", "dirichlet"))
 
@@ -80,7 +86,7 @@ simu_extrfcts <- function(model, N, loc=1, scale=1, shape=1, m=1,
   if (model=="brownresnick") {
     stopifnot(is.function(vario))
     cov.mat <- sapply(1:N, function(i) sapply(1:N, function(j)
-                     vario(coord[i,]) + vario(coord[j,]) - vario(coord[i,]-coord[j,])))
+                     vario(coord[i,], range=range, smooth=smooth) + vario(coord[j,], range=range, smooth=smooth) - vario(coord[i,]-coord[j,], range=range, smooth=smooth)))
     cov.mat <- cov.mat + 1e-6
     #add constant random effect to avoid numerical problems
     chol.mat <- chol(cov.mat)
@@ -116,7 +122,7 @@ simu_extrfcts <- function(model, N, loc=1, scale=1, shape=1, m=1,
   for (k in 1:N) {
     poisson <- rexp(m)
     if (model == "brownresnick") {
-      trend <- sapply(1:N, function(j) vario(coord[j,]-coord[k,]))
+      trend <- sapply(1:N, function(j) vario(coord[j,]-coord[k,], range=range, smooth=smooth))
     } else if (model == "extremalt") {
       cov.vec  <- apply(coord, 1, function(x) corr(x-coord[k,]))
       cov.mat  <- (cov.mat.tmp - outer(cov.vec, cov.vec, '*'))/(dof+1) + 1e-6

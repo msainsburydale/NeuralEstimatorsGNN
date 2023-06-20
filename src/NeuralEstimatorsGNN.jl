@@ -137,15 +137,15 @@ end
 # architecture over each graph (that is how I originally thought that it would
 # be implemented).
 @doc raw"""
-    DeepSetPool(ψ, ϕ = identity)
-Deep Set readout layer from the [Graph Neural Networks with Adaptive Readouts](https://arxiv.org/abs/2211.04952) paper.
+    DeepSetPool(ψ, ϕ)
+Deep Set readout layer from the paper ['Universal Readout for Graph Convolutional Neural Networks'](https://ieeexplore.ieee.org/document/8852103).
 It takes the form,
 ```math
 ``\mathbf{h}_V`` = ϕ(|V|⁻¹ \sum_{v\in V} ψ(\mathbf{h}_v)),
 ```
 where ``\mathbf{h}_V`` denotes the summary vector for graph ``V``,
 ``\mathbf{h}_v`` denotes the vector of hidden features for node ``v \in V``,
-and ψ and ψ are neural networks.
+and `ψ` and `ψ` are neural networks.
 
 # Examples
 ```julia
@@ -159,7 +159,7 @@ no = 64  # dimension of the final summary vector for each graph
 ϕ = Dense(nt, no)
 dspool = DeepSetPool(ψ, ϕ)
 
-# Toy input graph containing subgraphs
+# Input graph containing subgraphs (replicating the output of a propagation module)
 num_nodes  = 10
 num_edges  = 4
 num_graphs = 3
@@ -176,8 +176,6 @@ struct DeepSetPool{G,F}
 end
 
 @functor DeepSetPool
-
-DeepSetPool(ψ) = DeepSetPool(ϕ, identity)
 
 function (l::DeepSetPool)(g::GNNGraph, x::AbstractArray)
     u = reduce_nodes(mean, g, l.ψ(x))

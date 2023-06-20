@@ -132,6 +132,33 @@ end
 # Flux.loadparams!(cnn,  loadbestweights(path * "/runs_CNN_m$M"))
 Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_m$M"))
 
+
+# ---- Run-time assessment ----
+
+# Accurately assess the run-time for a single data set
+seed!(1)
+S = rand(n, 2)
+D = pairwise(Euclidean(), S, S, dims = 1)
+A = adjacencymatrix(D, r)
+g = GNNGraph(A)
+ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
+
+θ = Parameters(1, ξ, J = 1)
+Z = simulate(θ, M)
+
+θ₀ = mean.([ξ.Ω...])
+ξ = (ξ..., S = S, D = D, θ₀ = θ₀)
+tmap = @belapsed MAP(Z, ξ)
+
+Z = reshapedataGNN(Z, g)
+Z = Z |> gpu
+gnn = gnn|> gpu
+tgnn = @belapsed gnn(Z)
+
+t = DataFrame((time = [tgnn, tmap], estimator = ["GNN", "MAP"]))
+CSV.write(path * "/runtime.csv", t)
+
+
 # ---- Assess the estimators ----
 
 function assessestimators(θ, Z, g, ξ; assess_CNN::Bool = false, assess_MAP::Bool = true)
@@ -283,28 +310,3 @@ S = vcat(S_strip1, S_strip2, S_strip3)
 # dnn = trainDNN(dnn, ξ, S, set, skip_training)
 seed!(1)
 assessestimators(S, ξ, K_test, set)
-
-
-
-# Finally, accurately assess the run-time for a single parameter estimate:
-seed!(1)
-S = rand(n, 2)
-D = pairwise(Euclidean(), S, S, dims = 1)
-A = adjacencymatrix(D, r)
-g = GNNGraph(A)
-ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
-
-θ = Parameters(1, ξ, J = 1)
-Z = simulate(θ, M)
-
-θ₀ = mean.([ξ.Ω...])
-ξ = (ξ..., S = S, D = D, θ₀ = θ₀)
-tmap = @belapsed MAP(Z, ξ)
-
-Z = reshapedataGNN(Z, g)
-Z = Z |> gpu
-gnn = gnn|> gpu
-tgnn = @elapsed gnn(Z)
-
-t = DataFrame((time = [tgnn, tmap], estimator = ["GNN", "MAP"]))
-CSV.write(path * "/runtime.csv", t)

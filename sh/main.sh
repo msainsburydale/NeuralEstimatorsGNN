@@ -24,7 +24,7 @@ do
     if [[ $model == "GP/nuFixed" ]]; then
         m="[1]"
     elif [[ $model == "BrownResnick" ]]; then
-        m="[1,50]"
+        m="[1,20]"
     else
         m="[1,20]"
     fi
