@@ -42,9 +42,25 @@ install_dependencies <- function(install_exact_versions) {
   if(!("ngme2" %in% rownames(installed.packages())))
     devtools::install_github("davidbolin/ngme2", ref = "devel")
   
+  if(!("INLA" %in% rownames(installed.packages()))) {
+    if (exists("install_exact_versions") && install_exact_versions) {
+      # devtools::install_version("INLA", 
+      #                           # repos = "https://inla.r-inla-download.org/R/", 
+      #                           repos = "https://inla.r-inla-download.org/R/stable", 
+      #                           version = pkg_versions["INLA"])
+      
+      ## Can't get the above to work. Not sure how to download exact versions from 
+      ## non-standard repos. Just installing the current stable versions for now. 
+      install.packages("INLA", repos="https://inla.r-inla-download.org/R/stable")
+      
+    } else {
+      install.packages("INLA", repos="https://inla.r-inla-download.org/R/stable")
+    }
+  }
+  
   ## Remove this from the search list so that the script does not 
   ## attempt to re-install them
-  pkg_versions <- pkg_versions[!(names(pkg_versions) %in% c("ngme2"))]
+  pkg_versions <- pkg_versions[!(names(pkg_versions) %in% c("ngme2", "INLA"))]
   
   # ---- CRAN packages ----
   
