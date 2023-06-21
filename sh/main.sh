@@ -14,17 +14,19 @@ else
     exit 1
 fi
 
-for model in GP/nuFixed Schlather BrownResnick
+for model in SPDE # GP/nuFixed Schlather BrownResnick
 do
 
     echo ""
     echo "##### Starting main results for $model model #####"
     echo ""
 
-    if [[ $model == "GP/nuFixed" ]]; then
+    if [[ $model == "GP/nuFixed"  ]]; then
+        m="[1]"
+    elif [[ $model == "SPDE" ]]; then
         m="[1]"
     elif [[ $model == "BrownResnick" ]]; then
-        m="[1,20]"
+        m="[1,40]"
     else
         m="[1,20]"
     fi

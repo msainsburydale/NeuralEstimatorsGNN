@@ -1,5 +1,3 @@
-using RCall # call R functions that define model simulation
-
 using NeuralEstimators
 import NeuralEstimators: simulate
 using NeuralEstimatorsGNN
@@ -7,6 +5,7 @@ import NeuralEstimatorsGNN: Parameters
 using Distances: pairwise, Euclidean
 using Distributions: Uniform
 using LinearAlgebra
+using RCall
 
 Ω = (
 	ρ = Uniform(0.05, 0.3),
@@ -17,7 +16,7 @@ parameter_names = String.(collect(keys(Ω)))
 ξ = (
 	Ω = Ω,
 	p = length(Ω),
-	n = 250,
+	n = 125,
 	parameter_names = parameter_names,
 	ρ_idx = findfirst(parameter_names .== "ρ"),
 	ν_idx = findfirst(parameter_names .== "ν"),

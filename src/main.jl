@@ -39,7 +39,7 @@ using DataFrames
 using CSV
 
 include(joinpath(pwd(), "src/$model/model.jl"))
-include(joinpath(pwd(), "src/$model/MAP.jl"))
+if model != "SPDE" include(joinpath(pwd(), "src/$model/MAP.jl")) end
 include(joinpath(pwd(), "src/architecture.jl"))
 
 path = "intermediates/$model"
@@ -135,28 +135,34 @@ Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_m$M"))
 
 # ---- Run-time assessment ----
 
-# Accurately assess the run-time for a single data set
-seed!(1)
-S = rand(n, 2)
-D = pairwise(Euclidean(), S, S, dims = 1)
-A = adjacencymatrix(D, r)
-g = GNNGraph(A)
-ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
 
-θ = Parameters(1, ξ, J = 1)
-Z = simulate(θ, M)
+if isdefined(Main, :MAP)
 
-θ₀ = mean.([ξ.Ω...])
-ξ = (ξ..., S = S, D = D, θ₀ = θ₀)
-tmap = @belapsed MAP(Z, ξ)
+	# Accurately assess the run-time for a single data set
+	seed!(1)
+	S = rand(n, 2)
+	D = pairwise(Euclidean(), S, S, dims = 1)
+	A = adjacencymatrix(D, r)
+	g = GNNGraph(A)
+	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
 
-Z = reshapedataGNN(Z, g)
-Z = Z |> gpu
-gnn = gnn|> gpu
-tgnn = @belapsed gnn(Z)
+	θ = Parameters(1, ξ, J = 1)
+	Z = simulate(θ, M)
 
-t = DataFrame((time = [tgnn, tmap], estimator = ["GNN", "MAP"]))
-CSV.write(path * "/runtime.csv", t)
+	θ₀ = mean.([ξ.Ω...])
+	ξ = (ξ..., S = S, D = D, θ₀ = θ₀)
+	tmap = @belapsed MAP(Z, ξ)
+
+	Z = reshapedataGNN(Z, g)
+	Z = Z |> gpu
+	gnn = gnn|> gpu
+	tgnn = @belapsed gnn(Z)
+
+	t = DataFrame((time = [tgnn, tmap], estimator = ["GNN", "MAP"]))
+	CSV.write(path * "/runtime.csv", t)
+
+end
+
 
 
 # ---- Assess the estimators ----
