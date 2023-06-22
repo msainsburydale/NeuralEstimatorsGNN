@@ -15,6 +15,7 @@
 "plyr" "1.8.8"
 "renv" "0.17.3"
 "rSPDE" "2.3.1"
+"SpatialExtremes" "2.1.0"
 "spatstat" "3.0.6"
 "tidyr" "1.2.1"
 "viridis" "0.6.2"

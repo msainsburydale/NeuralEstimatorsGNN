@@ -26,7 +26,7 @@ m = let expr = Meta.parse(parsed_args["m"])
 end
 
 # model="BrownResnick"
-# m=[1, 50]
+# m=[1, 20]
 # skip_training = true
 # quick=true
 
@@ -73,7 +73,7 @@ gnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
 
 # Note that we use different training data for the two estimators because CNNs require gridded data.
 
-const J = 3
+J = 3
 
 if !skip_training
 
@@ -202,6 +202,7 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	seed!(1)
 	θ = Parameters(K_test, ξ)
 	Z = simulate(θ, M)
+	# Z = model == "BrownResnick" ? simulate(θ, M; exact = true) : simulate(θ, M)
 	ξ = (ξ..., θ₀ = θ.θ)
 	assessment = assessestimators(θ, Z, g, ξ; assess_CNN = assess_CNN, assess_MAP = assess_MAP)
 	CSV.write(path * "/estimates_test_$set.csv", assessment.df)
@@ -211,7 +212,10 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	K_scenarios = 5
 	seed!(1)
 	θ = Parameters(K_scenarios, ξ)
-	Z = simulate(θ, M, quick ? 10 : 100)
+	J = quick ? 10 : 100
+	Z = simulate(θ, M, J)
+	# Z = model == "BrownResnick" ? [simulate(θ, M; exact = true) for i ∈ 1:J] : [simulate(θ, M) for i ∈ 1:J]
+	# Z = vcat(Z...)
 	ξ = (ξ..., θ₀ = θ.θ)
 	assessment = assessestimators(θ, Z, g, ξ; assess_CNN = assess_CNN, assess_MAP = assess_MAP)
 	CSV.write(path * "/estimates_scenarios_$set.csv", assessment.df)

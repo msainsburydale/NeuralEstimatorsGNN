@@ -14,7 +14,7 @@ else
     exit 1
 fi
 
-for model in SPDE # GP/nuFixed Schlather BrownResnick
+for model in BrownResnick SPDE # GP/nuFixed Schlather BrownResnick
 do
 
     echo ""
@@ -26,7 +26,7 @@ do
     elif [[ $model == "SPDE" ]]; then
         m="[1]"
     elif [[ $model == "BrownResnick" ]]; then
-        m="[1,40]"
+        m="[1,20]"
     else
         m="[1,20]"
     fi

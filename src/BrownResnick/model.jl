@@ -16,7 +16,7 @@ parameter_names = String.(collect(keys(Ω)))
 ξ = (
 	Ω = Ω,
 	p = length(Ω),
-	n = 125,
+	n = 250,
 	parameter_names = parameter_names,
 	ρ_idx = findfirst(parameter_names .== "ρ"),
 	ν_idx = findfirst(parameter_names .== "ν"),
@@ -54,7 +54,7 @@ end
 # (in the case that J > 1). Further, we may run into memory problems if we store
 # the full data set in both R and Julia.
 
-function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} where I <: Integer
+function simulate(parameters::Parameters, m::R; exact::Bool = false) where {R <: AbstractRange{I}} where I <: Integer
 
 	K = size(parameters, 2)
 	m̃ = rand(m, K)
@@ -77,74 +77,47 @@ function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} wh
 
 	# Providing R with multiple parameter vectors
 	loc = [locs[loc_pointer[k]][:, :] for k ∈ 1:K] # need length(loc) == K
-	z = simulatebrownresnick(loc, ρ, ν, m̃)
+	z = simulatebrownresnick(loc, ρ, ν, m̃, exact = exact)
 	z = broadcast.(Float32, z)
 
 	return z
 end
-simulate(parameters::Parameters, m::Integer) = simulate(parameters, range(m, m))
-simulate(parameters::Parameters) = stackarrays(simulate(parameters, 1))
+simulate(parameters::Parameters, m::Integer; exact::Bool = false) = simulate(parameters, range(m, m); exact = exact)
+simulate(parameters::Parameters; exact::Bool = false) = stackarrays(simulate(parameters, 1; exact = exact))
+
+
 
 
 ##### Load the R functions for simulation and define the variogram function
-R"""
-source('src/BrownResnick/simulation_Dombry_et_al.R')
+# R"""
+# source('src/BrownResnick/simulate.R')
+# """
 
-vario <- function(x, range, smooth){
-  (sqrt(sum(x^2))/range)^smooth ## power variogram (h/range)^smooth
-}
+R"""
+suppressMessages({
+library("parallel")
+library("SpatialExtremes")
+})
 """
 
 # Providing R with only a single parameter vector at a time
-# function simulatebrownresnick(loc, ρ, ν, m, Gumbel = true)
-# 	range  = ρ
-# 	smooth = ν
-# 	@rput range
-# 	@rput smooth
-# 	@rput m
-# 	@rput loc
-# 	R"""
-# 	z = simu_extrfcts(model='brownresnick',m=m,coord=loc,vario=vario, range=range,smooth=smooth)$res
-# 	z = as.matrix(z)
-# 	if (m > 1) z = t(z)
-# 	"""
-# 	@rget z
-# 	if Gumbel z = log.(z) end # transform from the unit-Fréchet scale (extremely heavy tailed) to the Gumbel scale
-#
-# 	R"""
-# 	# remove data from memory to alleviate memory pressure
-# 	rm(z)
-# 	"""
-#
-# 	return z
-# end
-
-
-# Providing R with multiple parameter vectors
-function simulatebrownresnick(loc::V, ρ, ν, m, Gumbel = true) where {V <: AbstractVector{M}} where {M <: AbstractMatrix{T}} where {T}
-
-	@assert length(loc) == length(ρ) == length(ν) == length(m)
-
+function simulatebrownresnick(loc, ρ, ν, m; Gumbel::Bool = true, exact::Bool = false)
 	range  = ρ
 	smooth = ν
 	@rput range
 	@rput smooth
 	@rput m
 	@rput loc
+  	@rput exact
+	# R"""
+	# z = simulateBR(m=m, coord=loc, vario=vario, range=range, smooth=smooth, exact=exact)
+	# """
 	R"""
-	# Note that vectors of matrices in Julia are converted to a list of matrices
-	# in R, so we need to index loc using double brackets
-	K = length(loc)
-	z = mclapply(1:K, function(k) {
-			z = simu_extrfcts(model='brownresnick',m=m[k],coord=loc[[k]],vario=vario, range=range[k], smooth=smooth[k])$res
-			z = as.matrix(z)
-			if (m > 1) z = t(z)
-			z
-	})
+	z = rmaxstab(n=m, coord = coord, range = range, smooth = smooth, cov.mod = "brown", control = list(method = "exact"))
+	z = t(z)
 	"""
-
 	@rget z
-	if Gumbel z = broadcast.(log, z) end # transform from the unit-Fréchet scale (extremely heavy tailed) to the Gumbel scale
+	if Gumbel z = log.(z) end # transform from the unit-Fréchet scale (extremely heavy tailed) to the Gumbel scale
 
 	R"""
 	# remove data from memory to alleviate memory pressure
@@ -155,13 +128,52 @@ function simulatebrownresnick(loc::V, ρ, ν, m, Gumbel = true) where {V <: Abst
 end
 
 
+# Providing R with multiple parameter vectors and locations
+function simulatebrownresnick(loc::V, ρ, ν, m; Gumbel::Bool = true, exact::Bool = false) where {V <: AbstractVector{M}} where {M <: AbstractMatrix{T}} where {T}
+
+	@assert length(loc) == length(ρ) == length(ν) == length(m)
+
+	range  = ρ
+	smooth = ν
+	@rput range
+	@rput smooth
+	@rput m
+	@rput loc
+	@rput exact
+	R"""
+	## Note that vectors of matrices in Julia are converted to a list of matrices
+	## in R, so we need to index loc using double brackets
+	K = length(loc)
+
+	z = mclapply(1:K, function(k) {
+
+		# simulateBR(m=m[k], coord=loc[[k]], vario=vario, range=range[k], smooth=smooth[k], exact=exact)
+
+		z = rmaxstab(n=m[k], coord=loc[[k]], range=range[k], smooth=smooth[k], cov.mod = "brown", control = list(method = "exact"))
+		z = t(z)
+	})
+	"""
+
+	@rget z
+	if Gumbel z = broadcast.(log, z) end # transform from the unit-Fréchet scale (extremely heavy tailed) to the Gumbel scale
+
+	R"""
+	## Remove data from memory in R to alleviate memory pressure
+	rm(z)
+	"""
+
+	return z
+end
+
+
 # n = 250
 # m = 30
-# S = rand(n, 2)
-# Z = simulatebrownresnick(S, 0.5, 1.2, m)
-# Z = simulatebrownresnick([S, S], [0.5, 0.5], [1.2, 1.2], [m, m])
-# θ = Parameters(100, (ξ..., S = S))
-# @time simulate(θ, m);
-
-# no parallel:   73.648734 seconds (1.37 M allocations: 82.693 MiB, 0.01% gc time, 0.18% compilation time)
-# with parallel: 37.257721 seconds (980.92 k allocations: 61.668 MiB, 0.14% gc time, 0.13% compilation time)
+# loc = rand(n, 2)
+# ρ = 0.2
+# ν = 0.7
+# simulatebrownresnick(loc, ρ, ν, m)
+# @time simulatebrownresnick([loc, loc], [ρ, ρ], [ν, ν], [m, m]);
+# @time simulatebrownresnick([loc, loc], [ρ, ρ], [ν, ν], [m, m], exact = true);
+# θ = Parameters(10, (ξ..., S = loc))
+# @time simulate(θ, m, exact=false);
+# @time simulate(θ, m, exact=true);
