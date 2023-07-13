@@ -26,7 +26,7 @@ loaddata <- function(set) {
 estimators <- c("GNN", "MAP")
 
 if (model %in% c("Schlather", "BrownResnick")) {
-  estimator_labels["MAP"] <- "MPL"
+  estimator_labels["MAP"] <- "PL"
 }
 
 # ---- Simple plot used in the main text ----
@@ -215,3 +215,4 @@ figures <- lapply(unique(df$k), function(K) {
   
   
 })
+

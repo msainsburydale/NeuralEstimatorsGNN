@@ -199,6 +199,8 @@ using Distances
 
 #NB could easily parallelise this to speed it up
 
+
+
 """
 	adjacencymatrix(M::Matrix, k::Integer)
 	adjacencymatrix(M::Matrix, d::Float)
@@ -215,7 +217,7 @@ the spatial dimension (typically d = 2).
 using NeuralEstimatorsGNN
 using Distances
 
-n = 10
+n = 100
 d = 2
 S = rand(n, d)
 k = 5
@@ -264,9 +266,9 @@ function adjacencymatrix(M::Mat, k::Integer) where Mat <: AbstractMatrix{T} wher
 	return sparse(I,J,V,n,n)
 end
 
-function adjacencymatrix(M::Mat, d::F) where Mat <: AbstractMatrix{T} where {T, F <: AbstractFloat}
+function adjacencymatrix(M::Mat, r::F) where Mat <: AbstractMatrix{T} where {T, F <: AbstractFloat}
 
-	@assert d > 0
+	@assert r > 0
 
 	n = size(M, 1)
 	m = size(M, 2)
@@ -275,7 +277,7 @@ function adjacencymatrix(M::Mat, d::F) where Mat <: AbstractMatrix{T} where {T, 
 
 		D = M
 		# bit-matrix specifying which locations are d-neighbours
-		A = D .< d
+		A = D .< r
 		A[diagind(A)] .= 0 # remove the diagonal entries
 
 		# replace non-zero elements of A with the corresponding distance in D
@@ -301,8 +303,8 @@ function adjacencymatrix(M::Mat, d::F) where Mat <: AbstractMatrix{T} where {T, 
 			# Replace d(s) with Inf so that it's not included in the adjacency matrix
 			d[i] = Inf
 
-			# Find the d-neighbours of s
-			j = d .< d
+			# Find the r-neighbours of s
+			j = d .< r
 			j = findall(j)
 
 			push!(I, repeat([i], inner = length(j))...)

@@ -1,3 +1,6 @@
+using NeuralEstimators
+using NeuralEstimatorsGNN
+using GraphNeuralNetworks
 using Flux
 using Statistics: mean
 
