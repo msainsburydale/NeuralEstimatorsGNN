@@ -7,14 +7,7 @@ arg_table = ArgParseSettings()
 end
 parsed_args = parse_args(arg_table)
 
-model         = parsed_args["model"]
-skip_training = parsed_args["skip_training"]
-quick         = parsed_args["quick"]
-m = let expr = Meta.parse(parsed_args["m"])
-    @assert expr.head == :vect
-    Int.(expr.args)
-end
-
+quick = parsed_args["quick"]
 model="GP/nuFixed"
 m=[1]
 quick=true
