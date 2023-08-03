@@ -74,12 +74,11 @@ train(gnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_pointestim
 
 seed!(1)
 Flux.loadparams!(gnn, loadbestweights(path * "/runs_pointestimator")) # pretrain with point estimator
-lower = deepcopy(gnn)
-upper = deepcopy(gnn)
-intervalestimator = IntervalEstimator(deepcopy(lower), deepcopy(upper))
+intervalestimator = IntervalEstimator(deepcopy(gnn), deepcopy(gnn))
 
 α = 0.05f0
 q = [α/2, 1-α/2] # quantiles
 qloss = (θ̂, θ) -> quantileloss(θ̂, θ, gpu(q))
 
+@info "training the credible-interval estimator..."
 train(intervalestimator, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_CIestimator", epochs = epochs, batchsize = 16, loss = qloss)
