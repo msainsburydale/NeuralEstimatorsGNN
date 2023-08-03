@@ -10,7 +10,6 @@ parsed_args = parse_args(arg_table)
 quick = parsed_args["quick"]
 model="GP/nuFixed"
 m=[1]
-quick=true
 
 M = maximum(m)
 using NeuralEstimators
