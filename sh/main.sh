@@ -32,5 +32,10 @@ do
     fi
 
     julia --threads=auto --project=. src/main.jl --model=$model $quick --m=$m # --skip_training
+
+    if [[ $model == "GP/nuFixed"  ]]; then
+        julia --threads=auto --project=. src/mainCI.jl --model=$model $quick --m=$m # --skip_training
+    fi
+
     #Rscript src/main.R   --model=$model
 done
