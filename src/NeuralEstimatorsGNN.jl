@@ -217,7 +217,7 @@ the spatial dimension (typically d = 2).
 using NeuralEstimatorsGNN
 using Distances
 
-n = 100
+n = 1000
 d = 2
 S = rand(n, d)
 k = 5

@@ -2,7 +2,7 @@
 
 This repository contains code for reproducing the results in ["Amortised Neural Estimation from Irregular Spatial Data using Graph Neural Networks" (Sainsbury-Dale, Richards, Zammit-Mangion, and Huser, 2022)](TODO).
 
-The methodology described in the manuscript has been incorporated into the user-friendly and well-documented Julia package, [NeuralEstimators.jl](https://github.com/msainsburydale/NeuralEstimators.jl) and its accompanying [R interface](https://github.com/msainsburydale/NeuralEstimators). The code in this repository is made available primarily for reproducibility purposes, and we encourage readers seeking to implement GNN-based estimators to explore the package and its documentation.  
+The methodology described in the manuscript has been incorporated into the user-friendly and well-documented Julia package, [NeuralEstimators.jl](https://github.com/msainsburydale/NeuralEstimators.jl), and its accompanying [R interface](https://github.com/msainsburydale/NeuralEstimators). The code in this repository is made available primarily for reproducibility purposes, and we encourage readers seeking to implement GNN-based estimators to explore the package and its documentation.  
 
 ## Repository structure
 
@@ -22,7 +22,7 @@ First, download this repository and navigate to its top-level directory within t
 
 ### Software dependencies
 
-Before installing the software dependencies, users may wish to setup a `conda` environment, so that the dependencies of this repository do not affect the users current installation. To create a `conda` environment, run the following command in terminal:
+Before installing the software dependencies, users may wish to setup a `conda` environment, so that the dependencies of this repository do not affect the user's current installation. To create a `conda` environment, run the following command in terminal:
 
 ```
 conda create -n NeuralEstimatorsGNN -c conda-forge julia=1.7.1 r-base nlopt
@@ -55,7 +55,7 @@ The fast construction of neural Bayes estimators requires graphical processing u
 
 The replication script is `sh/all.sh`, invoked using `bash sh/all.sh` from the top level of this repository. For all studies, the replication script will automatically train the neural estimators, generate estimates from both the neural and likelihood-based estimators, and populate the `img` and `results` folders with the figures and results of the manuscript.
 
-The nature of our experiments means that the run time for reproducing the results of the manuscript is substantial (2-3 days in total). We thank reviewers for their patience and understanding. When running the replication script, the user will be prompted with an option to quickly establish that the code is working by using a small number of parameter configurations and epochs. Our envisioned workflow is to establish that the code is working with this "quick" option, clear the populated folders by simply entering `bash sh/clear.sh`, and then run the code in full (possibly over the weekend).
+The nature of our experiments means that the run time for reproducing the results of the manuscript is substantial (2-3 days in total). When running the replication script, the user will be prompted with an option to quickly establish that the code is working by using a small number of parameter configurations and epochs. Our envisioned workflow is to establish that the code is working with this "quick" option, clear the populated folders by simply entering `bash sh/clear.sh`, and then run the code in full (possibly over the weekend).
 
 Note that the replication script is clearly presented and commented; hence, one may easily "comment out" sections to produce a subset of the results. (Comments in `.sh` files are made with `#`.)
 
