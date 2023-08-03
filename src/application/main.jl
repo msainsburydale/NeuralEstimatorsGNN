@@ -12,15 +12,6 @@ model="GP/nuFixed"
 m=[1]
 quick=true
 
-
-# use a slightly longer range parameter here
-Ω = (
-	τ = Uniform(0.1, 1.0),
-	ρ = Uniform(0.05, 0.6)
-)
-ξ = (ξ..., Ω = Ω)
-
-
 M = maximum(m)
 using NeuralEstimators
 using NeuralEstimatorsGNN
@@ -33,6 +24,12 @@ include(joinpath(pwd(), "src/$model/model.jl"))
 if model != "SPDE" include(joinpath(pwd(), "src/$model/MAP.jl")) end
 include(joinpath(pwd(), "src/architecture.jl"))
 
+# use a slightly longer range parameter here
+Ω = (
+	τ = Uniform(0.1, 1.0),
+	ρ = Uniform(0.05, 0.6)
+)
+ξ = (ξ..., Ω = Ω)
 
 
 path = "intermediates/application/SST"
