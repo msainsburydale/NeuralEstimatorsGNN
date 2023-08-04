@@ -90,7 +90,7 @@ draw_world_custom <- function(g = ggplot() + theme_bw() + xlab("") + ylab(""),in
 
 # ---- Load the data ----
 
-load("data/SST/SST_sub_1000000.rda")
+load("data/SST.rda")
 df <- SST_sub_1000000
 df$error <- df$bias  <- NULL # remove columns that will not be used
 
@@ -347,6 +347,7 @@ ggsave(
   path = img_path
 )
 
+# TODO Upload data to GitHub?
 
 # TODO
 
