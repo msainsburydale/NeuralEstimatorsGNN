@@ -31,7 +31,8 @@ include(joinpath(pwd(), "src/architecture.jl"))
 	σ = Uniform(0.1, 2.0)
 )
 parameter_names = String.(collect(keys(Ω)))
-ξ = (ξ..., Ω = Ω, p = length(Ω), parameter_names = parameter_names, σ_idx = findfirst(parameter_names .== "σ"))
+p = length(Ω)
+ξ = (ξ..., Ω = Ω, p = p, parameter_names = parameter_names, σ_idx = findfirst(parameter_names .== "σ"))
 
 
 path = "intermediates/application/SST"
