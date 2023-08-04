@@ -418,6 +418,8 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	elseif estimate_ν
 		@assert ξ.ν_idx == ξ.ρ_idx + 1 "The code assumes that ρ and ν are stored continguously in θ, that is, that ξ.ν_idx == ξ.ρ_idx + 1"
 		θ = [θ₁..., ρ, ν, θ₂...]
+	elseif estimate_σ
+		θ = [θ₁..., ρ, σ, θ₂...]
 	else
 		θ = [θ₁..., ρ, θ₂...]
 	end
