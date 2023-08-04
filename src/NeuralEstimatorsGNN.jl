@@ -557,43 +557,6 @@ end
 variableirregularsetup(ξ, n::Integer; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter, clustering::Bool = false) = variableirregularsetup(ξ, range(n, n); K = K, m = m, J = J, return_ξ = return_ξ, neighbour_parameter = neighbour_parameter, clustering = clustering)
 
 
-# TODO need a function for generating parameter configurations/locations
-function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter, clustering::Bool = false) where {R <: AbstractRange{I}} where I <: Integer
-
-	λ_prior = Uniform(10, 90) # λ is uniform between 10 and 90
-
-	# Generate spatial configurations
-	S = map(1:K) do k
-		nₖ = rand(n)
-		if clustering
-			λ = rand(λ_prior)
-			μ = nₖ / λ
-			S = maternclusterprocess(λ = λ, μ = μ)
-		else
-			S = rand(nₖ, 2)
-		end
-		S
-	end
-
-	# Compute distance matrices
-	D = pairwise.(Ref(Euclidean()), S, S, dims = 1)
-	A = adjacencymatrix.(D, neighbour_parameter)
-	g = GNNGraph.(A)
-
-	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrices (note that Parameters can handle a vector of distance matrices because of maternchols())
-	θ = Parameters(K, ξ, J = J)
-	Z = [simulate(θ, mᵢ) for mᵢ ∈ m]
-
-	# g = repeat(g, inner = J)
-	# Z = reshapedataGNN.(Z, Ref(g)) # FIXME error here
-
-	g = repeat(g, inner = J)
-	Z = reshapedataGNN.(Z, Ref(g)) # FIXME error here
-
-	return_ξ ? (θ, Z, ξ) : (θ, Z)
-end
-variableirregularsetup(ξ, n::Integer; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter, clustering::Bool = false) = variableirregularsetup(ξ, range(n, n); K = K, m = m, J = J, return_ξ = return_ξ, neighbour_parameter = neighbour_parameter, clustering = clustering)
-
 
 # ---- Spatial point process ----
 

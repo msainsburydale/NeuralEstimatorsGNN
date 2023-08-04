@@ -23,12 +23,15 @@ include(joinpath(pwd(), "src/$model/model.jl"))
 if model != "SPDE" include(joinpath(pwd(), "src/$model/MAP.jl")) end
 include(joinpath(pwd(), "src/architecture.jl"))
 
-# use a slightly longer range parameter here
+# use a slightly longer range parameter here.
+# also estimate the variance parameter TODO
 Ω = (
 	τ = Uniform(0.1, 1.0),
-	ρ = Uniform(0.05, 0.6)
+	ρ = Uniform(0.05, 0.6),
+	σ = Uniform(0.1, 2.0)
 )
-ξ = (ξ..., Ω = Ω)
+parameter_names = String.(collect(keys(Ω)))
+ξ = (ξ..., Ω = Ω, p = length(Ω), parameter_names = parameter_names, σ_idx = findfirst(parameter_names .== "σ"))
 
 
 path = "intermediates/application/SST"

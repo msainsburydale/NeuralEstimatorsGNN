@@ -140,7 +140,7 @@ Zplot <- plot_spatial_or_ST(df, column_names = "Z", plot_over_world = T, pch = 4
 Zplot <- draw_world_custom(Zplot)
 Zplot <- Zplot +
   scale_colour_gradientn(colours = nasa_palette) +
-  labs(colour = expression(Z~(degree*C))) + 
+  labs(colour = expression(bold(Z)~(degree*C))) + 
   theme(axis.title = element_blank())
 
 ggsave(
@@ -239,7 +239,7 @@ thetahatci[4, ] <- thetahatci[4, ] / scales
 
 # ---- Plot the estimates
 
-# Put estimates into a data frame for mergining into BAU object
+# Put estimates into a data frame for merging into BAU object
 estimates <- rbind(thetahat, thetahatci)
 colnames(estimates) <- names(split_df)
 rownames(estimates) <- c("tau", "rho", "tau_lower", "rho_lower", "tau_upper", "rho_upper")
@@ -265,13 +265,13 @@ ggsave(
 
 # merge estimates into bau object
 tau <- merge(baus, filter(estimates, parameter == "tau"))
-tau@data$logestimate <- log(tau@data$estimate)
-tau_plot <- plot_spatial_or_ST(tau, column_names = "logestimate", plot_over_world = T)[[1]]
+tau@data$pminestimate <- pmin(0.5, tau@data$estimate)
+tau_plot <- plot_spatial_or_ST(tau, column_names = "pminestimate", plot_over_world = T)[[1]]
 tau_plot <- draw_world_custom(tau_plot)
 tau_plot <- tau_plot +
   # scale_fill_gradientn(colours = nasa_palette, na.value = NA) +
   scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1) +
-  labs(fill = expression(log(hat(tau)))) + 
+  labs(fill = expression(hat(tau))) + 
   theme(axis.title = element_blank())
 
 ggsave(
@@ -300,9 +300,8 @@ plot_estimates <- function(baus, estimates, param, limits) {
   gg <- draw_world_custom(gg)
   gg <- gg +
     scale_fill_distiller(palette = "YlOrRd", na.value = NA, limits = limits, direction = 1) +
-    # labs(x = "longitude (deg)", y = "latitude (deg)", fill = "")
     labs(fill = "") + 
-    theme(axis.title = element_blank())#, plot.title = element_text(hjust = 0.5))
+    theme(axis.title = element_blank())
   gg
 }
 
@@ -328,12 +327,12 @@ ggsave(
 
 estimates <- estimates %>% 
   filter(parameter %in% c("tau_lower", "tau_upper")) %>% 
-  mutate(estimate = log(estimate))
+  mutate(estimate = pmin(estimate, 0.5))
 
 limits <- estimates %>% summarise(range(estimate)) 
 limits <- limits[[1]]
-tau_lower <- plot_estimates(baus, estimates, "tau_lower", limits) + labs(title = expression(log(hat(tau)) *": lower bound"))
-tau_upper <- plot_estimates(baus, estimates, "tau_upper", limits) + labs(title = expression(log(hat(tau)) *": upper bound"))
+tau_lower <- plot_estimates(baus, estimates, "tau_lower", limits) + labs(title = expression(hat(tau) *": lower bound"))
+tau_upper <- plot_estimates(baus, estimates, "tau_upper", limits) + labs(title = expression(hat(tau) *": upper bound"))
 
 tau_ci <- ggpubr::ggarrange(tau_lower, tau_upper, align = "hv", nrow = 1, legend = "right", common.legend = T)
 ggsave(
@@ -347,3 +346,31 @@ ggsave(
   filename = "intervals.pdf", device = "pdf", width = 8, height = 4.5,
   path = img_path
 )
+
+
+# TODO
+
+# I think it would be good to "highlight" a couple of the hexagons and then do 
+# separate panels which shows the data inside those hexagons; one of these can 
+# have a small length scale (e.g., the Brazil-Malvinas confluence zone like we 
+# did in the other paper) and the other a large length scale; just to show also 
+# how varied the data are in each of the hexagons. 
+
+# TODO
+
+# I think we need to be careful with transformations; transformation of the 
+# estimator generally requires some accompanying bias correction (e.g., if the 
+# estimator is Gaussian and you take logs you really should be adding a 
+# sigma^2/2 bias correction to the estimate). With prediction intervals it's 
+# even more complicated and usually I just go by sampling for these (i.e., 
+# assuming Gaussianity, sampling, and then transforming the samples) -- 
+# definitely don't just transform the outputs of the estimators for the 
+# intervals. I think it would be better to keep things on the original scale 
+# if possible; I notice there are just a couple of hexagons that have a large 
+# tau, which are in anomalous regions anyway, so maybe what we should do is 
+# just "saturate" the tau scale to maybe 0.5 to show more variation (using pmin 
+# in the plots) and then state that in the caption. And also do something 
+# similar for the upper/lower bounds if needed. What do you think? Another 
+# thing we could do for uncertainty is report the "width of the interval" rather 
+# than the upper bound and lower bound separately, we could see if that is 
+# better (maybe not).
