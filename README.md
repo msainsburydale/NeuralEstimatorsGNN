@@ -1,17 +1,17 @@
-# Source code for "Amortised Neural Estimation from Irregular Spatial Data using Graph Neural Networks"
+# Source code for "Neural Bayes Estimators for Irregular Spatial Data using Graph Neural Networks"
 
-This repository contains code for reproducing the results in ["Amortised Neural Estimation from Irregular Spatial Data using Graph Neural Networks" (Sainsbury-Dale, Richards, Zammit-Mangion, and Huser, 2022)](TODO).
+This repository contains code for reproducing the results in ["Neural Bayes Estimators for Irregular Spatial Data using Graph Neural Networks" (Sainsbury-Dale, Richards, Zammit-Mangion, and Huser, 2023+)](TODO).
 
-The methodology described in the manuscript has been incorporated into the user-friendly and well-documented Julia package, [NeuralEstimators.jl](https://github.com/msainsburydale/NeuralEstimators.jl), and its accompanying [R interface](https://github.com/msainsburydale/NeuralEstimators). The code in this repository is made available primarily for reproducibility purposes, and we encourage readers seeking to implement GNN-based estimators to explore the package and its documentation.  
+The methodology described in the manuscript has been incorporated into the user-friendly and well-documented Julia package, [NeuralEstimators.jl](https://github.com/msainsburydale/NeuralEstimators.jl), and its accompanying [R interface](https://github.com/msainsburydale/NeuralEstimators). The code in this repository is made available primarily for reproducibility purposes, and we encourage readers seeking to implement GNN-based neural Bayes estimators to explore the package and its documentation.  
 
 ## Repository structure
 
 We first briefly describe the repository structure, although an understanding of this structure is not needed for reproducing the results. The repository is organised into folders containing source code (`src`), intermediate objects generated from the source code (`intermediates`), figures (`img`), results (`results`), and controlling shell scripts that weave everything together (`sh`). Each folder is further divided into the following tree structure, where each branch is associated with one component of the manuscript:
 
 ```bash
-├── Univariate          (Section 2)
 ├── GaussianProcess     (Section 3.2)
 ├── Schlather           (Section 3.3)
+├── BrownResnick        (Supplementary Material)
 ├── Application         (Section 4)
 ```
 

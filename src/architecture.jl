@@ -44,40 +44,32 @@ function dnnarchitecture(n::Integer, p::Integer)
 	return ψ, ϕ
 end
 
-
 function gnnarchitecture(
 	p::Integer; d::Integer = 1, nh::Integer = 128,
+	nlayers::Integer = 3, # number of layers in addition to the first layer
 	propagation::String = "GraphConv",
 	globalpool::String = "mean"
 	)
 
+	@assert nlayers > 0
+
 	graphtograph = if propagation == "GraphConv"
 		 GNNChain(
 			GraphConv(d  => nh, relu, aggr = mean),
-			GraphConv(nh => nh, relu, aggr = mean),
-			GraphConv(nh => nh, relu, aggr = mean),
-			GraphConv(nh => nh, relu, aggr = mean)
+			[GraphConv(nh => nh, relu, aggr = mean) for _ in 1:nlayers]...
 		)
 	elseif propagation == "WeightedGraphConv"
 		GNNChain(
 			WeightedGraphConv(d  => nh, relu, aggr = mean),
-			WeightedGraphConv(nh => nh, relu, aggr = mean),
-			WeightedGraphConv(nh => nh, relu, aggr = mean),
-			WeightedGraphConv(nh => nh, relu, aggr = mean)
+			[WeightedGraphConv(nh => nh, relu, aggr = mean) for _ in 1:nlayers]...
 		)
 	else
 		error("propagation module not recognised")
 	end
 
-
 	globpool = if globalpool == "mean"
 		no = nh
 		GlobalPool(mean)
-	elseif globalpool == "attention"
-		no = 64  # dimension of the final summary vector for each graph
-		fgate = Dense(nh, 1)
-		ffeat = Dense(nh, no)
-		GlobalAttentionPool(fgate, ffeat)
 	elseif globalpool == "deepset"
 		nt = 128  # dimension of the summary vector for each node
 		no = 128  # dimension of the final summary vector for each graph
@@ -88,45 +80,46 @@ function gnnarchitecture(
 		error("global pooling module not recognised")
 	end
 
+	# deepset = DeepSet(
+	# 	Chain(
+	# 		Dense(no => nh, relu),
+	# 		Dense(nh => nh, relu),
+	# 		Dense(nh => nh, relu)
+	# 	),
+	# 	Chain(
+	# 		Dense(nh => nh, relu),
+	# 		Dense(nh => nh, relu),
+	# 		Dense(nh => p)
+	# 	)
+	# )
+
 	deepset = DeepSet(
+		identity,
 		Chain(
 			Dense(no => nh, relu),
-			Dense(nh => nh, relu),
-			Dense(nh => nh, relu)
-		),
-		Chain(
-			Dense(nh => nh, relu),
 			Dense(nh => nh, relu),
 			Dense(nh => p)
 		)
 	)
-	estimator = GNN(graphtograph, globpool, deepset)
 
-	# ψ = PropagateReadout(graphtograph, globpool)
-	# ϕ = Chain(
-	# 	Dense(no => nh, relu),
-	# 	Dense(nh => nh, relu),
-	# 	Dense(nh => nh, relu),
-	# 	Dense(nh => p)
-	# )
-	# estimator = DeepSet(ψ, ϕ)
-
-	return estimator
+	return GNN(graphtograph, globpool, deepset)
 end
 
-# ?GNN
+# # ?GNN
 # p = 3
 # gnn1 = gnnarchitecture(p, nh = 128, globalpool = "mean")
 # nparams(gnn1)
 #
-# gnn2 = gnnarchitecture(p, nh = 64, globalpool = "deepset")
+# gnn2 = gnnarchitecture(p, nh = 32, globalpool = "deepset", nlayers=2)
 # nparams(gnn2)
 #
-# n₁, n₂ = 200, 500                             # number of nodes
+# d = 1
+# n₁, n₂ = 200, 500                           # number of nodes
 # e₁, e₂ = 30, 50                             # number of edges
 # g₁ = rand_graph(n₁, e₁, ndata=rand(d, n₁))
 # g₂ = rand_graph(n₂, e₂, ndata=rand(d, n₂))
 # z = batch([g₁, g₂])
 #
+# using BenchmarkTools
 # @btime gnn1(z)
 # @btime gnn2(z)

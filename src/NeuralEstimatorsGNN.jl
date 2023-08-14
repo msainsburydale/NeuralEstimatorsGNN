@@ -12,7 +12,6 @@ using Distributions #for random simulations
 export seed!
 
 export WeightedGraphConv
-export DeepSetPool
 export adjacencymatrix
 export reshapedataDNN, reshapedataGNN, reshapedataCNN
 export variableirregularsetup, irregularsetup
@@ -128,62 +127,6 @@ function Base.show(io::IO, l::WeightedGraphConv)
     print(io, ", aggr=", l.aggr)
     print(io, ")")
 end
-
-
-# ---- Deep Set pooling layer ----
-
-#TODO I think there is an earlier paper that does this too. Or, perhaps the
-# universal pooling that I previously encountered also applied DeepSets
-# architecture over each graph (that is how I originally thought that it would
-# be implemented).
-@doc raw"""
-    DeepSetPool(ψ, ϕ)
-Deep Set readout layer from the paper ['Universal Readout for Graph Convolutional Neural Networks'](https://ieeexplore.ieee.org/document/8852103).
-It takes the form,
-```math
-``\mathbf{h}_V`` = ϕ(|V|⁻¹ \sum_{v\in V} ψ(\mathbf{h}_v)),
-```
-where ``\mathbf{h}_V`` denotes the summary vector for graph ``V``,
-``\mathbf{h}_v`` denotes the vector of hidden features for node ``v \in V``,
-and `ψ` and `ψ` are neural networks.
-
-# Examples
-```julia
-using Graphs: random_regular_graph
-
-# Create the pooling layer
-nh = 16  # number of channels in the feature graph output from the propagation module
-nt = 32  # dimension of the summary vector for each node
-no = 64  # dimension of the final summary vector for each graph
-ψ = Dense(nh, nt)
-ϕ = Dense(nt, no)
-dspool = DeepSetPool(ψ, ϕ)
-
-# Input graph containing subgraphs (replicating the output of a propagation module)
-num_nodes  = 10
-num_edges  = 4
-num_graphs = 3
-h = GNNGraph(random_regular_graph(num_nodes, num_edges), ndata = rand(nh, num_nodes))
-h = Flux.batch([h, h, h])
-
-# Apply the pooling layer
-dspool(h)
-```
-"""
-struct DeepSetPool{G,F}
-    ψ::G
-    ϕ::F
-end
-
-@functor DeepSetPool
-
-function (l::DeepSetPool)(g::GNNGraph, x::AbstractArray)
-    u = reduce_nodes(mean, g, l.ψ(x))
-    t = l.ϕ(u)
-    return t
-end
-
-(l::DeepSetPool)(g::GNNGraph) = GNNGraph(g, gdata = l(g, node_features(g)))
 
 
 # ---- Adjacency matrices ----
