@@ -48,6 +48,7 @@ n = ξ.n
 # way that makes for a fair comparison between the two approaches.
 small_n = 30
 large_n = 300
+neighbours = "radius"
 neighbour_parameter = neighbours == "radius" ? ξ.r : ceil(Int, large_n*π*d^2)
 
 # The number of epochs used during training: note that early stopping means that

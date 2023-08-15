@@ -46,46 +46,48 @@ ggsave(
 legend_plot <- figure %>% get_legend %>% as_ggplot
 
 # Zoom in on the larger sample sizes.
-xmin=200;  xmax=400
-ymin=0.03; ymax = 0.05
+xmin1=200;  xmax1=400
+ymin1=0.03; ymax1 = 0.05
 
-window <- figure +
+window1 <- figure +
+  theme(axis.title.y = element_blank()) +
+  scale_y_continuous(position = "right") +
+  coord_cartesian(xlim = c(xmin1, xmax1), ylim = c(ymin1, ymax1))
+
+# Zoom in on the smaller sample sizes.
+xmin=15;  xmax=45
+ymin=0.09; ymax = 0.12
+
+window2 <- figure +
   theme(axis.title.y = element_blank()) +
   scale_y_continuous(position = "right") +
   coord_cartesian(xlim = c(xmin, xmax), ylim = c(ymin, ymax))
 
+# Add some padding to the windows
+window1 <- window1 + theme(plot.margin = unit(c(10, 10, 20, 10), "points")) 
+window2 <- window2 + theme(plot.margin = unit(c(10, 10, 20, 10), "points")) 
+
+ggpubr::ggarrange(window2, window1, ncol = 1, legend = "none", widths = c(0.2, 1))
+cowplot::plot_grid(window2, window1, ncol = 1, rel_widths = c(0.2, 1))
+
+# Add a gray box to the main figure indicating the windows
 figure <- figure +
+  geom_rect(aes(xmin=xmin1, xmax=xmax1, ymin=ymin1, ymax=ymax1),
+            linewidth = 0.3, colour = "grey50", fill = "transparent") +
   geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
             linewidth = 0.3, colour = "grey50", fill = "transparent")
-
-window <- window + theme(plot.margin = unit(c(10, 10, 20, 10), "points")) # Add some padding around window
 
 
 ggpubr::ggarrange(
   figure,
-  ggpubr::ggarrange(legend_plot, window, ncol = 1, legend = "none"),
+  ggpubr::ggarrange(legend_plot, window1, ncol = 1, legend = "none"),
   legend = "none"
 )
 
 
-# Zoom in on the smaller sample sizes.
-xmin=20;  xmax=40
-ymin=0.05; ymax = 0.8
-
-window <- figure +
-  theme(axis.title.y = element_blank()) +
-  scale_y_continuous(position = "right") +
-  coord_cartesian(xlim = c(xmin, xmax), ylim = c(ymin, ymax))
-
-figure <- figure +
-  geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
-            linewidth = 0.3, colour = "grey50", fill = "transparent")
-
-window <- window + theme(plot.margin = unit(c(10, 10, 20, 10), "points")) # Add some padding around window
-
 ggpubr::ggarrange(
   figure,
-  ggpubr::ggarrange(legend_plot, window, ncol = 1, legend = "none"),
+  ggpubr::ggarrange(window2, window1, ncol = 1, legend = "none", widths = c(0.2, 1)),
   legend = "none"
 )
 
