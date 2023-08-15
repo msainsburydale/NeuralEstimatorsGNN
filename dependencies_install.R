@@ -3,16 +3,9 @@ CRANMIRROR <- "https://cran.csiro.au"
 ## Find the packages used throughout this repo using the package renv
 if (!("devtools" %in% rownames(installed.packages()))) {
   cat("Installing the package 'devtools'...\n")
-  tryCatch( 
-    {
-      install.packages("devtools", repos = CRANMIRROR)
-    },
-    error = function(e) {
-      stop("The package 'devtools' failed to install, please install it manually. \n Note that on Linux systems there are several system dependencies that may need to be installed before installing devtools (e.g., fontconfig1, harfbuzz, and fribidi). Try using the following command before installing devtools: \n sudo apt -y install libfontconfig1-dev libharfbuzz-dev libfribidi-dev\n")
-    }
-  )
+  install.packages("devtools", repos = CRANMIRROR)
 }
-if (!("devtools" %in% rownames(installed.packages()))) stop()
+if (!("devtools" %in% rownames(installed.packages()))) stop("The package 'devtools' failed to install, please install it manually. \n Note that on Linux systems there are several system dependencies that may need to be installed before installing devtools (e.g., fontconfig1, harfbuzz, and fribidi). Try using the following command before installing devtools: \n sudo apt -y install libfontconfig1-dev libharfbuzz-dev libfribidi-dev libfreetype2-dev\n")
 
 
 # ---- Helper functions for this script ----
