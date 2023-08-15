@@ -41,7 +41,7 @@ The above `conda` environment installs Julia and R automatically. If you do not 
 
 Once Julia and R are setup, install package dependencies by running the following commands from the top-level of the repository:
 -  `julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'`. This will install all Julia package dependencies given in `Project.toml` and `Manifest.toml`.
-- `Rscript Dependencies.R`. This will install all R package dependencies given in `Dependencies.txt`.
+- `Rscript dependencies_install.R`. This will install all R package dependencies given in `dependencies.txt`.
 
 
 ### Hardware requirements
