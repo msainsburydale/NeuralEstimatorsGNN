@@ -8,10 +8,11 @@ if (!("devtools" %in% rownames(installed.packages()))) {
       install.packages("devtools", repos = CRANMIRROR)
     },
     error = function(e) {
-      stop("The package 'devtools' failed to install, please install it manually. \n Note that on Ubuntu the libfontconfig1-dev package is required by systemfonts, which is a dependency of devtools. If the error message mentions systemfonts, try using the following command before install devtools: \n sudo apt -y install libfontconfig1-dev \n")
+      stop("The package 'devtools' failed to install, please install it manually. \n Note that on Linux systems there are several system dependencies that may need to be installed before installing devtools (e.g., fontconfig1, harfbuzz, and fribidi). Try using the following command before installing devtools: \n sudo apt -y install libfontconfig1-dev libharfbuzz-dev libfribidi-dev\n")
     }
   )
 }
+if (!("devtools" %in% rownames(installed.packages()))) stop()
 
 
 # ---- Helper functions for this script ----
