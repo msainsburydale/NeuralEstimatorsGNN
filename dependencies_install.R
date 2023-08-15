@@ -1,13 +1,3 @@
-CRANMIRROR <- "https://cran.csiro.au"
-
-## Find the packages used throughout this repo using the package renv
-if (!("devtools" %in% rownames(installed.packages()))) {
-  cat("Installing the package 'devtools'...\n")
-  install.packages("devtools", repos = CRANMIRROR)
-}
-if (!("devtools" %in% rownames(installed.packages()))) stop("The package 'devtools' failed to install, please install it manually. \n Note that on Linux systems there are several system dependencies that may need to be installed before installing devtools (e.g., fontconfig1, harfbuzz, and fribidi). Try using the following command before installing devtools: \n sudo apt -y install libfontconfig1-dev libharfbuzz-dev libfribidi-dev libfreetype2-dev\n")
-
-
 # ---- Helper functions for this script ----
 
 ## Facilitates user input regardless of how this script was invoked
@@ -97,9 +87,21 @@ install_dependencies <- function(install_exact_versions) {
 # ---- Install dependencies ----
 
 install_depends <- user_decision("Do you want to automatically install package dependencies? (y/n)")
+
 if (install_depends == "y") {
   install_exact_versions <- user_decision("Do you want to ensure that all package versions are as given in dependencies.txt (this option is only recommended for use if there is a problem with the latest version of the packages)? (y/n)")
   install_exact_versions <- install_exact_versions == "y" # Convert to Boolean
+  
+  CRANMIRROR <- "https://cran.csiro.au"
+  
+  ## devtools is required for installing the other packages, so it has to be installed here
+  if (!("devtools" %in% rownames(installed.packages()))) {
+    cat("Installing the package 'devtools'...\n")
+    install.packages("devtools", repos = CRANMIRROR)
+  }
+  if (!("devtools" %in% rownames(installed.packages()))) stop("\nThe package 'devtools' failed to install, please install it manually. \n Note that on Linux systems there are several system dependencies that may need to be installed before installing devtools (e.g., fontconfig1, harfbuzz, and fribidi). Try using the following command before installing devtools: \n sudo apt -y install libfontconfig1-dev libharfbuzz-dev libfribidi-dev\n")
+  
+  
 
   if (install_exact_versions) {
     cat("When changing the packages to the versions specified in dependencies.txt, please use your discretion when answering the question “Which would you like to update?”.  Updating all packages (i.e., option 3) may cause errors.\n")
