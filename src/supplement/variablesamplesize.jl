@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------
-# ---- Experiment: GNNs in the presence of varibale sample sizes ----
+# ---- Experiment: GNNs in the presence of variable sample sizes ----
 # -------------------------------------------------------------------
 
 using ArgParse
@@ -61,12 +61,10 @@ epochs = quick ? 2 : 1000
 
 seed!(1)
 gnn1 = gnnarchitecture(p)
-gnn2 = gnnarchitecture(p)
-gnn3 = gnnarchitecture(p)
+gnn2 = deepcopy(gnn1)
+gnn3 = deepcopy(gnn1)
 
 # ---- Training ----
-
-
 
 # GNN estimator trained with a fixed small n
 seed!(1)

@@ -9,6 +9,7 @@ using GraphNeuralNetworks: check_num_nodes
 using Random: seed!
 using Statistics: mean
 using Distributions #for random simulations
+using Distances
 export seed!
 
 export reshapedataDNN, reshapedataGNN, reshapedataCNN
