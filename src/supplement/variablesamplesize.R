@@ -40,6 +40,11 @@ ggsave(
 )
 
 
+
+# Extract the legend and convert it to a ggplot object so that it can be added
+# to figure in a custom position
+legend_plot <- figure %>% get_legend %>% as_ggplot
+
 # Zoom in on the larger sample sizes.
 xmin=200;  xmax=400
 ymin=0.03; ymax = 0.05
@@ -53,16 +58,44 @@ figure <- figure +
   geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
             linewidth = 0.3, colour = "grey50", fill = "transparent")
 
-# Extract the legend and convert it to a ggplot object so that it can be added
-# to figure in a custom position
-legend_plot <- figure %>% get_legend %>% as_ggplot
+window <- window + theme(plot.margin = unit(c(10, 10, 20, 10), "points")) # Add some padding around window
 
-# Add some padding around window
-window <- window + theme(plot.margin = unit(c(10, 10, 20, 10), "points"))
 
-figure <- ggarrange(
+ggpubr::ggarrange(
   figure,
-  ggarrange(legend_plot, window, ncol = 1, legend = "none"),
+  ggpubr::ggarrange(legend_plot, window, ncol = 1, legend = "none"),
+  legend = "none"
+)
+
+
+# Zoom in on the smaller sample sizes.
+xmin=20;  xmax=40
+ymin=0.05; ymax = 0.8
+
+window <- figure +
+  theme(axis.title.y = element_blank()) +
+  scale_y_continuous(position = "right") +
+  coord_cartesian(xlim = c(xmin, xmax), ylim = c(ymin, ymax))
+
+figure <- figure +
+  geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
+            linewidth = 0.3, colour = "grey50", fill = "transparent")
+
+window <- window + theme(plot.margin = unit(c(10, 10, 20, 10), "points")) # Add some padding around window
+
+ggpubr::ggarrange(
+  figure,
+  ggpubr::ggarrange(legend_plot, window, ncol = 1, legend = "none"),
+  legend = "none"
+)
+
+
+
+
+
+figure <- ggpubr::ggarrange(
+  figure,
+  ggpubr::ggarrange(legend_plot, window, ncol = 1, legend = "none"),
   legend = "none"
 )
 
@@ -71,3 +104,37 @@ ggsave(
   file = "risk_vs_n_window.pdf",
   width = 8, height = 4, path = img_path, device = "pdf"
 )
+
+
+
+# # Zoom in on the larger sample sizes.
+# xmin=200;  xmax=400
+# ymin=0.03; ymax = 0.05
+# 
+# window <- figure +
+#   theme(axis.title.y = element_blank()) +
+#   scale_y_continuous(position = "right") +
+#   coord_cartesian(xlim = c(xmin, xmax), ylim = c(ymin, ymax))
+# 
+# figure <- figure +
+#   geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
+#             linewidth = 0.3, colour = "grey50", fill = "transparent")
+# 
+# # Extract the legend and convert it to a ggplot object so that it can be added
+# # to figure in a custom position
+# legend_plot <- figure %>% get_legend %>% as_ggplot
+# 
+# # Add some padding around window
+# window <- window + theme(plot.margin = unit(c(10, 10, 20, 10), "points"))
+# 
+# figure <- ggarrange(
+#   figure,
+#   ggarrange(legend_plot, window, ncol = 1, legend = "none"),
+#   legend = "none"
+# )
+# 
+# ggsave(
+#   figure,
+#   file = "risk_vs_n_window.pdf",
+#   width = 8, height = 4, path = img_path, device = "pdf"
+# )

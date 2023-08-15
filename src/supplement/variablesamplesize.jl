@@ -40,7 +40,7 @@ end
 K_test = K_val
 
 p = ξ.p
-n = size(ξ.D, 1)
+n = ξ.n
 
 # For uniformly sampled locations on a unit grid, the probability that a point
 # falls within a circle of radius d is πd². So, on average, we expect nπd²
