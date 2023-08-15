@@ -33,10 +33,11 @@ end
 M = maximum(m)
 using NeuralEstimators
 using NeuralEstimatorsGNN
-using GraphNeuralNetworks
 using BenchmarkTools
-using DataFrames
 using CSV
+using DataFrames
+using Distances
+using GraphNeuralNetworks
 
 include(joinpath(pwd(), "src/$model/model.jl"))
 if model != "SPDE" include(joinpath(pwd(), "src/$model/MAP.jl")) end

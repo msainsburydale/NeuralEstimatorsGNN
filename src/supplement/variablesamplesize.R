@@ -1,14 +1,6 @@
-library("optparse")
-option_list <- list(
-  make_option("--model", type="character", default=NULL, metavar="character"),
-  make_option("--neighbours", type="character", default="radius", metavar="character")
-)
-opt_parser  <- OptionParser(option_list=option_list)
-model       <- parse_args(opt_parser)$model
-neighbours  <- parse_args(opt_parser)$neighbours
-
-int_path <- paste("intermediates/experiments/samplesize", model, neighbours, sep = "/")
-img_path <- paste("img/experiments/samplesize", model, neighbours, sep = "/")
+model       <- "GP/nuFixed"
+int_path <- paste("intermediates/experiments/variablesamplesize", model, sep = "/")
+img_path <- paste("img/experiments/variablesamplesize", model, sep = "/")
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
 source("src/plotting.R")
@@ -17,12 +9,11 @@ df <- read.csv(paste0(int_path, "/estimates_test.csv"))
 
 ## Bayes risk with respect to absolute error
 df <- df %>%
-  mutate(loss = abs(estimate - truth)) %>% 
-  group_by(estimator, n) %>% 
+  mutate(loss = abs(estimate - truth)) %>%
+  group_by(estimator, n) %>%
   summarise(risk = mean(loss), sd = sd(loss)/sqrt(length(loss)))
 
 ## average risk plot
-
 breaks <- unique(df$n)
 breaks <- breaks[breaks != 60]
 
@@ -59,7 +50,7 @@ window <- figure +
   coord_cartesian(xlim = c(xmin, xmax), ylim = c(ymin, ymax))
 
 figure <- figure +
-  geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), 
+  geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
             linewidth = 0.3, colour = "grey50", fill = "transparent")
 
 # Extract the legend and convert it to a ggplot object so that it can be added
@@ -80,4 +71,3 @@ ggsave(
   file = "risk_vs_n_window.pdf",
   width = 8, height = 4, path = img_path, device = "pdf"
 )
-

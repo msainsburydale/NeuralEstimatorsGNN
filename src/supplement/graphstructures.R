@@ -1,14 +1,7 @@
-library("optparse")
-option_list <- list(
-  make_option("--model", type="character", default=NULL, metavar="character"),
-  make_option("--neighbours", type="character", default="radius", metavar="character")
-)
-opt_parser  <- OptionParser(option_list=option_list)
-model       <- parse_args(opt_parser)$model
-neighbours  <- parse_args(opt_parser)$neighbours
+model       <- "GP/nuFixed"
 
-int_path <- paste("intermediates/experiments/graphstructures", model, neighbours, sep = "/")
-img_path <- paste("img/experiments/graphstructures", model, neighbours, sep = "/")
+int_path <- paste("intermediates/experiments/graphstructures", model, sep = "/")
+img_path <- paste("img/experiments/graphstructures", model, sep = "/")
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
 
@@ -20,10 +13,10 @@ loadestimates <- function(set, type = "scenarios") {
   # Relabel to control the order of boxplots
   # df$estimator <- as.factor(df$estimator)
   # levels(df$estimator) <- c("GNN_S", "GNN_Svariable", "GNN_Sclustered", "MAP")
-  df$estimator[df$estimator == "WGNN_S"] <- "GNN_S1"
-  df$estimator[df$estimator == "WGNN_Svariable"] <- "GNN_S2"
-  df$estimator[df$estimator == "WGNN_Sclustered"] <- "GNN_S3"
-  df$estimator[df$estimator == "WGNN_Smatern"] <- "GNN_S4"
+  df$estimator[df$estimator == "GNN_S"] <- "GNN_S1"
+  df$estimator[df$estimator == "GNN_Svariable"] <- "GNN_S2"
+  df$estimator[df$estimator == "GNN_Sclustered"] <- "GNN_S3"
+  df$estimator[df$estimator == "GNN_Smatern"] <- "GNN_S4"
   
   df
 }
@@ -62,10 +55,10 @@ loadestimates <- function(set, type = "scenarios") {
   # Relabel to control the order of boxplots
   # df$estimator <- as.factor(df$estimator)
   # levels(df$estimator) <- c("GNN_S", "GNN_Svariable", "GNN_Sclustered", "MAP")
-  df$estimator[df$estimator == "WGNN_S"] <- "GNN_S1"
-  df$estimator[df$estimator == "WGNN_Svariable"] <- "GNN_S2"
-  df$estimator[df$estimator == "WGNN_Sclustered"] <- "GNN_S3"
-  df$estimator[df$estimator == "WGNN_Smatern"] <- "GNN_S4"
+  df$estimator[df$estimator == "GNN_S"] <- "GNN_S1"
+  df$estimator[df$estimator == "GNN_Svariable"] <- "GNN_S2"
+  df$estimator[df$estimator == "GNN_Sclustered"] <- "GNN_S3"
+  df$estimator[df$estimator == "GNN_Smatern"] <- "GNN_S4"
   
   df
 }

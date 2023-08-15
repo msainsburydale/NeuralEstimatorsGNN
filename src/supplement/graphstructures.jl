@@ -15,35 +15,17 @@
 using ArgParse
 arg_table = ArgParseSettings()
 @add_arg_table arg_table begin
-	"--model"
-		help = "A relative path to the folder of the assumed model; this folder should contain scripts for defining the parameter configurations in Julia and for data simulation."
-		arg_type = String
-		required = true
-	"--neighbours"
-		help = "How to define neighbour matrix: using either a fixed spatial 'radius' or a fixed number of neighbours ('fixednum')"
-		arg_type = String
-		default = "radius"
 	"--quick"
 		help = "A flag controlling whether or not a computationally inexpensive run should be done."
 		action = :store_true
-	"--m"
-		help = "The sample size to use during training. If multiple samples sizes are given as a vector, multiple neural estimators will be trained."
-		arg_type = String
 end
 parsed_args = parse_args(arg_table)
-model           = parsed_args["model"]
-neighbours      = parsed_args["neighbours"]
 quick           = parsed_args["quick"]
-m = let expr = Meta.parse(parsed_args["m"])
-    @assert expr.head == :vect
-    Int.(expr.args)
-end
 
-# model="GP/nuFixed"
-# quick=true
-# m=[1]
-
+model="GP/nuFixed"
+m=[1]
 M = maximum(m)
+
 using NeuralEstimators
 using NeuralEstimatorsGNN
 using DataFrames
@@ -54,7 +36,7 @@ include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/$model/MAP.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
-path = "intermediates/experiments/graphstructures/$model/$neighbours"
+path = "intermediates/experiments/graphstructures/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
@@ -69,14 +51,13 @@ K_test = K_val
 p = ξ.p
 n = ξ.n
 
-
 # For uniformly sampled locations on a unit grid, the probability that a point
 # falls within a circle of radius d is πd². So, on average, we expect nπd²
 # neighbours for each spatial location. Use this information to choose k in a
 # way that makes for a fair comparison between the two approaches.
 d = ξ.r
 k = ceil(Int, n*π*d^2)
-neighbour_parameter = neighbours == "radius" ? d : k
+neighbour_parameter = d
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
@@ -85,18 +66,14 @@ epochs = quick ? 2 : 1000
 # ---- Estimators ----
 
 seed!(1)
-gnn  = gnnarchitecture(p; propagation = "GraphConv")
-wgnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
-gnn_Svariable  = gnnarchitecture(p; propagation = "GraphConv")
-wgnn_Svariable = gnnarchitecture(p; propagation = "WeightedGraphConv")
-gnn_Sclustered  = gnnarchitecture(p; propagation = "GraphConv")
-wgnn_Sclustered = gnnarchitecture(p; propagation = "WeightedGraphConv")
-gnn_Smatern  = gnnarchitecture(p; propagation = "GraphConv")
-wgnn_Smatern = gnnarchitecture(p; propagation = "WeightedGraphConv")
+gnn = gnnarchitecture(p)
+gnn_Svariable = deepcopy(gnn)
+gnn_Sclustered = deepcopy(gnn)
+gnn_Smatern = deepcopy(gnn)
 
 # ---- Training ----
 
-# Estimators trained under a specific set of irregular locations, S
+# Estimator trained under a specific set of irregular locations, S
 seed!(1)
 S = rand(n, 2)
 D = pairwise(Euclidean(), S, S, dims = 1)
@@ -107,18 +84,14 @@ g = GNNGraph(A)
 θ_train, Z_train = irregularsetup(ξ, g, K = K_train, m = M)
 seed!(1)
 train(gnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_S", epochs = epochs)
-seed!(1)
-train(wgnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_S", epochs = epochs)
 
-# Estimators trained under a variable set of irregular locations {Sₖ : k = 1, …, K}
+# Estimator trained under a variable set of irregular locations {Sₖ : k = 1, …, K}
 θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = M, neighbour_parameter = neighbour_parameter)
 θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = M, neighbour_parameter = neighbour_parameter)
 seed!(1)
 train(gnn_Svariable, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_Svariable", epochs = epochs)
-seed!(1)
-train(wgnn_Svariable, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_Svariable", epochs = epochs)
 
-# Estimators trained under a specific set of clustered locations. The pattern
+# Estimator trained under a specific set of clustered locations. The pattern
 # looks like this:
 #         . . .
 #         . . .
@@ -138,39 +111,31 @@ g = GNNGraph(A)
 θ_train, Z_train = irregularsetup(ξ, g, K = K_train, m = M)
 seed!(1)
 train(gnn_Sclustered, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_Sclustered", epochs = epochs)
-seed!(1)
-train(wgnn_Sclustered, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_Sclustered", epochs = epochs)
 
 
-# Estimators trained under a Matern clustering process
+# Estimator trained under a Matern clustering process
 seed!(1)
 θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = M, neighbour_parameter = neighbour_parameter, clustering = true)
 θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = M, neighbour_parameter = neighbour_parameter, clustering = true)
 seed!(1)
 train(gnn_Smatern, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_Smatern", epochs = epochs)
-seed!(1)
-train(wgnn_Smatern, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_WGNN_Smatern", epochs = epochs)
 
 
 # ---- Load the trained estimators ----
 
-Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_S"))
-Flux.loadparams!(wgnn, loadbestweights(path * "/runs_WGNN_S"))
-Flux.loadparams!(gnn_Svariable,  loadbestweights(path * "/runs_GNN_Svariable"))
-Flux.loadparams!(wgnn_Svariable, loadbestweights(path * "/runs_WGNN_Svariable"))
-Flux.loadparams!(gnn_Sclustered,  loadbestweights(path * "/runs_GNN_Sclustered"))
-Flux.loadparams!(wgnn_Sclustered, loadbestweights(path * "/runs_WGNN_Sclustered"))
-Flux.loadparams!(gnn_Smatern,  loadbestweights(path * "/runs_GNN_Smatern"))
-Flux.loadparams!(wgnn_Smatern, loadbestweights(path * "/runs_WGNN_Smatern"))
+Flux.loadparams!(gnn, loadbestweights(path * "/runs_GNN_S"))
+Flux.loadparams!(gnn_Svariable, loadbestweights(path * "/runs_GNN_Svariable"))
+Flux.loadparams!(gnn_Sclustered, loadbestweights(path * "/runs_GNN_Sclustered"))
+Flux.loadparams!(gnn_Smatern, loadbestweights(path * "/runs_GNN_Smatern"))
 
 
 # ---- Assess the estimators ----
 
 function assessestimators(θ, Z, g, ξ)
 	assessment = assess(
-		[gnn, gnn_Svariable, gnn_Sclustered, gnn_Smatern, wgnn, wgnn_Svariable, wgnn_Sclustered, wgnn_Smatern],
+		[gnn, gnn_Svariable, gnn_Sclustered, gnn_Smatern],
 		θ, reshapedataGNN(Z, g);
-		estimator_names = ["GNN_S", "GNN_Svariable", "GNN_Sclustered", "GNN_Smatern", "WGNN_S", "WGNN_Svariable", "WGNN_Sclustered", "WGNN_Smatern"],
+		estimator_names = ["GNN_S", "GNN_Svariable", "GNN_Sclustered", "GNN_Smatern"],
 		parameter_names = ξ.parameter_names
 	)
 	assessment = merge(assessment, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ))

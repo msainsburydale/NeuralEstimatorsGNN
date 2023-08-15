@@ -103,7 +103,8 @@ end
 
 # ?GNN
 # p = 3
-# # x = gnnarchitecture(p, nh = 128, readout = "mean")
+# x = gnnarchitecture(p)
+# x = gnnarchitecture(p, nh = 128, readout = "mean")
 # y = gnnarchitecture(p, nh = 64, readout = "universal")
 #
 # d = 1

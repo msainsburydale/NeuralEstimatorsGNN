@@ -5,34 +5,17 @@
 using ArgParse
 arg_table = ArgParseSettings()
 @add_arg_table arg_table begin
-	"--model"
-		help = "A relative path to the folder of the assumed model; this folder should contain scripts for defining the parameter configurations in Julia and for data simulation."
-		arg_type = String
-		required = true
-	"--neighbours"
-		help = "How to define neighbour matrix: using either a fixed spatial 'radius' or a fixed number of neighbours ('fixednum')"
-		arg_type = String
-		default = "radius"
 	"--quick"
 		help = "A flag controlling whether or not a computationally inexpensive run should be done."
 		action = :store_true
-	"--m"
-		help = "The sample size to use during training. If multiple samples sizes are given as a vector, multiple neural estimators will be trained."
-		arg_type = String
+
 end
 parsed_args = parse_args(arg_table)
-model           = parsed_args["model"]
-neighbours      = parsed_args["neighbours"]
 quick           = parsed_args["quick"]
-m = let expr = Meta.parse(parsed_args["m"])
-    @assert expr.head == :vect
-    Int.(expr.args)
-end
 
-# model="GP/nuFixed"
-# quick=true
-# m=[1]
-# neighbours = "radius"
+model="GP/nuFixed"
+m=[1]
+neighbours = "radius"
 
 M = maximum(m)
 using NeuralEstimators
@@ -49,7 +32,7 @@ path = "intermediates/experiments/samplesize/$model/$neighbours"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
-K_train = 10_000
+K_train = 30_000
 K_val   = K_train ÷ 10
 if quick
 	K_train = K_train ÷ 100
@@ -77,9 +60,9 @@ epochs = quick ? 2 : 1000
 # ---- Estimators ----
 
 seed!(1)
-gnn1 = gnnarchitecture(p; propagation = "WeightedGraphConv")
-gnn2 = gnnarchitecture(p; propagation = "WeightedGraphConv")
-gnn3 = gnnarchitecture(p; propagation = "WeightedGraphConv")
+gnn1 = gnnarchitecture(p)
+gnn2 = gnnarchitecture(p)
+gnn3 = gnnarchitecture(p)
 
 # ---- Training ----
 

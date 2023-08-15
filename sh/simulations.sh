@@ -14,28 +14,26 @@ else
     exit 1
 fi
 
-for model in GP/nuFixed Schlather BrownResnick # SPDE 
+for model in GP/nuFixed Schlather BrownResnick # SPDE
 do
 
     echo ""
-    echo "##### Starting main results for $model model #####"
+    echo "##### Starting simulation study for $model model #####"
     echo ""
 
     if [[ $model == "GP/nuFixed"  ]]; then
         m="[1]"
     elif [[ $model == "SPDE" ]]; then
         m="[1]"
-    elif [[ $model == "BrownResnick" ]]; then
-        m="[1,20]"
     else
         m="[1,20]"
     fi
 
     julia --threads=auto --project=. src/main.jl --model=$model $quick --m=$m # --skip_training
 
-    if [[ $model == "GP/nuFixed"  ]]; then
-        julia --threads=auto --project=. src/mainCI.jl --model=$model $quick --m=$m # --skip_training
-    fi
+    # if [[ $model == "GP/nuFixed"  ]]; then
+    #     julia --threads=auto --project=. src/mainCI.jl --model=$model $quick --m=$m # --skip_training
+    # fi
 
     #Rscript src/main.R   --model=$model
 done
