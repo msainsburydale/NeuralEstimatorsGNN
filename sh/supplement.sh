@@ -19,7 +19,7 @@ echo "##### Starting supplementary experiments #####"
 echo ""
 
 julia --threads=auto --project=. src/supplement/graphstructures.jl $quick
-Rscript src/supplement/graphstructures.R --model=$model
-
 julia --threads=auto --project=. src/supplement/variablesamplesize.jl $quick
+
+Rscript src/supplement/graphstructures.R --model=$model
 Rscript src/supplement/variablesamplesize.R --model=$model

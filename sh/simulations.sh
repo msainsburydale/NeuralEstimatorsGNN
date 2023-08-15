@@ -14,7 +14,7 @@ else
     exit 1
 fi
 
-for model in GP/nuFixed Schlather # SPDE BrownResnick 
+for model in GP/nuFixed Schlather # SPDE BrownResnick
 do
 
     echo ""
@@ -35,5 +35,5 @@ do
     #     julia --threads=auto --project=. src/mainCI.jl --model=$model $quick --m=$m # --skip_training
     # fi
 
-    #Rscript src/main.R   --model=$model
+    Rscript src/main.R   --model=$model
 done

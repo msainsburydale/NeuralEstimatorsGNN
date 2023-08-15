@@ -15,7 +15,6 @@ quick           = parsed_args["quick"]
 
 model="GP/nuFixed"
 m=[1]
-neighbours = "radius"
 
 M = maximum(m)
 using NeuralEstimators
@@ -28,7 +27,7 @@ include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/$model/MAP.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
-path = "intermediates/experiments/samplesize/$model/$neighbours"
+path = "intermediates/supplement/samplesize/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
@@ -49,9 +48,7 @@ n = size(ξ.D, 1)
 # way that makes for a fair comparison between the two approaches.
 small_n = 30
 large_n = 300
-d = ξ.r
-k = ceil(Int, large_n*π*d^2)
-neighbour_parameter = neighbours == "radius" ? d : k
+neighbour_parameter = neighbours == "radius" ? ξ.r : ceil(Int, large_n*π*d^2)
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs

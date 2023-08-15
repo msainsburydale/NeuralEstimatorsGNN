@@ -1,6 +1,6 @@
 model       <- "GP/nuFixed"
-int_path <- paste("intermediates/experiments/variablesamplesize", model, sep = "/")
-img_path <- paste("img/experiments/variablesamplesize", model, sep = "/")
+int_path <- paste("intermediates/supplement/variablesamplesize", model, sep = "/")
+img_path <- paste("img/supplement/variablesamplesize", model, sep = "/")
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
 source("src/plotting.R")

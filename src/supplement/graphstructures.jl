@@ -36,7 +36,7 @@ include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/$model/MAP.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
-path = "intermediates/experiments/graphstructures/$model"
+path = "intermediates/supplement/graphstructures/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
@@ -50,14 +50,7 @@ K_test = K_val
 
 p = ξ.p
 n = ξ.n
-
-# For uniformly sampled locations on a unit grid, the probability that a point
-# falls within a circle of radius d is πd². So, on average, we expect nπd²
-# neighbours for each spatial location. Use this information to choose k in a
-# way that makes for a fair comparison between the two approaches.
-d = ξ.r
-k = ceil(Int, n*π*d^2)
-neighbour_parameter = d
+neighbour_parameter = ξ.r
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
