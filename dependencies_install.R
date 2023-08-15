@@ -2,8 +2,14 @@ CRANMIRROR <- "https://cran.csiro.au"
 
 ## Find the packages used throughout this repo using the package renv
 if (!("devtools" %in% rownames(installed.packages()))) {
-    cat("Installing package 'devtools'... if this fails, please install it manually.")
-    install.packages("devtools", repos = CRANMIRROR)
+  tryCatch( 
+    {
+      install.packages("devtools", repos = CRANMIRROR)
+    },
+    error = function(e) {
+      stop("Package 'devtools' failed to install, please install it manually. \n Note that on Ubuntu the libfontconfig1-dev package is required by systemfonts, which is a dependency of devtools. If the error message mentions systemfonts, try using the following command before install devtools: \n sudo apt -y install libfontconfig1-dev \n")
+    }
+  )
 }
 
 
