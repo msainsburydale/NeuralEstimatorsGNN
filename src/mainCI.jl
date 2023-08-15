@@ -65,7 +65,7 @@ epochs = quick ? 2 : 1000
 # ---- Estimator ----
 
 seed!(1)
-gnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
+gnn = gnnarchitecture(p)
 
 # pretrain with point estimator
 Flux.loadparams!(gnn, loadbestweights(path * "/runs_GNN_m$M"))

@@ -23,7 +23,6 @@ function cnnarchitecture(p, qₛ = 0)
 	return ψ, ϕ
 end
 
-
 function dnnarchitecture(n::Integer, p::Integer)
 
 	qₜ = 256
@@ -45,15 +44,24 @@ function dnnarchitecture(n::Integer, p::Integer)
 end
 
 function gnnarchitecture(
-	p::Integer; d::Integer = 1, nh::Integer = 128,
-	nlayers::Integer = 3, # number of layers in addition to the first layer
-	propagation::String = "GraphConv",
-	globalpool::String = "mean"
+	# p::Integer;
+	# d::Integer = 1,
+	# nh::Integer = 128,
+	# nlayers::Integer = 3, # number of propagation layers (in addition to the first layer)
+	# propagation::String = "WeightedGraphConv",
+	# readout::String = "mean"
+	p::Integer;
+	d::Integer = 1,
+	nh::Integer = 64,
+	nlayers::Integer = 2, # number of propagation layers (in addition to the first layer)
+	propagation::String = "WeightedGraphConv",
+	readout::String = "universal"
 	)
 
 	@assert nlayers > 0
 
-	graphtograph = if propagation == "GraphConv"
+	# Propagation module
+	propagation = if propagation == "GraphConv"
 		 GNNChain(
 			GraphConv(d  => nh, relu, aggr = mean),
 			[GraphConv(nh => nh, relu, aggr = mean) for _ in 1:nlayers]...
@@ -67,59 +75,46 @@ function gnnarchitecture(
 		error("propagation module not recognised")
 	end
 
-	globpool = if globalpool == "mean"
+	# Readout module
+	readout = if readout == "mean"
 		no = nh
 		GlobalPool(mean)
-	elseif globalpool == "deepset"
-		nt = 128  # dimension of the summary vector for each node
+	elseif readout == "universal"
+		nt = 64  # dimension of the summary vector for each node
 		no = 128  # dimension of the final summary vector for each graph
-		ψ = Chain(Dense(nh, nt), Dense(nt, nt))
-		ϕ = Chain(Dense(nt, no), Dense(no, no))
-		DeepSetPool(ψ, ϕ)
+		# ψ = Chain(Dense(nh, nt), Dense(nt, nt))
+		# ϕ = Chain(Dense(nt, no), Dense(no, no))
+		ψ = Dense(nh, nt)
+		ϕ = Dense(nt, no)
+		UniversalPool(ψ, ϕ)
 	else
 		error("global pooling module not recognised")
 	end
 
-	# deepset = DeepSet(
-	# 	Chain(
-	# 		Dense(no => nh, relu),
-	# 		Dense(nh => nh, relu),
-	# 		Dense(nh => nh, relu)
-	# 	),
-	# 	Chain(
-	# 		Dense(nh => nh, relu),
-	# 		Dense(nh => nh, relu),
-	# 		Dense(nh => p)
-	# 	)
-	# )
-
-	deepset = DeepSet(
-		identity,
-		Chain(
-			Dense(no => nh, relu),
-			Dense(nh => nh, relu),
-			Dense(nh => p)
-		)
+	# Mapping module
+	ϕ = Chain(
+		Dense(no => nh, relu),
+		Dense(nh => nh, relu),
+		Dense(nh => p)
 	)
 
-	return GNN(graphtograph, globpool, deepset)
+	return GNN(propagation, readout, ϕ)
 end
 
-# # ?GNN
+# ?GNN
 # p = 3
-# gnn1 = gnnarchitecture(p, nh = 128, globalpool = "mean")
-# nparams(gnn1)
-#
-# gnn2 = gnnarchitecture(p, nh = 32, globalpool = "deepset", nlayers=2)
-# nparams(gnn2)
+# # x = gnnarchitecture(p, nh = 128, readout = "mean")
+# y = gnnarchitecture(p, nh = 64, readout = "universal")
 #
 # d = 1
-# n₁, n₂ = 200, 500                           # number of nodes
-# e₁, e₂ = 30, 50                             # number of edges
-# g₁ = rand_graph(n₁, e₁, ndata=rand(d, n₁))
-# g₂ = rand_graph(n₂, e₂, ndata=rand(d, n₂))
-# z = batch([g₁, g₂])
+# n = 250                           # number of nodes
+# e = 2000                          # number of edges
+# g = rand_graph(n, e, ndata=rand(d, n))
+# z = batch([g, g])
+#
+# g |> x.propagation |> x.readout
+# g |> y.propagation |> y.readout
 #
 # using BenchmarkTools
-# @btime gnn1(z)
-# @btime gnn2(z)
+# @btime x(z)
+# @btime y(z)

@@ -68,7 +68,7 @@ Z_train = Z_train[1]
 # ---- Point estimator ----
 
 seed!(1)
-gnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
+gnn = gnnarchitecture(p)
 @info "training the point estimator..."
 train(gnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_pointestimator", epochs = epochs, batchsize = 16)
 

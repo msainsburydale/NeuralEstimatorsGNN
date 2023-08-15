@@ -66,7 +66,7 @@ epochs = quick ? 2 : 1000
 
 seed!(1)
 # cnn = DeepSet(cnnarchitecture(p)...)
-gnn = gnnarchitecture(p; propagation = "WeightedGraphConv")
+gnn = gnnarchitecture(p)
 # dnn = DeepSet(dnnarchitecture(n, p)...)
 
 # ---- Training ----

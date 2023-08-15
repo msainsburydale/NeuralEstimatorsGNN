@@ -697,10 +697,10 @@ version = "0.4.13"
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 
 [[deps.NeuralEstimators]]
-deps = ["BSON", "CSV", "CUDA", "ChainRulesCore", "DataFrames", "Distances", "Distributions", "Flux", "Functors", "GaussianRandomFields", "GraphNeuralNetworks", "Graphs", "LinearAlgebra", "NamedArrays", "Parameters", "Random", "RecursiveArrayTools", "SpecialFunctions", "Statistics", "Test", "Zygote"]
-git-tree-sha1 = "df259a0e9ff124b31a8a30241b22acf7512719a2"
+deps = ["BSON", "CSV", "CUDA", "ChainRulesCore", "DataFrames", "Distances", "Distributions", "Flux", "Functors", "GaussianRandomFields", "GraphNeuralNetworks", "Graphs", "LinearAlgebra", "NamedArrays", "Parameters", "Random", "RecursiveArrayTools", "SparseArrays", "SpecialFunctions", "Statistics", "Test", "Zygote"]
+git-tree-sha1 = "e46d487c6d2041afa68788c2ba6b662e1f136fea"
 repo-rev = "main"
-repo-url = "https://github.com/msainsburydale/NeuralEstimators.jl.git"
+repo-url = "https://github.com/msainsburydale/NeuralEstimators.jl"
 uuid = "38f6df31-6b4a-4144-b2af-7ace2da57606"
 version = "0.1.0"
 

@@ -12,9 +12,9 @@ library("spdep") # poly2nb
 img_path <- "img/application/SST"
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
-p = 3L # number of parameters 
+p = 3L # number of parameters
 
-#TODO the scaling factor needs to account for the fact that we are including 
+#TODO the scaling factor needs to account for the fact that we are including
 #     neighbours: notice that without doing so, rho is estimated to be much larger using the neighbour approach.
 #TODO add lower and upper bound plots in the supplementary material.
 #TODO Timings
@@ -60,28 +60,28 @@ map_to_BAUs <- function(data_sp, sp_pols) {
     coords=data_sp@coords,         # coordinates of summarised data
     data= data_over_sp ,                                # data frame
     proj4string = CRS(slot(data_sp, "proj4string")@projargs) # CRS of original data
-    )     
-  
+    )
+
   new_sp_pts
 }
 
 # conversions from here: https://stackoverflow.com/a/1185413
 xyz_conversion <- function(lonlat, R = 6371) {
-  
+
   lon <- lonlat[1] * pi/180
   lat <- lonlat[2] * pi/180
-  
+
   x = R * cos(lat) * cos(lon)
   y = R * cos(lat) * sin(lon)
   z = R * sin(lat)
-  
+
   c(x, y, z)
 }
 
 chord_length <- function(S){
   S <- t(apply(S, 1, xyz_conversion))
   D <- dist(S, upper = T, diag = T)
-  
+
   as.matrix(D)
 }
 
@@ -138,13 +138,13 @@ split_df <- split_df[idx]
 # ---- Plot the raw data ----
 
 draw_world_custom <- function(g) {
-  
+
   ## Load the world map data from the FRK package
   data(worldmap, envir=environment(), package = "FRK")
-  
+
   ## Homogenise (see details) to avoid lines crossing the map
   worldmap <- FRK:::.homogenise_maps(worldmap)
-  
+
   ## Now return a gg object with the map overlayed
   g + geom_polygon(data = worldmap, aes(x=long, y=lat, group=group), fill="black", size=0.1)
 }
@@ -166,13 +166,13 @@ Zplot <- plot_spatial_or_ST(df, column_names = "Z_clipped", plot_over_world = T,
 Zplot <- draw_world_custom(Zplot)
 Zplot <- Zplot +
   scale_colour_gradientn(colours = nasa_palette) +
-  labs(colour = expression(bold(Z)~(degree*C))) + 
-  theme(axis.title = element_blank()) + 
+  labs(colour = expression(bold(Z)~(degree*C))) +
+  theme(axis.title = element_blank()) +
   theme(panel.border = element_blank(),
-        panel.background = element_blank()) 
+        panel.background = element_blank())
 
-Zplot <- Zplot +  
-  annotate("rect", xmin = BM_box[1, "lon"], xmax = BM_box[2, "lon"], ymin = BM_box[1, "lat"], ymax = BM_box[2, "lat"], fill=NA, color="red", size=1) + 
+Zplot <- Zplot +
+  annotate("rect", xmin = BM_box[1, "lon"], xmax = BM_box[2, "lon"], ymin = BM_box[1, "lat"], ymax = BM_box[2, "lat"], fill=NA, color="red", size=1) +
   annotate("rect", xmin = Ocean_box[1, "lon"], xmax = Ocean_box[2, "lon"], ymin = Ocean_box[1, "lat"], ymax = Ocean_box[2, "lat"], fill=NA, color="red", size=1)
 
 ggsave(
@@ -182,31 +182,31 @@ ggsave(
 )
 
 map_layer <- geom_map(
-  data = map_data("world"), 
+  data = map_data("world"),
   map = map_data("world"),
   aes(group = group, map_id = region),
   fill = "black", colour = "black", size = 0.1
-) 
+)
 
-BMconfluence <- ggplot() + 
+BMconfluence <- ggplot() +
   scale_colour_gradientn(colours = nasa_palette, name = expression(degree*C)) +
   xlab("Longitude (deg)") + ylab("Latitude (deg)") +
-  map_layer + 
-  xlim(BM_box[, "lon"]) + 
-  ylim(BM_box[, "lat"]) + 
-  theme_bw() + 
+  map_layer +
+  xlim(BM_box[, "lon"]) +
+  ylim(BM_box[, "lat"]) +
+  theme_bw() +
   coord_fixed(expand = FALSE) +
-  geom_point(data = df_backup, aes(lon, lat, colour =  pmin(pmax(Z, -8), 8)), pch = 46) 
+  geom_point(data = df_backup, aes(lon, lat, colour =  pmin(pmax(Z, -8), 8)), pch = 46)
 
-Ocean <- ggplot() + 
+Ocean <- ggplot() +
   scale_colour_gradientn(colours = nasa_palette, name = expression(degree*C)) +
   xlab("Longitude (deg)") + ylab("Latitude (deg)") +
-  map_layer + 
-  xlim(Ocean_box[, "lon"]) + 
-  ylim(Ocean_box[, "lat"]) + 
-  theme_bw() + 
+  map_layer +
+  xlim(Ocean_box[, "lon"]) +
+  ylim(Ocean_box[, "lat"]) +
+  theme_bw() +
   coord_fixed(expand = FALSE) +
-  geom_point(data = df_backup, aes(lon, lat, colour =  pmin(pmax(Z, -8), 8)), pch = 46) 
+  geom_point(data = df_backup, aes(lon, lat, colour =  pmin(pmax(Z, -8), 8)), pch = 46)
 
 ggsave(
   ggarrange(Zplot, BMconfluence, Ocean, common.legend = T, nrow = 1, ncol = 3, legend = "right"),
@@ -218,7 +218,7 @@ ggsave(
 
 estimator = juliaLet('
   include(joinpath(pwd(), "src/architecture.jl"))
-  estimator = gnnarchitecture(p; propagation = "WeightedGraphConv")
+  estimator = gnnarchitecture(p)
                       ', p = p)
 
 estimator <- loadbestweights(estimator, "intermediates/application/SST/runs_pointestimator")
@@ -230,38 +230,38 @@ ciestimator = juliaLet('
 ciestimator <- loadbestweights(ciestimator, "intermediates/application/SST/runs_CIestimator")
 
 estimate_parameters <- function(estimator, ciestimator, dat) {
-  
+
   # Convert data into correct form (n x m matrix, where n is the number of
-  # observations and m is the number of replicates, here equal to 1). 
-  # Also centre the data around zero. 
+  # observations and m is the number of replicates, here equal to 1).
+  # Also centre the data around zero.
   Z <- matrix(dat$Z, nrow = 1)
   Z <- Z - mean(Z)
-  
-  
+
+
   # Spatial distance matrix
   S <- as.matrix(dat[, c("lon", "lat")])
   colnames(S) <- NULL
   S <- chord_length(S)
-  
+
   # Scale the distances so that they are between 0 and sqrt(2)
   scale_factor <- sqrt(2) / (max(S) - min(S))
   S <- (S-min(S)) * scale_factor
-  
+
   # Construct the graph
   g <- juliaLet("A = adjacencymatrix(S, 0.15); GNNGraph(A,  ndata = Z)", S = S, Z = Z)
-  
+
   thetahat   <- estimate(estimator, g)
   thetahatci <- estimate(ciestimator, g)
-  
+
   # inverse of scale transformation to range parameter
   thetahat[2, ] <- thetahat[2, ] / scale_factor
   thetahatci[2, ] <- thetahatci[2, ] / scale_factor
   thetahatci[5, ] <- thetahatci[5, ] / scale_factor
-  
+
   # Put estimates into a convenient data frame
   estimates <- rbind(thetahat, thetahatci)
   rownames(estimates) <- c("tau", "rho", "sigma", "tau_lower", "rho_lower", "sigma_lower", "tau_upper", "rho_upper", "sigma_upper")
-  
+
   return(estimates)
 }
 
@@ -334,7 +334,7 @@ rho_plot <- draw_world_custom(rho_plot)
 rho_plot <-
   rho_plot +
   scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1) +
-  labs(fill = expression(hat(rho))) + 
+  labs(fill = expression(hat(rho))) +
   theme(axis.title = element_blank())
 
 sigma <- merge(baus, filter(estimates, parameter == "sigma"))
@@ -343,7 +343,7 @@ sigma_plot <- draw_world_custom(sigma_plot)
 sigma_plot <-
   sigma_plot +
   scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1) +
-  labs(fill = expression(hat(sigma))) + 
+  labs(fill = expression(hat(sigma))) +
   theme(axis.title = element_blank())
 
 # merge estimates into bau object
@@ -353,7 +353,7 @@ tau_plot <- plot_spatial_or_ST(tau, column_names = "pminestimate", plot_over_wor
 tau_plot <- draw_world_custom(tau_plot)
 tau_plot <- tau_plot +
   scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1) +
-  labs(fill = expression(hat(tau))) + 
+  labs(fill = expression(hat(tau))) +
   theme(axis.title = element_blank())
 
 ggsave(
@@ -433,13 +433,13 @@ subset_baus <- function(baus, i, neighbour_list) {
 bau_subset1 <- subset_baus(baus, 400, nb)
 bau_subset2 <- subset_baus(baus, 800, nb)
 bau_subset <- rbind(bau_subset1, bau_subset2)
-gg <- plot_spatial_or_ST(bau_subset, "central_hexagon", plot_over_world = T)[[1]] 
+gg <- plot_spatial_or_ST(bau_subset, "central_hexagon", plot_over_world = T)[[1]]
 gg <- gg %>% draw_world_custom
-# gg + labs(fill = "Central hexagon", x = "", y = "") 
+# gg + labs(fill = "Central hexagon", x = "", y = "")
 gg + theme(legend.position = "none", axis.title = element_blank())
 
-# Now create a list of hexagon clusters, each associated with a central hexagon. 
-# We just need to store the coordinates and data as a data frame. 
+# Now create a list of hexagon clusters, each associated with a central hexagon.
+# We just need to store the coordinates and data as a data frame.
 N == length(nb) # sanity check
 clustered_split_df <- lapply(1:N, function(i) {
   idx <- c(i, nb[[i]]) # get the neighbours of the ith BAU
@@ -455,8 +455,8 @@ names(clustered_split_df) <- 1:N # BAU id
 i <- 400
 tmp <- clustered_split_df[[i]]
 tmp <- SpatialPointsDataFrame(tmp[, c("lon", "lat")], data = tmp[, "Z"])
-plot_spatial_or_ST(tmp, "Z", plot_over_world = T)[[1]] 
-plot_spatial_or_ST(subset_baus(baus, i, nb), "central_hexagon", plot_over_world = T)[[1]] 
+plot_spatial_or_ST(tmp, "Z", plot_over_world = T)[[1]]
+plot_spatial_or_ST(subset_baus(baus, i, nb), "central_hexagon", plot_over_world = T)[[1]]
 
 clustered_split_df <- clustered_split_df[!sapply(clustered_split_df, is.null)]
 estimates <- sapply(clustered_split_df, estimate_parameters)
@@ -475,18 +475,18 @@ estimates <- melt(estimates, varnames = c("parameter", "id"), value.name = "esti
 
 # Plot each parameter estimate
 plot_estimates <- function(baus, estimates, param) {
-  
+
   baus <- merge(baus, filter(estimates, parameter == param))
-  
+
   gg <- plot_spatial_or_ST(baus, column_names = "estimate", plot_over_world = T)[[1]]
   gg <- draw_world_custom(gg)
   gg <- gg +
     scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1) +
-    theme(axis.title = element_blank(), 
+    theme(axis.title = element_blank(),
           panel.border = element_blank(),
-          panel.background = element_blank(), 
-          legend.position = "top", 
-          legend.key.width = unit(1, 'cm')) 
+          panel.background = element_blank(),
+          legend.position = "top",
+          legend.key.width = unit(1, 'cm'))
   gg
 }
 
@@ -495,19 +495,19 @@ sigma_plot <- plot_estimates(baus, estimates, "sigma") + labs(fill = expression(
 tau_plot   <- plot_estimates(baus, mutate(estimates, estimate = pmin(estimate, 0.6)), "tau") + labs(fill = expression(hat(tau)))
 
 plot_ciwidth <- function(baus, estimates, param) {
-  
+
   baus <- merge(baus, filter(estimates, parameter == param))
-  
+
   gg <- plot_spatial_or_ST(baus, column_names = "estimate", plot_over_world = T)[[1]]
   gg <- draw_world_custom(gg)
   gg <- gg +
     # scale_fill_distiller(palette = "BrBG", na.value = NA, direction = -1) + # white centre value conflicts with missing colour (also white)
     scale_fill_distiller(palette = "GnBu", na.value = NA, direction = -1) +
-    theme(axis.title = element_blank(), 
+    theme(axis.title = element_blank(),
           panel.border = element_blank(),
-          panel.background = element_blank(), 
-          legend.position = "top", 
-          legend.key.width = unit(1, 'cm')) 
+          panel.background = element_blank(),
+          legend.position = "top",
+          legend.key.width = unit(1, 'cm'))
   gg
 }
 
@@ -517,7 +517,7 @@ tauci_plot   <- plot_ciwidth(baus, mutate(estimates, estimate = pmin(estimate, 0
 
 ggsave(
   ggpubr::ggarrange(
-    rho_plot, sigma_plot, tau_plot, 
+    rho_plot, sigma_plot, tau_plot,
     rhoci_plot, sigmaci_plot, tauci_plot,
     align = "hv", nrow = 2, ncol = p),
   filename = "estimates_clustered.pdf", device = "pdf", width = 14, height = 6,
