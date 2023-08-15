@@ -98,7 +98,7 @@ if (install_depends == "y") {
   install_exact_versions <- install_exact_versions == "y" # Convert to Boolean
   
   if (install_exact_versions) {
-    cat("When changing the packages to the versions specified in dependencies.txt, please use your discretion when answering the question “Which would you like to update?”.  Updating all packages (i.e., option 3) may cause errors.")
+    cat("When changing the packages to the versions specified in dependencies.txt, please use your discretion when answering the question “Which would you like to update?”.  Updating all packages (i.e., option 3) may cause errors.\n")
   }
   
   install_dependencies(install_exact_versions)

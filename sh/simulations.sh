@@ -14,7 +14,7 @@ else
     exit 1
 fi
 
-for model in GP/nuFixed Schlather BrownResnick # SPDE
+for model in GP/nuFixed Schlather # SPDE BrownResnick 
 do
 
     echo ""
