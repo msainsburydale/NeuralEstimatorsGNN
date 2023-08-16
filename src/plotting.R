@@ -20,8 +20,6 @@ estimator_labels <- c(
   "GNN3 radius" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30;300})$ : Fixed cut-off distance"),
   "GNN3 fixednum" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30;300})$ : $k$-nearest neighbours"),
   "GNN" = "GNN",
-  "CNN" = "CNN",
-  "DNN" = "DNN",
   "ML" = "ML",
   "GNN_S1" = TeX("GNN$_{S}$"),
   # "GNN_S2" = TeX("GNN$_{S'}$"),
@@ -47,7 +45,6 @@ scale_estimator <- function(df, scale = "colour", values = estimator_colours, ..
 estimator_colours <- c(
   "ML" = "gold",
   "GNN" = "chartreuse4",
-  "CNN" = "#440154FF",
   "DNN" = "red",
   # Variable sample size experiment:
   "GNN1" = "red",

@@ -4,45 +4,6 @@ using GraphNeuralNetworks
 using Flux
 using Statistics: mean
 
-function cnnarchitecture(p, qₛ = 0)
-
-	qₜ = 256
-
-	ψ = Chain(
-		Conv((10, 10), 1 => 64,  relu),
-		Conv((5, 5),  64 => 128,  relu),
-		Conv((3, 3),  128 => qₜ, relu),
-		Flux.flatten
-		)
-
-	ϕ = Chain(
-		Dense(qₜ + qₛ, 500, relu),
-		Dense(500, p)
-	)
-
-	return ψ, ϕ
-end
-
-function dnnarchitecture(n::Integer, p::Integer)
-
-	qₜ = 256
-
-	ψ = Chain(
-		Dense(n, 256, relu),
-		Dense(256, 256, relu),
-		Dense(256, qₜ, relu)
-	)
-
-	ϕ = Chain(
-		Dense(qₜ, 128, relu),
-		Dense(128, 64, relu),
-		Dense(64, p),
-		x -> dropdims(x, dims = 2)
-	)
-
-	return ψ, ϕ
-end
-
 function gnnarchitecture(
 	# p::Integer;
 	# d::Integer = 1,

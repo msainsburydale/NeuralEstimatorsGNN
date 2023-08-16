@@ -1,70 +1,17 @@
 module NeuralEstimatorsGNN
 
 using NeuralEstimators
-using LinearAlgebra: diagind
-using Flux
-using Flux: @functor, glorot_uniform
+using Flux: flatten
 using GraphNeuralNetworks
-using GraphNeuralNetworks: check_num_nodes
 using Random: seed!
-using Statistics: mean
-using Distributions #for random simulations
+using Distributions
 using Distances
-export seed!
 
-export reshapedataDNN, reshapedataGNN, reshapedataCNN
+export addsingleton
 export variableirregularsetup, irregularsetup
 export Parameters
-export addsingleton
-export coverage
-
-"""
-	coverage(intervals::V, θ) where  {V <: AbstractArray{M}} where M <: AbstractMatrix
-
-Given a p×K matrix of true parameters `θ`, determine the empirical coverage of
-a collection of confidence `intervals` (a K-vector of px2 matrices).
-
-The overall empirical coverage is obtained by averaging the resulting 0-1 matrix
-elementwise over all parameter vectors.
-
-# Examples
-```
-using NeuralEstimators
-p = 3
-K = 100
-θ = rand(p, K)
-intervals = [rand(p, 2) for _ in 1:K]
-coverage(intervals, θ)
-```
-"""
-function coverage(intervals::V, θ) where  {V <: AbstractArray{M}} where M <: AbstractMatrix
-
-    p, K = size(θ)
-	@assert length(intervals) == K
-	@assert all(size.(intervals, 1) .== p)
-	@assert all(size.(intervals, 2) .== 2)
-
-	# for each confidence interval, determine if the true parameters, θ, are
-	# within the interval.
-	within = map(eachindex(intervals)) do k
-
-		c = intervals[k]
-
-		# Determine if the confidence intervals contain the true parameter.
-		# The result is an indicator vector specifying which parameters are
-		# contained in the interval
-		[c[i, 1] < θ[i, k] < c[i, 2] for i ∈ 1:p]
-	end
-
-	# combine the counts into a single matrix p x K matrix
-	within = hcat(within...)
-
-	# compute the empirical coverage
-	cvg = mean(within, dims = 2)
-
-	return cvg
-end
-
+export reshapedataGNN
+export seed!
 
 # ---- Parameters definitions and constructors ----
 
@@ -121,16 +68,6 @@ end
 
 # ---- Reshaping data to the correct form ----
 
-function reshapedataCNN(Z)
-	n = size(Z[1], 1)
-	@assert sqrt(n) == isqrt(n) # assumes a square domain
-	reshape.(Z, isqrt(n), isqrt(n), 1, :)
-end
-
-function reshapedataDNN(Z)
-	reshape.(Z, :, 1, size(Z[1])[end])
-end
-
 function reshapedataGNN(Z, g::GNNGraph)
 	map(Z) do z
 		m = size(z)[end]
@@ -164,8 +101,6 @@ addsingleton(x; dim = 3)
 """
 addsingleton(x; dim) = reshape(x, size(x)[1:dim-1]..., 1, size(x)[dim:end]...)
 
-using Flux: flatten
-
 function reshapedataGNN2(z::A, g::GNNGraph) where A <: AbstractArray{T, N} where {T, N}
 	# First, flatten the multi-dimensional array into a matrix, where the first
 	# dimension stores the node-level data and the second dimensions stores
@@ -193,7 +128,6 @@ function reshapedataGNN2(Z, v::V) where {V <: AbstractVector{A}} where A
 	end
 end
 
-
 # ---- Setting up for training ----
 
 function irregularsetup(ξ, g; K::Integer, m, J::Integer = 5)
@@ -205,9 +139,8 @@ function irregularsetup(ξ, g; K::Integer, m, J::Integer = 5)
 	return θ, Z
 end
 
-
 # Note that neighbour_parameter can be a float or an integer
-# note that clustering is set to false by default for backwards compatability
+# Note that clustering is set to false by default for backwards compatability
 function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter, clustering::Bool = false) where {R <: AbstractRange{I}} where I <: Integer
 
 	λ_prior = Uniform(10, 90) # λ is uniform between 10 and 90
@@ -225,25 +158,23 @@ function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_
 		S
 	end
 
-	# Compute distance matrices
+	# Compute distance matrices and construct the graphs
 	D = pairwise.(Ref(Euclidean()), S, S, dims = 1)
 	A = adjacencymatrix.(D, neighbour_parameter)
 	g = GNNGraph.(A)
 
-	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrices (note that Parameters can handle a vector of distance matrices because of maternchols())
+	# Update ξ to contain the new distance matrices. Note that Parameters() can
+	# handle a vector of distance matrices because maternchols() is able to do it.
+	ξ = (ξ..., S = S, D = D)
 	θ = Parameters(K, ξ, J = J)
 	Z = [simulate(θ, mᵢ) for mᵢ ∈ m]
 
-	# g = repeat(g, inner = J)
-	# Z = reshapedataGNN.(Z, Ref(g)) # FIXME error here
-
 	g = repeat(g, inner = J)
-	Z = reshapedataGNN.(Z, Ref(g)) # FIXME error here
+	Z = reshapedataGNN.(Z, Ref(g))
 
 	return_ξ ? (θ, Z, ξ) : (θ, Z)
 end
 variableirregularsetup(ξ, n::Integer; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter, clustering::Bool = false) = variableirregularsetup(ξ, range(n, n); K = K, m = m, J = J, return_ξ = return_ξ, neighbour_parameter = neighbour_parameter, clustering = clustering)
 
 
-#module
-end
+end #module
