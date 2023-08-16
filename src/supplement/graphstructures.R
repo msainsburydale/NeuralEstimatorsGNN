@@ -1,5 +1,4 @@
 model       <- "GP/nuFixed"
-
 int_path <- paste("intermediates/supplement/graphstructures", model, sep = "/")
 img_path <- paste("img/supplement/graphstructures", model, sep = "/")
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)

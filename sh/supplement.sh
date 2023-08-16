@@ -21,5 +21,5 @@ echo ""
 julia --threads=auto --project=. src/supplement/graphstructures.jl $quick
 julia --threads=auto --project=. src/supplement/variablesamplesize.jl $quick
 
-Rscript src/supplement/graphstructures.R --model=$model
-Rscript src/supplement/variablesamplesize.R --model=$model
+Rscript src/supplement/graphstructures.R 
+Rscript src/supplement/variablesamplesize.R
