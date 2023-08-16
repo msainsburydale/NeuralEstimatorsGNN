@@ -1,6 +1,7 @@
 module NeuralEstimatorsGNN
 
 using NeuralEstimators
+using Flux
 using Flux: flatten
 using GraphNeuralNetworks
 using Random: seed!

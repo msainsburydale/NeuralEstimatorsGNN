@@ -1,7 +1,11 @@
+suppressMessages({
 library("spatstat")
 library("ggplot2")
 library("latex2exp")
-library("dplyr")
+library("dplyr")  
+options(dplyr.summarise.inform = FALSE) # Suppress summarise info
+})
+
 
 set.seed(1)
 
