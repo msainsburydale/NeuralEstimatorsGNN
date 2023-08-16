@@ -18,8 +18,15 @@ echo ""
 echo "##### Starting supplementary experiments #####"
 echo ""
 
-julia --threads=auto --project=. src/supplement/graphstructures.jl $quick
+echo ""
+echo "##### Starting experiment on variable sample sizes #####"
+echo ""
 julia --threads=auto --project=. src/supplement/variablesamplesize.jl $quick
-
-Rscript src/supplement/graphstructures.R 
 Rscript src/supplement/variablesamplesize.R
+
+
+# echo ""
+# echo "##### Starting experiment on variable graph structures #####"
+# echo ""
+# julia --threads=auto --project=. src/supplement/graphstructures.jl $quick
+# Rscript src/supplement/graphstructures.R
