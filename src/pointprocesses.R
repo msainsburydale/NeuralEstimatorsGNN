@@ -64,7 +64,7 @@ hdf <- df %>%
   # filter(h < 0.15) # only consider points within a distance of hmax
 
 figure <- ggplot(hdf) +
-  geom_histogram(aes(x = h)) +
+  geom_histogram(aes(x = h), bins = 30) +
   facet_grid(~facet_var, labeller = label_parsed) + 
   labs() + 
   theme_bw()

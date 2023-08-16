@@ -118,7 +118,10 @@ end
 
 # ---- Assess the estimators ----
 
-function assessestimators(θ, Z, g, ξ; assess_ML::Bool = true)
+
+#TODO why is ML run twice?
+
+function assessestimators(θ, Z, g, ξ)
 
 	assessment = assess(
 		[gnn], θ, reshapedataGNN(Z, g);
@@ -126,7 +129,7 @@ function assessestimators(θ, Z, g, ξ; assess_ML::Bool = true)
 		parameter_names = ξ.parameter_names
 	)
 
-	if assess_ML
+	if isdefined(Main, :ML)
 		assessment = merge(assessment, assess([ML], θ, Z; estimator_names = ["ML"], parameter_names = ξ.parameter_names, use_ξ = true, ξ = ξ))
 	end
 
@@ -140,15 +143,12 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	g = GNNGraph(A)
 	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
 
-	assess_ML = isdefined(Main, :ML)
-
 	# test set for estimating the risk function
 	seed!(1)
 	θ = Parameters(K_test, ξ)
 	Z = simulate(θ, M)
-	# Z = model == "BrownResnick" ? simulate(θ, M; exact = true) : simulate(θ, M)
 	ξ = (ξ..., θ₀ = θ.θ)
-	assessment = assessestimators(θ, Z, g, ξ; assess_ML = assess_ML)
+	assessment = assessestimators(θ, Z, g, ξ)
 	CSV.write(path * "/estimates_test_$set.csv", assessment.df)
 	CSV.write(path * "/runtime_test_$set.csv", assessment.runtime)
 
@@ -158,10 +158,8 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	θ = Parameters(K_scenarios, ξ)
 	J = quick ? 10 : 100
 	Z = simulate(θ, M, J)
-	# Z = model == "BrownResnick" ? [simulate(θ, M; exact = true) for i ∈ 1:J] : [simulate(θ, M) for i ∈ 1:J]
-	# Z = vcat(Z...)
 	ξ = (ξ..., θ₀ = θ.θ)
-	assessment = assessestimators(θ, Z, g, ξ; assess_ML = assess_ML)
+	assessment = assessestimators(θ, Z, g, ξ)
 	CSV.write(path * "/estimates_scenarios_$set.csv", assessment.df)
 	CSV.write(path * "/runtime_scenarios_$set.csv", assessment.runtime)
 

@@ -29,11 +29,18 @@ do
         m="[1,20]"
     fi
 
+    echo ""
+    echo "##### Assessing point estimation #####"
+    echo ""
+
     julia --threads=auto --project=. src/simulationstudy.jl --model=$model $quick --m=$m # --skip_training
 
     if [[ $model == "GP/nuFixed"  ]]; then
+        echo ""
+        echo "##### Assessing uncertainty quantification #####"
+        echo ""
         julia --threads=auto --project=. src/simulationstudy-credibleinterval.jl --model=$model $quick --m=$m # --skip_training
     fi
 
-    Rscript src/main.R   --model=$model
+    Rscript src/simulationstudy.R --model=$model
 done
