@@ -18,7 +18,7 @@ Rscript dependencies_install.R
 
 # Each .sh files asks the user if quick = y/n. To automate this
 # script, we pipe the above response to each .sh file
-Rscript pointprocesses.R                          # Point process figure in Section 2
+Rscript src/pointprocesses.R                          # Point process figure in Section 2
 yes $quick_str | bash sh/simulationstudies.sh     # Section 3
 yes $quick_str | bash sh/application.sh           # Section 4
 yes $quick_str | bash sh/supplement.sh            # Supplementary material
