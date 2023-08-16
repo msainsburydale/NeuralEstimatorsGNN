@@ -18,7 +18,7 @@ using CUDA
 CUDA.allowscalar(false)
 
 include(joinpath(pwd(), "src/$model/model.jl"))
-include(joinpath(pwd(), "src/$model/MAP.jl"))
+include(joinpath(pwd(), "src/$model/ML.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
 p = ξ.p

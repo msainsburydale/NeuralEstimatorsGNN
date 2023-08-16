@@ -20,7 +20,6 @@ using DataFrames
 using CSV
 
 include(joinpath(pwd(), "src/$model/model.jl"))
-if model != "SPDE" include(joinpath(pwd(), "src/$model/MAP.jl")) end
 include(joinpath(pwd(), "src/architecture.jl"))
 
 Ω = (

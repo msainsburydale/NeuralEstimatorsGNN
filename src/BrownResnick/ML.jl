@@ -1,6 +1,6 @@
 using LinearAlgebra
 using NeuralEstimators
-include(joinpath(pwd(), "src/MAP.jl"))
+include(joinpath(pwd(), "src/ML.jl"))
 
 R"""
 ################################################################
@@ -59,14 +59,14 @@ end
 
 # Z = simulatebrownresnick(rand(n, 2), 0.5, 1.2, 30)
 # nll([1.0, 1.0], Z, ξ.D, [ξ.Ω...])
-# MAP(Z, [1.0, 1.0], ξ.D, [ξ.Ω...])
+# ML(Z, [1.0, 1.0], ξ.D, [ξ.Ω...])
 
 
 
-# This is a copy of the MAP function in src/MAP.jl, but without parallelisation,
+# This is a copy of the ML function in src/ML.jl, but without parallelisation,
 # since the above approach is not parallelisable.
 
-function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVector{A}}
+function ML(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVector{A}}
 
 	# Compress the data from an n-dimensional array to a matrix
 	Z = flatten.(Z)
@@ -125,7 +125,7 @@ function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVecto
 	# Optimise
 	θ̂ = map(1:K) do k
 		 Dₖ = D[D_pointer[k]]
-		 MAP(Z[k], θ₀[k], Dₖ, Ω)
+		 ML(Z[k], θ₀[k], Dₖ, Ω)
 	end
 
 	# Convert to matrix

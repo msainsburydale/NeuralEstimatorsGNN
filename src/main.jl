@@ -40,7 +40,7 @@ using Distances
 using GraphNeuralNetworks
 
 include(joinpath(pwd(), "src/$model/model.jl"))
-if model != "SPDE" include(joinpath(pwd(), "src/$model/MAP.jl")) end
+if model != "SPDE" include(joinpath(pwd(), "src/$model/ML.jl")) end
 include(joinpath(pwd(), "src/architecture.jl"))
 
 path = "intermediates/$model"
@@ -137,7 +137,7 @@ Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_m$M"))
 # ---- Run-time assessment ----
 
 
-if isdefined(Main, :MAP)
+if isdefined(Main, :ML)
 
 	# Accurately assess the run-time for a single data set
 	seed!(1)
@@ -145,21 +145,21 @@ if isdefined(Main, :MAP)
 	D = pairwise(Euclidean(), S, S, dims = 1)
 	A = adjacencymatrix(D, r)
 	g = GNNGraph(A)
-	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
+	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
 
 	θ = Parameters(1, ξ, J = 1)
 	Z = simulate(θ, M)
 
 	θ₀ = mean.([ξ.Ω...])
 	ξ = (ξ..., S = S, D = D, θ₀ = θ₀)
-	tmap = @belapsed MAP(Z, ξ)
+	tmap = @belapsed ML(Z, ξ)
 
 	Z = reshapedataGNN(Z, g)
 	Z = Z |> gpu
 	gnn = gnn|> gpu
 	tgnn = @belapsed gnn(Z)
 
-	t = DataFrame((time = [tgnn, tmap], estimator = ["GNN", "MAP"]))
+	t = DataFrame((time = [tgnn, tmap], estimator = ["GNN", "ML"]))
 	CSV.write(path * "/runtime.csv", t)
 
 end
@@ -168,7 +168,7 @@ end
 
 # ---- Assess the estimators ----
 
-function assessestimators(θ, Z, g, ξ; assess_CNN::Bool = false, assess_MAP::Bool = true)
+function assessestimators(θ, Z, g, ξ; assess_CNN::Bool = false, assess_ML::Bool = true)
 
 	assessment = assess(
 		[gnn], θ, reshapedataGNN(Z, g);
@@ -182,8 +182,8 @@ function assessestimators(θ, Z, g, ξ; assess_CNN::Bool = false, assess_MAP::Bo
 		assessment = merge(assessment, assess([cnn], θ, reshapedataCNN(Z); estimator_names = ["CNN"], parameter_names = ξ.parameter_names))
 	end
 
-	if assess_MAP
-		assessment = merge(assessment, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_ξ = true, ξ = ξ))
+	if assess_ML
+		assessment = merge(assessment, assess([ML], θ, Z; estimator_names = ["ML"], parameter_names = ξ.parameter_names, use_ξ = true, ξ = ξ))
 	end
 
 	return assessment
@@ -194,10 +194,10 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	D = pairwise(Euclidean(), S, S, dims = 1)
 	A = adjacencymatrix(D, r)
 	g = GNNGraph(A)
-	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
+	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
 
 	assess_CNN = set == "gridded"
-	assess_MAP = isdefined(Main, :MAP)
+	assess_ML = isdefined(Main, :ML)
 
 	# test set for estimating the risk function
 	seed!(1)
@@ -205,7 +205,7 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	Z = simulate(θ, M)
 	# Z = model == "BrownResnick" ? simulate(θ, M; exact = true) : simulate(θ, M)
 	ξ = (ξ..., θ₀ = θ.θ)
-	assessment = assessestimators(θ, Z, g, ξ; assess_CNN = assess_CNN, assess_MAP = assess_MAP)
+	assessment = assessestimators(θ, Z, g, ξ; assess_CNN = assess_CNN, assess_ML = assess_ML)
 	CSV.write(path * "/estimates_test_$set.csv", assessment.df)
 	CSV.write(path * "/runtime_test_$set.csv", assessment.runtime)
 
@@ -218,7 +218,7 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	# Z = model == "BrownResnick" ? [simulate(θ, M; exact = true) for i ∈ 1:J] : [simulate(θ, M) for i ∈ 1:J]
 	# Z = vcat(Z...)
 	ξ = (ξ..., θ₀ = θ.θ)
-	assessment = assessestimators(θ, Z, g, ξ; assess_CNN = assess_CNN, assess_MAP = assess_MAP)
+	assessment = assessestimators(θ, Z, g, ξ; assess_CNN = assess_CNN, assess_ML = assess_ML)
 	CSV.write(path * "/estimates_scenarios_$set.csv", assessment.df)
 	CSV.write(path * "/runtime_scenarios_$set.csv", assessment.runtime)
 

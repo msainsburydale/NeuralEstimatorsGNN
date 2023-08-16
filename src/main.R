@@ -23,10 +23,10 @@ loaddata <- function(set) {
   df
 }
 
-estimators <- c("GNN", "MAP")
+estimators <- c("GNN", "ML")
 
 if (model %in% c("Schlather", "BrownResnick")) {
-  estimator_labels["MAP"] <- "PL"
+  estimator_labels["ML"] <- "PL"
 }
 
 # ---- Simple plot used in the main text ----
@@ -82,7 +82,7 @@ df %>%
   write.csv(file = paste0(img_path, "/risk.csv"), row.names = F)
 
 
-## RMSE 
+## RMSE
 df %>%
   mutate(loss = (estimate - truth)^2) %>%
   # group_by(set, estimator) %>%
@@ -209,10 +209,9 @@ figures <- lapply(unique(df$k), function(K) {
   )
 
   figure
-  
-  
-  # ---- All plots ----
-  
-  
-})
 
+
+  # ---- All plots ----
+
+
+})

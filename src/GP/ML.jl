@@ -1,6 +1,6 @@
 using LinearAlgebra
 using NeuralEstimators
-include(joinpath(pwd(), "src/MAP.jl"))
+include(joinpath(pwd(), "src/ML.jl"))
 
 function covariancematrix(D; τ, ρ, ν)
 	# Exploit symmetry of D to minimise the number of computations

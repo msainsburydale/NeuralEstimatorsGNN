@@ -6,7 +6,7 @@ suppressMessages({
   library("egg")
   library("viridis")
   library("tidyr")
-  library("latex2exp")  
+  library("latex2exp")
   library("ggExtra") # ggMarginal
   library("cowplot") # get_x_axis
 })
@@ -21,8 +21,8 @@ estimator_labels <- c(
   "GNN3 fixednum" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30;300})$ : $k$-nearest neighbours"),
   "GNN" = "GNN",
   "CNN" = "CNN",
-  "DNN" = "DNN", 
-  "MAP" = "ML", 
+  "DNN" = "DNN",
+  "ML" = "ML",
   "GNN_S1" = TeX("GNN$_{S}$"),
   # "GNN_S2" = TeX("GNN$_{S'}$"),
   "GNN_S3" = TeX("GNN$_{S''}$")
@@ -30,7 +30,7 @@ estimator_labels <- c(
 
 estimators <- names(estimator_labels)
 
-# Legend labelling 
+# Legend labelling
 estimator_order <- names(estimator_labels) # specifies the order that the estimators should appear in the plot legends.
 scale_estimator <- function(df, scale = "colour", values = estimator_colours, ...) {
   estimators <- unique(df$estimator)
@@ -45,7 +45,7 @@ scale_estimator <- function(df, scale = "colour", values = estimator_colours, ..
 
 # for more colours, see: http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf
 estimator_colours <- c(
-  "MAP" = "gold",
+  "ML" = "gold",
   "GNN" = "chartreuse4",
   "CNN" = "#440154FF",
   "DNN" = "red",
@@ -73,11 +73,11 @@ loss <- function(x, y) abs(x - y)
 # The simulations may be highly varied in magnitude, so we need to
 # use an independent colour scale. This means that we can't use facet_wrap().
 field_plot <- function(field, regular = TRUE, variable = "Z", x = "s1", y = "s2") {
-  
+
   # Standard eval with ggplot2 without `aes_string()`: https://stackoverflow.com/a/55133909
-  
+
   gg <- ggplot(field, aes(x = !!sym(x), y = !!sym(y)))
-  
+
   if (regular) {
     gg <- gg +
       geom_tile(aes(fill = !!sym(variable))) +
@@ -87,13 +87,13 @@ field_plot <- function(field, regular = TRUE, variable = "Z", x = "s1", y = "s2"
       geom_point(aes(colour = !!sym(variable))) +
       scale_colour_viridis_c(option = "magma")
   }
-  
+
   gg <- gg +
     labs(fill = "", x = expression(s[1]), y = expression(s[2])) +
     theme_bw() +
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0))
-  
+
   return(gg)
 }
 
@@ -107,9 +107,9 @@ zeroone <- function(x, y, eps = y/10) mean(abs(x - y) > eps)
 
 
 splitfacet <- function(x){
-  
+
   # NB For this function be useful, need to transfer the facet labels to the title
-  
+
   facet_vars <- names(x$facet$params$facets)         # get the names of the variables used for faceting
   x$facet    <- ggplot2::ggplot()$facet              # overwrite the facet element of our plot object with the one from the empty ggplot object (so if we print it at this stage facets are gone)
   datasets   <- split(x$data, x$data[facet_vars])    # extract the data and split it along the faceting variables

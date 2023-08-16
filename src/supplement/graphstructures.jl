@@ -33,7 +33,7 @@ using GraphNeuralNetworks
 using CSV
 
 include(joinpath(pwd(), "src/$model/model.jl"))
-include(joinpath(pwd(), "src/$model/MAP.jl"))
+include(joinpath(pwd(), "src/$model/ML.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
 path = "intermediates/supplement/graphstructures/$model"
@@ -131,7 +131,7 @@ function assessestimators(θ, Z, g, ξ)
 		estimator_names = ["GNN_S", "GNN_Svariable", "GNN_Sclustered", "GNN_Smatern"],
 		parameter_names = ξ.parameter_names
 	)
-	assessment = merge(assessment, assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ))
+	assessment = merge(assessment, assess([ML], θ, Z; estimator_names = ["ML"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ))
 	return assessment
 end
 
@@ -140,7 +140,7 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	D = pairwise(Euclidean(), S, S, dims = 1)
 	A = adjacencymatrix(D, neighbour_parameter)
 	g = GNNGraph(A)
-	ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D (needed for simulation and MAP estimation)
+	ξ = (ξ..., D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
 
 	# test set for estimating the risk function
 	seed!(1)

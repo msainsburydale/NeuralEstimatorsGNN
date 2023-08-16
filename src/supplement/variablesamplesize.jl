@@ -24,7 +24,7 @@ using GraphNeuralNetworks
 using CSV
 
 include(joinpath(pwd(), "src/$model/model.jl"))
-include(joinpath(pwd(), "src/$model/MAP.jl"))
+include(joinpath(pwd(), "src/$model/ML.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
 path = "intermediates/supplement/samplesize/$model"
@@ -100,13 +100,13 @@ function assessestimators(θ, Z, ξ)
 		verbose = false
 	)
 
-	println("	Running MAP estimator...")
-	# Convert Z from a graph to a matrix (required for MAP)
-	ξ = (ξ..., θ₀ = θ.θ) # initialise the MAP to the true parameters
+	println("	Running maximum-likelihood estimator...")
+	# Convert Z from a graph to a matrix (required for maximum-likelihood)
+	ξ = (ξ..., θ₀ = θ.θ) # initialise the maximum-likelihood to the true parameters
 	Z = broadcast(z -> reshape(z.ndata.x, :, 1), Z)
 	assessment = merge(
 		assessment,
-		assess([MAP], θ, Z; estimator_names = ["MAP"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ, verbose=false)
+		assess([ML], θ, Z; estimator_names = ["maximum-likelihood"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ, verbose=false)
 		)
 
 	return assessment

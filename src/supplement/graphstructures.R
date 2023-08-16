@@ -11,7 +11,7 @@ loadestimates <- function(set, type = "scenarios") {
   df
   # Relabel to control the order of boxplots
   # df$estimator <- as.factor(df$estimator)
-  # levels(df$estimator) <- c("GNN_S", "GNN_Svariable", "GNN_Sclustered", "MAP")
+  # levels(df$estimator) <- c("GNN_S", "GNN_Svariable", "GNN_Sclustered", "ML")
   df$estimator[df$estimator == "GNN_S"] <- "GNN_S1"
   df$estimator[df$estimator == "GNN_Svariable"] <- "GNN_S2"
   df$estimator[df$estimator == "GNN_Sclustered"] <- "GNN_S3"
@@ -31,7 +31,7 @@ df <- loadestimates("S", "test") %>%
 
 ## Bayes risk with respect to absolute error
 df %>%
-  mutate(loss = abs(estimate - truth)) %>% 
+  mutate(loss = abs(estimate - truth)) %>%
   group_by(set, estimator) %>%
   summarise(risk = mean(loss), sd = sd(loss)/sqrt(length(loss))) %>%
   write.csv(file = paste0(img_path, "/risk.csv"), row.names = F)
@@ -53,7 +53,7 @@ loadestimates <- function(set, type = "scenarios") {
 
   # Relabel to control the order of boxplots
   # df$estimator <- as.factor(df$estimator)
-  # levels(df$estimator) <- c("GNN_S", "GNN_Svariable", "GNN_Sclustered", "MAP")
+  # levels(df$estimator) <- c("GNN_S", "GNN_Svariable", "GNN_Sclustered", "ML")
   df$estimator[df$estimator == "GNN_S"] <- "GNN_S1"
   df$estimator[df$estimator == "GNN_Svariable"] <- "GNN_S2"
   df$estimator[df$estimator == "GNN_Sclustered"] <- "GNN_S3"

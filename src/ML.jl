@@ -4,7 +4,7 @@ using Optim
 using Folds
 using Flux: flatten
 
-function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVector{A}}
+function ML(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVector{A}}
 
 	# Compress the data from an n-dimensional array to a matrix
 	Z = flatten.(Z)
@@ -63,7 +63,7 @@ function MAP(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVecto
 	# Optimise
 	θ̂ = Folds.map(1:K) do k
 		 Dₖ = D[D_pointer[k]]
-		 MAP(Z[k], θ₀[k], Dₖ, Ω)
+		 ML(Z[k], θ₀[k], Dₖ, Ω)
 	end
 
 	# Convert to matrix
@@ -74,7 +74,7 @@ end
 
 
 
-function MAP(Z::M, θ₀::V, D, Ω) where {T, V <: AbstractVector{T}, M <: AbstractMatrix{T}}
+function ML(Z::M, θ₀::V, D, Ω) where {T, V <: AbstractVector{T}, M <: AbstractMatrix{T}}
 
 	# Closure that will be minimised
 	loss(θ) = nll(θ, Z, D, Ω)
