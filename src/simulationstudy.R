@@ -29,7 +29,7 @@ if (model %in% c("Schlather", "BrownResnick")) {
   estimator_labels["ML"] <- "PL"
 }
 
-# ---- Simple plot used in the main text ----
+# ---- Marginal + joint sampling distribution with uniform spatial locations ----
 
 df  <- loadestimates("uniform", "scenarios") %>% filter(estimator %in% estimators)
 zdf <- loaddata("uniform")
@@ -43,24 +43,26 @@ figures <- lapply(unique(df$k), function(K) {
   gg2 <- plotdistribution(df, type = "scatter", parameter_labels = parameter_labels)[[1]] # , truth_line_size = 1
   gg3 <- plotdistribution(df, parameter_labels = parameter_labels, return_list = T)
 
-  gg2 <- gg2 + scale_estimator(df)
-  gg3 <- lapply(gg3, function(gg) gg + scale_estimator(df) + theme(legend.position = "top") + labs(y = ""))
+  # TODO suppress the message/warnings here
+  
+  suppressMessages({
+    gg2 <- gg2 + scale_estimator(df)
+    gg3 <- lapply(gg3, function(gg) gg + scale_estimator(df) + theme(legend.position = "top") + labs(y = ""))
+  })
+  
 
   gg1 <- gg1 + theme(legend.position = "top", legend.title.align = 0.5, legend.title = element_text(face = "bold"))
   gg2 <- gg2 + theme(legend.position = "top")
 
-  # ggarrange(gg1, gg2, nrow = 1, align = "hv")
   figure <- ggpubr::ggarrange(plotlist = c(list(gg1, gg2), gg3), nrow = 1, ncol = 4, align = "hv")
 
   ggsave(
     figure,
-    file = paste0("main", K, ".pdf"),
+    file = paste0("uniformlocations", K, ".pdf"),
     width = 9.3, height = 3, device = "pdf", path = img_path
   )
 
-  # gg2 <- ggMarginal(gg2, groupFill = TRUE, groupColour = TRUE, type = "density", alpha = 0.5, position = "identity")
-  # gg2 <- as.ggplot(gg2)
-
+  
   figure
 })
 
@@ -76,7 +78,6 @@ df <- filter(df, estimator %in% estimators)
 ## Bayes risk with respect to absolute error
 df %>%
   mutate(loss = abs(estimate - truth)) %>%
-  # group_by(set, estimator) %>%
   group_by(estimator) %>%
   summarise(risk = mean(loss), sd = sd(loss)/sqrt(length(loss))) %>%
   write.csv(file = paste0(img_path, "/risk.csv"), row.names = F)
@@ -85,7 +86,6 @@ df %>%
 ## RMSE
 df %>%
   mutate(loss = (estimate - truth)^2) %>%
-  # group_by(set, estimator) %>%
   group_by(estimator) %>%
   summarise(RMSE = sqrt(mean(loss))) %>%
   write.csv(file = paste0(img_path, "/RMSE.csv"), row.names = F)
@@ -106,11 +106,13 @@ figures <- lapply(unique(df$k), function(K) {
   data <- lapply(sets, function(st) {
     field_plot(filter(zdf, set == st), regular = F)
   })
+  suppressMessages({
   data[[1]] <- data[[1]] +
     scale_x_continuous(breaks = c(0.25, 0.5, 0.75), expand = c(0, 0)) +
     scale_y_continuous(breaks = c(0.25, 0.5, 0.75), expand = c(0, 0)) +
     labs(fill = "Z") +
     theme(legend.title.align = 0.25, legend.title = element_text(face = "bold"))
+  })
   data_legend <- get_legend(data[[1]])
 
   data <- lapply(data, function(gg) gg +
@@ -151,16 +153,17 @@ figures <- lapply(unique(df$k), function(K) {
   }
 
   box <- do.call(c, box_split)
+  suppressMessages({
   box <- lapply(box, function(gg) gg + scale_estimator(df))
+  })
   box_legend <- get_legend(box[[1]])
+  suppressMessages({
   box <- lapply(box, function(gg) {
     gg$facet$params$nrow <- 2
     gg$facet$params$strip.position <- "bottom"
     gg + theme(legend.position = "none", axis.title.x = element_blank()) +scale_estimator(df)
   })
-
-
-
+  })
 
   plotlist <- c(data, box)
   figure1  <- egg::ggarrange(plots = plotlist, nrow = 3, ncol = length(sets), heights = c(1.5, 1, 1))
@@ -175,8 +178,10 @@ figures <- lapply(unique(df$k), function(K) {
 
   # ---- Joint sampling distributions ----
 
+  suppressMessages({
   joint <- lapply(sets, function(st) {
     plotdistribution(filter(df, set == st), type = "scatter", parameter_labels = parameter_labels, estimator_labels = estimator_labels)[[1]] + scale_estimator(df)
+  })
   })
   joint_legend <- get_legend(joint[[1]])
   joint <- lapply(joint, function(gg) {
@@ -209,9 +214,4 @@ figures <- lapply(unique(df$k), function(K) {
   )
 
   figure
-
-
-  # ---- All plots ----
-
-
 })

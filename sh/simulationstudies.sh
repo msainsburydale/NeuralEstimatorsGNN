@@ -14,7 +14,7 @@ else
     exit 1
 fi
 
-for model in GP/nuFixed Schlather # SPDE BrownResnick
+for model in GP/nuFixed # Schlather # SPDE # BrownResnick
 do
 
     echo ""
@@ -32,15 +32,12 @@ do
     echo ""
     echo "##### Assessing point estimation #####"
     echo ""
-
     julia --threads=auto --project=. src/simulationstudy.jl --model=$model $quick --m=$m # --skip_training
 
-    if [[ $model == "GP/nuFixed"  ]]; then
-        echo ""
-        echo "##### Assessing uncertainty quantification #####"
-        echo ""
-        julia --threads=auto --project=. src/simulationstudy-credibleinterval.jl --model=$model $quick --m=$m # --skip_training
-    fi
+    echo ""
+    echo "##### Assessing uncertainty quantification #####"
+    echo ""
+    julia --threads=auto --project=. src/simulationstudy-credibleinterval.jl --model=$model $quick --m=$m # --skip_training
 
     Rscript src/simulationstudy.R --model=$model
 done

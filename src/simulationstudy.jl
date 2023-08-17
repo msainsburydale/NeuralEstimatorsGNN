@@ -111,15 +111,12 @@ if isdefined(Main, :ML)
 	gnn = gnn|> gpu
 	tgnn = @belapsed gnn(Z)
 
-	t = DataFrame((time = [tgnn, tmap], estimator = ["GNN", "ML"]))
+	t = DataFrame(time = [tgnn, tmap], estimator = ["GNN", "ML"])
 	CSV.write(path * "/runtime.csv", t)
 
 end
 
 # ---- Assess the estimators ----
-
-
-#TODO why is ML run twice?
 
 function assessestimators(θ, Z, g, ξ)
 
@@ -179,10 +176,11 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	return 0
 end
 
-# Test with respect to a set of irregular uniformly sampled locations
+
+# Test with respect to a set of uniformly sampled locations
 seed!(1)
 set = "uniform"
-S = rand(n, 2)
+S = spatialconfigurations(n, set)
 seed!(1)
 assessestimators(S, ξ, K_test, set)
 
@@ -195,9 +193,7 @@ assessestimators(S, ξ, K_test, set)
 #  . . .
 seed!(1)
 set = "quadrants"
-S₁ = 0.5 * rand(n÷2, 2)
-S₂ = 0.5 * rand(n÷2, 2) .+ 0.5
-S  = vcat(S₁, S₂)
+S = spatialconfigurations(n, set)
 seed!(1)
 assessestimators(S, ξ, K_test, set)
 
@@ -217,14 +213,7 @@ assessestimators(S, ξ, K_test, set)
 # .             .
 seed!(1)
 set = "mixedsparsity"
-n_centre = (3 * n) ÷ 4
-n_corner = (n - n_centre) ÷ 4
-S_centre  = 1/3 * rand(n_centre, 2) .+ 1/3
-S_corner1 = 1/3 * rand(n_corner, 2)
-S_corner2 = 1/3 * rand(n_corner, 2); S_corner2[:, 2] .+= 2/3
-S_corner3 = 1/3 * rand(n_corner, 2); S_corner3[:, 1] .+= 2/3
-S_corner4 = 1/3 * rand(n_corner, 2); S_corner4 .+= 2/3
-S = vcat(S_centre, S_corner1, S_corner2, S_corner3, S_corner4)
+S = spatialconfigurations(n, set)
 seed!(1)
 assessestimators(S, ξ, K_test, set)
 
@@ -242,10 +231,6 @@ assessestimators(S, ξ, K_test, set)
 #Construct by considering the domain split into three vertical strips
 seed!(1)
 set = "cup"
-n_strip2 = n÷3 + n % 3 # ensure that total sample size is n (even if n is not divisible by 3)
-S_strip1 = rand(n÷3, 2);      S_strip1[:, 1] .*= 0.2;
-S_strip2 = rand(n_strip2, 2); S_strip2[:, 1] .*= 0.6; S_strip2[:, 1] .+= 0.2; S_strip2[:, 2] .*= 1/3;
-S_strip3 = rand(n÷3, 2);      S_strip3[:, 1] .*= 0.2; S_strip3[:, 1] .+= 0.8;
-S = vcat(S_strip1, S_strip2, S_strip3)
+S = spatialconfigurations(n, set)
 seed!(1)
 assessestimators(S, ξ, K_test, set)

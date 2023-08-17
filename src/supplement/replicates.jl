@@ -139,14 +139,14 @@ gnn = gnn |> gpu;
 @btime gnn(Z2);  # 151.327 ms (37525 allocations: 3.70 MiB)
 @btime gnn(Z3);  # 505.318 ms (37534 allocations: 6.63 MiB)
 
-# GNN: approach that exploits constant graph structure with parameter configurations
+# GNN: approach that exploits constant graph structure within parameter configurations
 Z1 = Z[1];
 Z2 = Z[2];
 Z3 = Z[3];
-using NeuralEstimatorsGNN: reshapedataGNN2
-Z1 = reshapedataGNN2(Z1, g);
-Z2 = reshapedataGNN2(Z2, g);
-Z3 = reshapedataGNN2(Z3, g);
+using NeuralEstimatorsGNN: reshapedataGNNcompact
+Z1 = reshapedataGNNcompact(Z1, g);
+Z2 = reshapedataGNNcompact(Z2, g);
+Z3 = reshapedataGNNcompact(Z3, g);
 Z1  = Z1  |> gpu;
 Z2  = Z2  |> gpu;
 Z3  = Z3  |> gpu;

@@ -5,16 +5,13 @@ using Distances: pairwise, Euclidean
 using LinearAlgebra
 using Folds
 
-parameter_names = String.(collect(keys(Ω)))
 ξ = (
 	Ω = Ω,
 	p = length(Ω),
 	n = 256,
-	parameter_names = parameter_names,
-	ρ_idx = findfirst(parameter_names .== "ρ"),
-	ν_idx = findfirst(parameter_names .== "ν"),
+	parameter_names = String.(collect(keys(Ω))),
 	ν = 1.0, # smoothness to use if ν is not included in Ω
-	σ = 1.0, # marginal variance to use if σ is not included in Ω
+	σ = 1.0, # marginal standard deviation to use if σ is not included in Ω
 	r = 0.15f0, # cutoff distance used to define the neighbourhood of each node,
 	invtransform = identity # inverse of variabce-stabilising transformation
 )
