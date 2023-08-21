@@ -296,12 +296,4 @@ function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_
 end
 variableirregularsetup(ξ, n::Integer; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter, clustering::Bool = false) = variableirregularsetup(ξ, range(n, n); K = K, m = m, J = J, return_ξ = return_ξ, neighbour_parameter = neighbour_parameter, clustering = clustering)
 
-
-#TODO need a method that takes in θ and ξ: it will not have K, J
-# Parameters(θ, ξ)
-function variableirregularsetup(ξ, n::R, θ::Matrix; m, return_ξ::Bool = false, neighbour_parameter, clustering::Bool = false) where {R <: AbstractRange{I}} where I <: Integer
-
-end
-variableirregularsetup(ξ, n::Integer, θ::Matrix; m, return_ξ::Bool = false, neighbour_parameter, clustering::Bool = false) = variableirregularsetup(ξ, range(n, n), θ; m = m, return_ξ = return_ξ, neighbour_parameter = neighbour_parameter, clustering = clustering)
-
 end #module

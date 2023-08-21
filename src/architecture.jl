@@ -5,18 +5,17 @@ using Flux
 using Statistics: mean
 
 function gnnarchitecture(
-	# p::Integer;
-	# d::Integer = 1,
-	# nh::Integer = 128,
-	# nlayers::Integer = 3, # number of propagation layers (in addition to the first layer)
-	# propagation::String = "WeightedGraphConv",
-	# readout::String = "mean"
 	p::Integer;
-	d::Integer = 1,
-	nh::Integer = 64,
-	nlayers::Integer = 2, # number of propagation layers (in addition to the first layer)
 	propagation::String = "WeightedGraphConv",
-	readout::String = "universal"
+	d::Integer = 1,
+	## Larger network with mean pooling
+	nh::Integer = 128,
+	nlayers::Integer = 3, # number of propagation layers (in addition to the first layer)
+	readout::String = "mean"
+	## Small network with universal pooling
+	# nh::Integer = 64,
+	# nlayers::Integer = 2, # number of propagation layers (in addition to the first layer)
+	# readout::String = "universal"
 	)
 
 	@assert nlayers > 0
@@ -63,10 +62,10 @@ function gnnarchitecture(
 end
 
 # ?GNN
-# p = 3
-# x = gnnarchitecture(p)
-# x = gnnarchitecture(p, nh = 128, readout = "mean")
-# y = gnnarchitecture(p, nh = 64, readout = "universal")
+p = 3
+x = gnnarchitecture(p)
+x = gnnarchitecture(p, nh = 128, readout = "mean")
+y = gnnarchitecture(p, nh = 64, readout = "universal")
 #
 # d = 1
 # n = 250                           # number of nodes

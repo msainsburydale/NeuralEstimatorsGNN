@@ -147,6 +147,26 @@ function coverage(intervals::V, θ) where  {V <: AbstractArray{M}} where M <: Ab
 	return cvg
 end
 
+# Test with respect to a set of irregular uniformly sampled locations
+seed!(1)
+S = rand(n, 2)
+
+# Simulate data
+seed!(1)
+K = quick ? 100 : 3000
+θ, Z, ξ = variableirregularsetup(ξ, n, K = K, m = m, neighbour_parameter = r, J = 1, clustering = true, return_ξ = true)
+Z = Z[1]
+
+# Marginal coverage for
+intervals = interval(intervalestimator, Z, parameter_names = ξ.parameter_names)
+cvg = coverage(intervals, θ.θ)
+df  = DataFrame(cvg', ξ.parameter_names)
+CSV.write(path * "/marginal_coverage.csv", df)
+
+
+# ---- Conditional coverage (coverage given specific parameter values) ----
+
+#TODO add plots of the conditonal coverage in the supplementary material at the revision stage
 
 #TODO m should be an argument of this function, as should simulator
 """
@@ -178,7 +198,7 @@ function conditonalcoverage(estimator, θ, S, ξ; J::Integer = 1000)
 
 	if method == "quantile"
 		# Compute coverage using the posterior quantile estimator
-		intervals = interval(estimator, Z) # TODO need to document this method of interval
+		intervals = interval(estimator, Z) # TODO need to document this method of interval in NeuralEstimators
 		cvg = coverage(intervals, θ)
 	else
 		# Compute coverage using parametric bootstrap
@@ -203,11 +223,10 @@ function conditonalcoverage(estimator, θ, S, ξ; J::Integer = 1000)
 		coverage = vec(cvg)
 		)
 
+
 	return df
 end
 
-
-# ---- Conditional coverage (coverage given specific parameter values) ----
 
 # Do this by constructing a grid of parameters, and testing the coverage at
 # each parameter value. This way, we can produce a coverage map.
@@ -226,52 +245,14 @@ y = range(test_support[2][1], test_support[2][2], length = l)
 grd = expandgrid(x, y)
 
 # Estimate the coverage conditional on parameter configuration
-for set ∈ ["uniform", "quadrants", "mixedsparsity", "cup"]
-	seed!(1)
-	S = spatialconfigurations(n, set)
-	dfs = map(1:size(grd, 1)) do k
-		θ = grd[k, :, :]
-		conditonalcoverage(intervalestimator, θ, S, ξ, J = 1000)
-	end
-	df = vcat(dfs...)
-	df[:, :set] = repeat([set], nrow(df)) # add set information
-	CSV.write(path * "/conditionalcoverage_$set.csv", df)
-end
-
-
-
-
-
-
-# ---- Unused ----
-
-# Test with respect to a set of irregular uniformly sampled locations
-# seed!(1)
-# S = rand(n, 2)
-
-# # Simulate data
-# seed!(1)
-# K = quick ? 100 : 3000
-# θ, Z, ξ = variableirregularsetup(ξ, n, K = K, m = m, neighbour_parameter = r, J = 1, clustering = true, return_ξ = true)
-# Z = Z[1]
-#
-# # Maringal coverage for
-# intervals = interval(intervalestimator, Z, parameter_names = ξ.parameter_names)
-# cvg = coverage(intervals, θ.θ)
-# df  = DataFrame(cvg', ξ.parameter_names)
-# CSV.write(path * "/marginal_coverage.csv", df)
-
-# function simulatedata(θ, S, ξ; J::Integer = 1000)
-#
-# 	# Compute distance matrices and construct the graphs
-# 	D = pairwise.(Ref(Euclidean()), S, S, dims = 1)
-# 	A = adjacencymatrix.(D, ξ.r)
-# 	g = GNNGraph.(A)
-#
-# 	parameters = Parameters(θ, ξ)
-# 	Z = simulate(parameters, M, J)
-#
-# 	g = repeat(g, inner = J)
-# 	Z = reshapedataGNN(Z, g)
-# 	Z
+# for set ∈ ["uniform", "quadrants", "mixedsparsity", "cup"]
+# 	seed!(1)
+# 	S = spatialconfigurations(n, set)
+# 	dfs = map(1:size(grd, 1)) do k
+# 		θ = grd[k, :, :]
+# 		conditonalcoverage(intervalestimator, θ, S, ξ, J = 1000)
+# 	end
+# 	df = vcat(dfs...)
+# 	df[:, :set] = repeat([set], nrow(df)) # add set information
+# 	CSV.write(path * "/conditionalcoverage_$set.csv", df)
 # end

@@ -17,6 +17,14 @@ loadestimates <- function(set, type = "scenarios") {
   df
 }
 
+loadcoverage <- function(set) {
+  df <- read.csv(paste0(int_path, "/conditionalcoverage_", set, ".csv"))
+  df$set <- set
+  p <- length(unique(df$parameter))
+  df$pair <- rep(1:(nrow(df)/p), each = p)
+  df
+}
+
 loaddata <- function(set) {
   df <- read.csv(paste0(int_path, "/Z_", set, ".csv"))
   df$set <- set
@@ -44,12 +52,12 @@ figures <- lapply(unique(df$k), function(K) {
   gg3 <- plotdistribution(df, parameter_labels = parameter_labels, return_list = T)
 
   # TODO suppress the message/warnings here
-  
+
   suppressMessages({
     gg2 <- gg2 + scale_estimator(df)
     gg3 <- lapply(gg3, function(gg) gg + scale_estimator(df) + theme(legend.position = "top") + labs(y = ""))
   })
-  
+
 
   gg1 <- gg1 + theme(legend.position = "top", legend.title.align = 0.5, legend.title = element_text(face = "bold"))
   gg2 <- gg2 + theme(legend.position = "top")
@@ -62,7 +70,7 @@ figures <- lapply(unique(df$k), function(K) {
     width = 9.3, height = 3, device = "pdf", path = img_path
   )
 
-  
+
   figure
 })
 
@@ -215,3 +223,30 @@ figures <- lapply(unique(df$k), function(K) {
 
   figure
 })
+
+
+
+# ---- Conditional coverage ----
+
+# # load data
+# sets <- c("uniform", "quadrants", "mixedsparsity", "cup")
+# df  <- lapply(sets, loadcoverage); df  <- do.call(rbind, df)
+# zdf <- lapply(sets, loaddata); zdf <- do.call(rbind, zdf)
+# zdf <- zdf %>% filter(k == 1)
+#
+# df <- df %>%
+#   pivot_wider(names_from = "parameter", values_from = c("parameter_value", "coverage")) %>%
+#   as.data.frame
+#
+# ggplot(df) +
+#   geom_tile(aes(x = parameter_value_τ, y = parameter_value_ρ, fill = coverage_τ)) +
+#   scale_fill_viridis_c(option = "magma") +
+#   labs(x = expression(tau), y = expression(rho)) +
+#   facet_grid( .~ set)
+#
+# ggplot(df) +
+#   geom_tile(aes(x = parameter_value_τ, y = parameter_value_ρ, fill = coverage_ρ)) +
+#   scale_fill_viridis_c(option = "magma") +
+#   labs(x = expression(tau), y = expression(rho)) +
+#   facet_grid(.~ set)
+#
