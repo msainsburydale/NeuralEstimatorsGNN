@@ -16,6 +16,7 @@
 "renv" "0.17.3"
 "reshape2" "1.4.4"
 "sp" "1.5.1"
+"spdep" "1.2.7"
 "spatstat" "3.0.6"
 "tidyr" "1.2.1"
 "viridis" "0.6.2"

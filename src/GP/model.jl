@@ -13,7 +13,7 @@ using Folds
 	ν = 1.0, # smoothness to use if ν is not included in Ω
 	σ = 1.0, # marginal standard deviation to use if σ is not included in Ω
 	r = 0.15f0, # cutoff distance used to define the neighbourhood of each node,
-	invtransform = identity # inverse of variabce-stabilising transformation
+	invtransform = identity # inverse of variance-stabilising transformation
 )
 
 function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} where I <: Integer

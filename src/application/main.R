@@ -1,3 +1,4 @@
+suppressMessages({
 library("NeuralEstimators")
 library("JuliaConnectoR")
 library("reshape2")
@@ -8,6 +9,8 @@ library("FRK")
 library("sp")
 library("ggpubr")
 library("spdep") # poly2nb
+options(dplyr.summarise.inform = FALSE) # Suppress summarise info
+})
 
 img_path <- "img/application/SST"
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)

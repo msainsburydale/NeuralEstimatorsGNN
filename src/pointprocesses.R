@@ -6,7 +6,6 @@ library("dplyr")
 options(dplyr.summarise.inform = FALSE) # Suppress summarise info
 })
 
-
 set.seed(1)
 
 # vary the parameters
@@ -59,7 +58,3 @@ ggsave(figure, file = "spatialpatterns.pdf", width = 7.3, height = 2.4, path = "
 #   theme_bw()
 # 
 # ggsave(figure, file = "spatialpatternsdistances.pdf", width = 7.3, height = 2.7, path = "img", device = "pdf")
-# 
-
-
-
