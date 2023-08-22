@@ -62,10 +62,10 @@ function gnnarchitecture(
 end
 
 # ?GNN
-p = 3
-x = gnnarchitecture(p)
-x = gnnarchitecture(p, nh = 128, readout = "mean")
-y = gnnarchitecture(p, nh = 64, readout = "universal")
+# p = 2
+# x = gnnarchitecture(p)
+# x = gnnarchitecture(p, nh = 128, readout = "mean")
+# y = gnnarchitecture(p, nh = 64, readout = "universal")
 #
 # d = 1
 # n = 250                           # number of nodes

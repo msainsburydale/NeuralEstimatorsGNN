@@ -14,8 +14,6 @@ if ! [[ $quick_str == "y" ||  $quick_str == "Y" || $quick_str == "n" ||  $quick_
     exit 1
 fi
 
-Rscript dependencies_install.R
-
 # Each .sh files asks the user if quick = y/n. To automate this
 # script, we pipe the above response to each .sh file
 Rscript src/pointprocesses.R                          # Point process figure in Section 2
