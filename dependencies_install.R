@@ -97,7 +97,7 @@ if (install_depends == "y") {
   ## devtools is required for installing the other packages, so it has to be installed here
   if (!("devtools" %in% rownames(installed.packages()))) {
     cat("Installing the package 'devtools'...\n")
-    install.packages("devtools", repos = CRANMIRROR)
+    install.packages("devtools", repos = CRANMIRROR, dependencies = TRUE)
   }
   if (!("devtools" %in% rownames(installed.packages()))) stop("\nThe package 'devtools' failed to install, please install it manually. \n Note that on Linux systems there are several system dependencies that may need to be installed before installing devtools (e.g., fontconfig1, harfbuzz, and fribidi). Try using the following command before installing devtools: \n sudo apt -y install libfontconfig1-dev libharfbuzz-dev libfribidi-dev\n")
   
