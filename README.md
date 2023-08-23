@@ -2,7 +2,7 @@
 
 This repository contains code for reproducing the results in "Neural Bayes Estimators for Irregular Spatial Data using Graph Neural Networks" [(Sainsbury-Dale et al., 2023+)](TODO).
 
-The methodology described in the manuscript has been incorporated into the user-friendly Julia package, [NeuralEstimators.jl](https://github.com/msainsburydale/NeuralEstimators.jl), and its accompanying [R interface](https://github.com/msainsburydale/NeuralEstimators). In particular, see the examples given [here](https://msainsburydale.github.io/NeuralEstimators.jl/dev/workflow/examples/#Irregular-spatial-data). The code in this repository is therefore made available primarily for reproducibility purposes, and we encourage readers seeking to implement GNN-based neural Bayes estimators to explore the package and its documentation.  
+The methodology described in the manuscript has been incorporated into the Julia package [NeuralEstimators.jl](https://github.com/msainsburydale/NeuralEstimators.jl). In particular, see the example given [here](https://msainsburydale.github.io/NeuralEstimators.jl/dev/workflow/examples/#Irregular-spatial-data). The code in this repository is therefore made available primarily for reproducibility purposes, and we encourage readers seeking to implement GNN-based neural Bayes estimators to explore the package and its documentation. Users are also welcome to contact the package maintainer if you have any questions!   
 
 ## Repository structure
 

@@ -17,10 +17,6 @@ dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
 p = 3L # number of parameters
 
-#TODO parallel estimation to improve run times
-#TODO add lower and upper bound plots in the supplementary material.
-#TODO Timings
-
 # ---- Helper functions ----
 
 map_to_BAUs <- function(data_sp, sp_pols) {
@@ -94,7 +90,7 @@ load("data/SST.rda")
 df <- SST_sub_1000000
 df$error <- df$bias  <- NULL # remove columns that will not be used
 set.seed(1)
-df <- df[sample(1:nrow(df), 100000), ] # thin the data set for faster prototyping
+df <- df[sample(1:nrow(df), 100000), ] # thin the data set for faster prototyping #TODO
 
 ## Remove impossible locations, and remove repetitions
 df <- df %>%
@@ -216,241 +212,7 @@ ggsave(
   path = img_path
 )
 
-# ---- Estimation ----
-
-estimator = juliaLet('
-  include(joinpath(pwd(), "src/architecture.jl"))
-  estimator = gnnarchitecture(p)
-  Flux.loadparams!(estimator, "intermediates/application/SST/runs_pointestimator/best_network.bson")
-  estimator
-  ', p = p)
-
-ciestimator = juliaLet('
-  intervalestimator = IntervalEstimator(deepcopy(estimator), deepcopy(estimator))
-  Flux.loadparams!(estimator, "intermediates/application/SST/runs_CIestimator/best_network.bson")
-  intervalestimator
-  ', estimator = estimator)
-
-# estimator <- loadbestweights(estimator, "intermediates/application/SST/runs_pointestimator")
-# ciestimator <- loadbestweights(ciestimator, "intermediates/application/SST/runs_CIestimator")
-
-estimate_parameters <- function(estimator, ciestimator, dat) {
-
-  # Convert data into correct form (n x m matrix, where n is the number of
-  # observations and m is the number of replicates, here equal to 1).
-  # Also centre the data around zero.
-  Z <- matrix(dat$Z, nrow = 1)
-  Z <- Z - mean(Z)
-
-  # Spatial distance matrix
-  S <- as.matrix(dat[, c("lon", "lat")])
-  colnames(S) <- NULL
-  S <- chord_length(S)
-
-  # Scale the distances so that they are between 0 and sqrt(2)
-  scale_factor <- sqrt(2) / (max(S) - min(S))
-  S <- (S-min(S)) * scale_factor
-
-  # Construct the graph
-  g <- juliaLet("A = adjacencymatrix(S, 0.15); GNNGraph(A,  ndata = Z)", S = S, Z = Z)
-
-  thetahat   <- estimate(estimator, g)
-  thetahatci <- estimate(ciestimator, g)
-
-  # inverse of scale transformation to range parameter
-  thetahat[2, ] <- thetahat[2, ] / scale_factor
-  thetahatci[2, ] <- thetahatci[2, ] / scale_factor
-  thetahatci[5, ] <- thetahatci[5, ] / scale_factor
-
-  # Put estimates into a convenient data frame
-  estimates <- rbind(thetahat, thetahatci)
-  rownames(estimates) <- c("tau", "rho", "sigma", "tau_lower", "rho_lower", "sigma_lower", "tau_upper", "rho_upper", "sigma_upper")
-
-  return(estimates)
-}
-
-# TODO
-estimate_parameters_parallel <- function(estimator, ciestimator, dat) {
-  
-  # Convert data into correct form (n x m matrix, where n is the number of
-  # observations and m is the number of replicates, here equal to 1).
-  # Also centre the data around zero.
-  Z <- matrix(dat$Z, nrow = 1)
-  Z <- Z - mean(Z)
-  
-  # Spatial distance matrix
-  S <- as.matrix(dat[, c("lon", "lat")])
-  colnames(S) <- NULL
-  S <- chord_length(S)
-  
-  # Scale the distances so that they are between 0 and sqrt(2)
-  scale_factor <- sqrt(2) / (max(S) - min(S))
-  S <- (S-min(S)) * scale_factor
-  
-  # Construct the graph
-  g <- juliaLet("A = adjacencymatrix(S, 0.15); GNNGraph(A,  ndata = Z)", S = S, Z = Z)
-  
-  thetahat   <- estimate(estimator, g)
-  thetahatci <- estimate(ciestimator, g)
-  
-  # inverse of scale transformation to range parameter
-  thetahat[2, ] <- thetahat[2, ] / scale_factor
-  thetahatci[2, ] <- thetahatci[2, ] / scale_factor
-  thetahatci[5, ] <- thetahatci[5, ] / scale_factor
-  
-  # Put estimates into a convenient data frame
-  estimates <- rbind(thetahat, thetahatci)
-  rownames(estimates) <- c("tau", "rho", "sigma", "tau_lower", "rho_lower", "sigma_lower", "tau_upper", "rho_upper", "sigma_upper")
-  
-  return(estimates)
-}
-
-
-# ---- Data prep ----
-
-# Convert data into correct form (n x m matrix, where n is the number of
-# observations and m is the number of replicates, here equal to 1)
-Z <- lapply(split_df, function(x) matrix(x$Z, nrow = 1))
-Z <- lapply(Z, function(z) z - mean(z)) # centre the data around zero
-
-# Spatial distance matrix
-S <- lapply(split_df, function(x) {
-  s <- as.matrix(x[, c("lon", "lat")])
-  colnames(s) <- NULL
-  chord_length(s)
-})
-
-# Scale the distances so that they are between 0 and sqrt(2)
-scales <- sapply(S, function(s) {
-  sqrt(2) / (max(s) - min(s))
-})
-
-S <- lapply(seq_along(S), function(i) {
-  s <- S[[i]]
-  (s-min(s)) * scales[i]
-})
-
-# Construct the graphs
-g <- lapply(S, function(s) {
-  juliaLet("A = adjacencymatrix(S, 0.15); GNNGraph(A)", S = s)
-})
-
-# Add observed data to the graphs
-Zgraph <- lapply(seq_along(g), function(i) {
-  juliaLet("
-           GNNGraph(g; ndata = Z)
-           ", g = g[[i]], Z = Z[[i]])
-})
-
-
-# ---- Apply the estimator ----
-
-thetahat   <- estimate(estimator, Zgraph)
-thetahatci <- estimate(ciestimator, Zgraph)
-
-# inverse of scale transformation to range parameter
-# thetahat[2, ] <- thetahat[2, ] / scales
-# thetahatci[2, ] <- thetahatci[2, ] / scales
-# thetahatci[4, ] <- thetahatci[4, ] / scales
-thetahat[2, ] <- thetahat[2, ] / scales
-thetahatci[2, ] <- thetahatci[2, ] / scales
-thetahatci[5, ] <- thetahatci[5, ] / scales
-
-
-# ---- Plot the estimates ----
-
-# Put estimates into a data frame for merging into BAU object
-estimates <- rbind(thetahat, thetahatci)
-colnames(estimates) <- names(split_df)
-rownames(estimates) <- c("tau", "rho", "sigma", "tau_lower", "rho_lower", "sigma_lower", "tau_upper", "rho_upper", "sigma_upper")
-estimates <- melt(estimates, varnames = c("parameter", "id"), value.name = "estimate")
-
-# merge estimates into bau object
-rho <- merge(baus, filter(estimates, parameter == "rho"))
-rho_plot <- plot_spatial_or_ST(rho, column_names = "estimate", plot_over_world = T)[[1]]
-rho_plot <- draw_world_custom(rho_plot)
-rho_plot <-
-  rho_plot +
-  scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1) +
-  labs(fill = expression(hat(rho))) +
-  theme(axis.title = element_blank())
-
-sigma <- merge(baus, filter(estimates, parameter == "sigma"))
-sigma_plot <- plot_spatial_or_ST(sigma, column_names = "estimate", plot_over_world = T)[[1]]
-sigma_plot <- draw_world_custom(sigma_plot)
-sigma_plot <-
-  sigma_plot +
-  scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1) +
-  labs(fill = expression(hat(sigma))) +
-  theme(axis.title = element_blank())
-
-# merge estimates into bau object
-tau <- merge(baus, filter(estimates, parameter == "tau"))
-tau@data$pminestimate <- pmin(0.5, tau@data$estimate)
-tau_plot <- plot_spatial_or_ST(tau, column_names = "pminestimate", plot_over_world = T)[[1]]
-tau_plot <- draw_world_custom(tau_plot)
-tau_plot <- tau_plot +
-  scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1) +
-  labs(fill = expression(hat(tau))) +
-  theme(axis.title = element_blank())
-
-ggsave(
-  ggpubr::ggarrange(rho_plot, sigma_plot, tau_plot, align = "hv", nrow = 1, legend = "top"),
-  filename = "estimates.pdf", device = "pdf", width = 13, height = 4,
-  path = img_path
-)
-
-
-# ---- Plot the credible intervals ----
-
-plot_estimates <- function(baus, estimates, param, limits) {
-
-  baus <- merge(baus, filter(estimates, parameter == param))
-
-  gg <- plot_spatial_or_ST(baus, column_names = "estimate", plot_over_world = T)[[1]]
-  gg <- draw_world_custom(gg)
-  gg <- gg +
-    scale_fill_distiller(palette = "YlOrRd", na.value = NA, limits = limits, direction = 1) +
-    labs(fill = "") +
-    theme(axis.title = element_blank())
-  gg
-}
-
-# Put estimates into a data frame for merging into BAU object
-estimates <- rbind(thetahat, thetahatci)
-colnames(estimates) <- names(split_df)
-rownames(estimates) <- c("tau", "rho", "sigma", "tau_lower", "rho_lower", "sigma_lower", "tau_upper", "rho_upper", "sigma_upper")
-estimates <- melt(estimates, varnames = c("parameter", "id"), value.name = "estimate")
-
-limits <- estimates %>% filter(parameter %in% c("rho_lower", "rho_upper")) %>% summarise(range(estimate))
-limits <- limits[[1]]
-rho_lower <- plot_estimates(baus, estimates, "rho_lower", limits) + labs(title = expression(hat(rho) *": lower bound" ))
-rho_upper <- plot_estimates(baus, estimates, "rho_upper", limits) + labs(title = expression(hat(rho) *": upper bound"))
-rho_ci <- ggpubr::ggarrange(rho_lower, rho_upper, align = "hv", nrow = 1, legend = "right", common.legend = T)
-
-limits <- estimates %>% filter(parameter %in% c("sigma_lower", "sigma_upper")) %>% summarise(range(estimate))
-limits <- limits[[1]]
-sigma_lower <- plot_estimates(baus, estimates, "sigma_lower", limits) + labs(title = expression(hat(sigma) *": lower bound" ))
-sigma_upper <- plot_estimates(baus, estimates, "sigma_upper", limits) + labs(title = expression(hat(sigma) *": upper bound"))
-sigma_ci <- ggpubr::ggarrange(rho_lower, rho_upper, align = "hv", nrow = 1, legend = "right", common.legend = T)
-
-estimates <- estimates %>%
-  filter(parameter %in% c("tau_lower", "tau_upper")) %>%
-  mutate(estimate = pmin(estimate, 0.5))
-limits <- estimates %>% summarise(range(estimate))
-limits <- limits[[1]]
-tau_lower <- plot_estimates(baus, estimates, "tau_lower", limits) + labs(title = expression(hat(tau) *": lower bound"))
-tau_upper <- plot_estimates(baus, estimates, "tau_upper", limits) + labs(title = expression(hat(tau) *": upper bound"))
-tau_ci <- ggpubr::ggarrange(tau_lower, tau_upper, align = "hv", nrow = 1, legend = "right", common.legend = T)
-
-ggsave(
-  ggpubr::ggarrange(rho_ci, sigma_ci, tau_ci, ncol = 1),
-  filename = "intervals.pdf", device = "pdf", width = 8, height = 7,
-  path = img_path
-)
-
-
-# ---- Neighbours ----
+# ---- Hexgon cluster pre-processing ----
 
 nb <- poly2nb(baus)
 
@@ -473,8 +235,7 @@ bau_subset2 <- subset_baus(baus, 800, nb)
 bau_subset <- rbind(bau_subset1, bau_subset2)
 gg <- plot_spatial_or_ST(bau_subset, "central_hexagon", plot_over_world = T)[[1]]
 gg <- gg %>% draw_world_custom
-# gg + labs(fill = "Central hexagon", x = "", y = "")
-gg + theme(legend.position = "none", axis.title = element_blank())
+gg <- gg + theme(legend.position = "none", axis.title = element_blank())
 
 # Now create a list of hexagon clusters, each associated with a central hexagon.
 # We just need to store the coordinates and data as a data frame.
@@ -493,17 +254,137 @@ names(clustered_split_df) <- 1:N # BAU id
 i <- 400
 tmp <- clustered_split_df[[i]]
 tmp <- SpatialPointsDataFrame(tmp[, c("lon", "lat")], data = tmp[, "Z"])
-plot_spatial_or_ST(tmp, "Z", plot_over_world = T)[[1]]
-plot_spatial_or_ST(subset_baus(baus, i, nb), "central_hexagon", plot_over_world = T)[[1]]
+gg1 <- plot_spatial_or_ST(tmp, "Z", plot_over_world = T)[[1]]
+gg2 <- plot_spatial_or_ST(subset_baus(baus, i, nb), "central_hexagon", plot_over_world = T)[[1]]
 
 clustered_split_df <- clustered_split_df[!sapply(clustered_split_df, is.null)]
 
-## non-parallel version
-# estimates <- sapply(clustered_split_df, estimate_parameters) 
-## parallel version
-estimates <- sapply(clustered_split_df, estimate_parameters_parallel)
 
-estimates_backup <- estimates
+# ---- Estimation ----
+
+# Initialise the estimators
+estimator = juliaLet('
+  include(joinpath(pwd(), "src/architecture.jl"))
+  estimator = gnnarchitecture(p)
+  ', p = p)
+ciestimator = juliaLet('
+  arch = gnnarchitecture(p)
+  intervalestimator = IntervalEstimator(arch)
+  ', p = p)
+
+# Load the optimal weights
+estimator <- loadbestweights(estimator, "intermediates/application/SST/runs_pointestimator")
+ciestimator <- loadbestweights(ciestimator, "intermediates/application/SST/runs_CIestimator")
+
+estimate_parameters <- function(estimator, ciestimator, dat) {
+
+  # Convert data into correct form (n x m matrix, where n is the number of
+  # observations and m is the number of replicates, here equal to 1).
+  # Also centre the data around zero.
+  Z <- matrix(dat$Z, nrow = 1)
+  Z <- Z - mean(Z)
+
+  # Spatial distance matrix
+  S <- as.matrix(dat[, c("lon", "lat")])
+  colnames(S) <- NULL
+  S <- chord_length(S)
+
+  # Scale the distances so that they are between 0 and sqrt(2)
+  scale_factor <- sqrt(2) / (max(S) - min(S))
+  S <- (S-min(S)) * scale_factor
+
+  # Construct the graph
+  g <- juliaLet("A = adjacencymatrix(S, 0.15); GNNGraph(A,  ndata = Z)", S = S, Z = Z)
+
+  tm <- system.time({
+  thetahat <- estimate(estimator, g)
+  thetahatci <- estimate(ciestimator, g)
+  })["elapsed"]
+  total_time <<- total_time + tm  # Super-assignment to keep track of the time
+
+  # inverse of scale transformation to range parameter
+  thetahat[2, ] <- thetahat[2, ] / scale_factor
+  thetahatci[2, ] <- thetahatci[2, ] / scale_factor
+  thetahatci[5, ] <- thetahatci[5, ] / scale_factor
+
+  # Put estimates into a convenient data frame
+  estimates <- rbind(thetahat, thetahatci)
+  rownames(estimates) <- c("tau", "rho", "sigma", "tau_lower", "rho_lower", "sigma_lower", "tau_upper", "rho_upper", "sigma_upper")
+  
+
+  return(estimates)
+}
+
+# TODO parallel estimation to improve run times even further. 
+# TODO This runs into memory problems because a large number of distance 
+#      matrices need to be computed. Just stick with non-parallel version for now.
+estimate_parameters_parallel <- function(estimator, ciestimator, split_df_list) {
+  
+  # Convert data into correct form (n x m matrix, where n is the number of
+  # observations and m is the number of replicates, here equal to 1). 
+  # Also centre the data around zero.
+  Z <- lapply(split_df_list, function(x) matrix(x$Z, nrow = 1))
+  Z <- lapply(Z, function(z) z - mean(z)) # centre the data around zero
+  
+  # Spatial distance matrices
+  S <- lapply(split_df_list, function(x) {
+    s <- as.matrix(x[, c("lon", "lat")])
+    colnames(s) <- NULL
+    chord_length(s)
+  })
+  
+  # Scale the distances so that they are between 0 and sqrt(2)
+  scale_factor <- sapply(S, function(s) sqrt(2) / (max(s) - min(s)))
+  
+  S <- lapply(seq_along(S), function(i) {
+    s <- S[[i]]
+    (s-min(s)) * scale_factor[i]
+  })
+  
+  # Construct the graph data 
+  g <- lapply(seq_along(Z), function(i) {
+    juliaLet("
+      A = adjacencymatrix(S, 0.15)
+      GNNGraph(A; ndata = Z)
+           ", S = S[[i]], Z = Z[[i]])
+  })
+  
+  # Apply the estimators
+  thetahat   <- estimate(estimator, g)
+  thetahatci <- estimate(ciestimator, g)
+  
+  # inverse of scale transformation to range parameter
+  thetahat[2, ] <- thetahat[2, ] / scale_factor
+  thetahatci[2, ] <- thetahatci[2, ] / scale_factor
+  thetahatci[5, ] <- thetahatci[5, ] / scale_factor
+  
+  # Put estimates into a convenient data frame
+  estimates <- rbind(thetahat, thetahatci)
+  rownames(estimates) <- c("tau", "rho", "sigma", "tau_lower", "rho_lower", "sigma_lower", "tau_upper", "rho_upper", "sigma_upper")
+  
+  return(estimates)
+}
+
+
+# ---- Estimation ----
+
+# NB just replace "clustered_split_df" with "split_df" to generate estimates without the clustering approach
+
+## non-parallel version
+# Dummy run to compile the Julia code (more accurate timings)
+total_time <- 0
+estimates <- sapply(clustered_split_df[1:10], function(dat) {
+  estimate_parameters(estimator, ciestimator, dat)
+})
+total_time <- 0
+estimates <- sapply(clustered_split_df, function(dat) {
+  estimate_parameters(estimator, ciestimator, dat)
+})
+write.csv(total_time, paste0(img_path, "/estimation_time.csv"))
+## parallel version
+# estimates <- estimate_parameters_parallel(estimator, ciestimator, clustered_split_df)
+
+# estimates_backup <- estimates
 rownames(estimates) <- c("tau", "rho", "sigma", "tau_lower", "rho_lower", "sigma_lower", "tau_upper", "rho_upper", "sigma_upper")
 
 tau_ciwidth <- as.numeric(estimates["tau_upper", ] - estimates["tau_lower", ])
@@ -516,15 +397,15 @@ estimates <- rbind(estimates, ciwidth)
 colnames(estimates) <- names(clustered_split_df)
 estimates <- melt(estimates, varnames = c("parameter", "id"), value.name = "estimate")
 
-# Plot each parameter estimate
-plot_estimates <- function(baus, estimates, param) {
+# Plot the point estimates
+plot_estimates <- function(baus, estimates, param, limits = c(NA, NA)) {
 
   baus <- merge(baus, filter(estimates, parameter == param))
 
   gg <- plot_spatial_or_ST(baus, column_names = "estimate", plot_over_world = T)[[1]]
   gg <- draw_world_custom(gg)
   gg <- gg +
-    scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1) +
+    scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1, limits = limits) +
     theme(axis.title = element_blank(),
           panel.border = element_blank(),
           panel.background = element_blank(),
@@ -537,6 +418,7 @@ rho_plot   <- plot_estimates(baus, estimates, "rho") + labs(fill = expression(ha
 sigma_plot <- plot_estimates(baus, estimates, "sigma") + labs(fill = expression(hat(sigma)))
 tau_plot   <- plot_estimates(baus, mutate(estimates, estimate = pmin(estimate, 0.6)), "tau") + labs(fill = expression(hat(tau)))
 
+# Plot the credible interval widths
 plot_ciwidth <- function(baus, estimates, param) {
 
   baus <- merge(baus, filter(estimates, parameter == param))
@@ -568,7 +450,40 @@ ggsave(
 )
 
 
+# Plot the lower and upper quantiles
+limits <- estimates %>% filter(parameter %in% c("rho_lower", "rho_upper")) %>% summarise(range(estimate))
+limits <- limits[[1]]
+rho_lower <- plot_estimates(baus, estimates, "rho_lower", limits) + labs(title = expression(hat(rho) *": lower bound" ), fill = "")
+rho_upper <- plot_estimates(baus, estimates, "rho_upper", limits) + labs(title = expression(hat(rho) *": upper bound"), fill = "")
+rho_ci <- ggpubr::ggarrange(rho_lower, rho_upper, align = "hv", nrow = 1, legend = "right", common.legend = T)
 
-#TODO the scaling factor needs to account for the fact that we are including
+limits <- estimates %>% filter(parameter %in% c("sigma_lower", "sigma_upper")) %>% summarise(range(estimate))
+limits <- limits[[1]]
+sigma_lower <- plot_estimates(baus, estimates, "sigma_lower", limits) + labs(title = expression(hat(sigma) *": lower bound" ), fill = "")
+sigma_upper <- plot_estimates(baus, estimates, "sigma_upper", limits) + labs(title = expression(hat(sigma) *": upper bound"), fill = "")
+sigma_ci <- ggpubr::ggarrange(sigma_lower, sigma_upper, align = "hv", nrow = 1, legend = "right", common.legend = T)
+
+estimates_tau <- estimates %>%
+  filter(parameter %in% c("tau_lower", "tau_upper")) %>%
+  mutate(estimate = pmin(estimate, 0.6))
+limits <- estimates_tau %>% summarise(range(estimate))
+limits <- limits[[1]]
+tau_lower <- plot_estimates(baus, estimates_tau, "tau_lower", limits) + labs(title = expression(hat(tau) *": lower bound"), fill = "")
+tau_upper <- plot_estimates(baus, estimates_tau, "tau_upper", limits) + labs(title = expression(hat(tau) *": upper bound"), fill = "")
+tau_ci <- ggpubr::ggarrange(tau_lower, tau_upper, align = "hv", nrow = 1, legend = "right", common.legend = T)
+
+ggsave(
+  ggpubr::ggarrange(rho_ci, sigma_ci, tau_ci, ncol = 1),
+  filename = "intervals.png", device = "png", width = 8, height = 7,
+  path = img_path
+)
+
+ggsave(
+  ggpubr::ggarrange(rho_ci, sigma_ci, tau_ci, ncol = 1),
+  filename = "intervals.pdf", device = "pdf", width = 8, height = 7,
+  path = img_path
+)
+
+#TODO the scaling factor should account for the fact that we are including
 #     neighbours: notice that without doing so, rho is estimated to be much 
 #     larger using the neighbour approach.
