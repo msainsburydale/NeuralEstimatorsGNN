@@ -90,7 +90,7 @@ load("data/SST.rda")
 df <- SST_sub_1000000
 df$error <- df$bias  <- NULL # remove columns that will not be used
 set.seed(1)
-df <- df[sample(1:nrow(df), 100000), ] # thin the data set for faster prototyping #TODO
+# df <- df[sample(1:nrow(df), 100000), ] # thin the data set for faster prototyping 
 
 ## Remove impossible locations, and remove repetitions
 df <- df %>%
@@ -485,5 +485,5 @@ ggsave(
 )
 
 #TODO the scaling factor should account for the fact that we are including
-#     neighbours: notice that without doing so, rho is estimated to be much 
-#     larger using the neighbour approach.
+#     neighbours: notice that without doing so, rho is estimated to be
+#     larger using the clustering approach.
