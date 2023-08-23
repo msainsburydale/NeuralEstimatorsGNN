@@ -90,7 +90,6 @@ load("data/SST.rda")
 df <- SST_sub_1000000
 df$error <- df$bias  <- NULL # remove columns that will not be used
 set.seed(1)
-# df <- df[sample(1:nrow(df), 100000), ] # thin the data set for faster prototyping 
 
 ## Remove impossible locations, and remove repetitions
 df <- df %>%
@@ -103,35 +102,6 @@ df <- df %>%
 df$lat2 <- df$lat^2
 df$Z    <- residuals(lm(sst ~ 1 + lat + lat2, data = df))
 df$sst  <- df$lat2 <- NULL
-
-df_backup <- df
-
-# ---- Bin the data ----
-
-coordinates(df) = ~ lon + lat
-slot(df, 'proj4string') <- CRS('+proj=longlat +ellps=sphere')
-baus <- auto_BAUs(manifold = sphere(), type = "hex", isea3h_res = 5, data = df)
-
-# relabel the BAUs to be from 1:N (by default, there are some missing numbers
-# which can cause problems)
-N <- length(baus)
-for (i in 1:length(baus)) {
-  baus@polygons[[i]]@ID <- as.character(i)
-}
-names(baus@polygons) <- 1:N
-baus@data$id <- 1:N
-
-x <- map_to_BAUs(df, sp_pols = baus)
-x@data[, c("lon", "lat")] <- x@coords # true coordinate of the measurement (rather than the BAU centroids)
-split_df <- group_split(x@data, id)
-names(split_df) <- sapply(split_df, function(df) df$id[1])
-
-# Only consider cells with at least 30 observations
-# sum(table(df$cell) < 30)
-# sum(table(df$cell) >= 30)
-idx <- which(sapply(split_df, function(x) nrow(x) >= 10))
-split_df <- split_df[idx]
-
 
 # ---- Plot the raw data ----
 
@@ -159,8 +129,12 @@ nasa_palette <- c(
 BM_box <- cbind(lon = c(-60, -48), lat = c(-49, -35))
 Ocean_box <- cbind(lon = c(76, 88), lat = c(-31, -17))
 
-df$Z_clipped <- pmin(pmax(df$Z, -8), 8)
-Zplot <- plot_spatial_or_ST(df, column_names = "Z_clipped", plot_over_world = T, pch = 46)[[1]]
+spdf <- df
+coordinates(spdf) = ~ lon + lat
+slot(spdf, 'proj4string') <- CRS('+proj=longlat +ellps=sphere')
+
+spdf$Z_clipped <- pmin(pmax(spdf$Z, -8), 8)
+Zplot <- plot_spatial_or_ST(spdf, column_names = "Z_clipped", plot_over_world = T, pch = 46)[[1]]
 Zplot <- draw_world_custom(Zplot)
 Zplot <- Zplot +
   scale_colour_gradientn(colours = nasa_palette) +
@@ -194,7 +168,7 @@ BMconfluence <- ggplot() +
   ylim(BM_box[, "lat"]) +
   theme_bw() +
   coord_fixed(expand = FALSE) +
-  geom_point(data = df_backup, aes(lon, lat, colour =  pmin(pmax(Z, -8), 8)), pch = 46)
+  geom_point(data = df, aes(lon, lat, colour =  pmin(pmax(Z, -8), 8)), pch = 46)
 
 Ocean <- ggplot() +
   scale_colour_gradientn(colours = nasa_palette, name = expression(degree*C)) +
@@ -204,7 +178,7 @@ Ocean <- ggplot() +
   ylim(Ocean_box[, "lat"]) +
   theme_bw() +
   coord_fixed(expand = FALSE) +
-  geom_point(data = df_backup, aes(lon, lat, colour =  pmin(pmax(Z, -8), 8)), pch = 46)
+  geom_point(data = df, aes(lon, lat, colour =  pmin(pmax(Z, -8), 8)), pch = 46)
 
 ggsave(
   ggarrange(Zplot, BMconfluence, Ocean, common.legend = T, nrow = 1, ncol = 3, legend = "right"),
@@ -212,12 +186,34 @@ ggsave(
   path = img_path
 )
 
-# ---- Hexgon cluster pre-processing ----
+# ---- Hexgon pre-processing ----
 
+## Bin the data into hexagons
+set.seed(1); spdf <- df[sample(1:nrow(df), 100000), ] # thin the data set for faster prototyping
+coordinates(spdf) = ~ lon + lat
+slot(spdf, 'proj4string') <- CRS('+proj=longlat +ellps=sphere')
+baus <- auto_BAUs(manifold = sphere(), type = "hex", isea3h_res = 5, data = spdf)
+
+# relabel the BAUs to be from 1:N (by default, there are some missing numbers
+# which can cause problems)
+N <- length(baus)
+for (i in 1:length(baus)) {
+  baus@polygons[[i]]@ID <- as.character(i)
+}
+names(baus@polygons) <- 1:N
+baus@data$id <- 1:N
+
+x <- map_to_BAUs(spdf, sp_pols = baus)
+x@data[, c("lon", "lat")] <- x@coords # true coordinate of the measurement (rather than the BAU centroids)
+split_df <- group_split(x@data, id)
+names(split_df) <- sapply(split_df, function(df) df$id[1])
+
+# Only consider cells with at least 30 observations
+idx <- which(sapply(split_df, function(x) nrow(x) >= 30))
+split_df <- split_df[idx]
+
+## Hexagon clusters
 nb <- poly2nb(baus)
-
-# number of neighbours for each bau
-# table(card(nb))
 
 subset_baus <- function(baus, i, neighbour_list) {
   idx <- c(i, neighbour_list[[i]])
@@ -256,6 +252,7 @@ tmp <- clustered_split_df[[i]]
 tmp <- SpatialPointsDataFrame(tmp[, c("lon", "lat")], data = tmp[, "Z"])
 gg1 <- plot_spatial_or_ST(tmp, "Z", plot_over_world = T)[[1]]
 gg2 <- plot_spatial_or_ST(subset_baus(baus, i, nb), "central_hexagon", plot_over_world = T)[[1]]
+gg <- ggarrange(gg1, gg2)
 
 clustered_split_df <- clustered_split_df[!sapply(clustered_split_df, is.null)]
 
