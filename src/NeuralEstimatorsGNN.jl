@@ -124,7 +124,7 @@ function Parameters(K::Integer, ξ, n; J::Integer = 1, λ_prior = Uniform(10, 90
 	locations = map(1:K) do k
 		nₖ = rand(n)
 		λₖ = rand(λ_prior)
-		μₖ = nₖ / λ
+		μₖ = nₖ / λₖ
 		Sₖ = maternclusterprocess(λ = λₖ, μ = μₖ)
 		Sₖ
 	end
