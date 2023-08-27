@@ -79,7 +79,7 @@ if !skip_training
 	@info "Sampling set of parameter vectors used for training..."
 	θ_train = Parameters(K_train, ξ, n, J = J)
 	@info "training the GNN..."
-	trainx(gnn, θ_train, θ_val, simulate, m = m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_data_refresh = 3)
+	trainx(gnn, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_data_refresh = 3) #TODO why can't I just provide the positional argument m here?
 
 end
 
