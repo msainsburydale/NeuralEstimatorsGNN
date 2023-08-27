@@ -137,7 +137,7 @@ function Parameters(K::Integer, ξ, n; J::Integer = 1)
 	D = pairwise.(Ref(Euclidean()), S, S, dims = 1)
 
 	# Pass these objects into the next constructor
-	Parameters(K, (ξ..., D = D); J = J)
+	Parameters(K, (ξ..., S = S, D = D); J = J)
 end
 
 # Method that assumes the spatial locations and distance matrices are stored in ξ
