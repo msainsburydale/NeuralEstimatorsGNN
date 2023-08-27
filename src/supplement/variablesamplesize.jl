@@ -59,19 +59,19 @@ gnn3 = deepcopy(gnn1)
 seed!(1)
 θ_val   = Parameters(K_val,   ξ, small_n, J = J)
 θ_train = Parameters(K_train, ξ, small_n, J = J)
-train(gnn1, θ_train, θ_val, simulate, m = M, savepath = path * "/runs_GNN1", epochs = epochs, epochs_per_data_refresh = 3)
+train(gnn1, θ_train, θ_val, simulate, m = M, savepath = path * "/runs_GNN1", epochs = epochs, epochs_per_Z_refresh = 3)
 
 # GNN estimator trained with a fixed large n
 seed!(1)
 θ_val   = Parameters(K_val,   ξ, large_n, J = J)
 θ_train = Parameters(K_train, ξ, large_n, J = J)
-train(gnn2, θ_train, θ_val, simulate, m = M, savepath = path * "/runs_GNN2", epochs = epochs, epochs_per_data_refresh = 3)
+train(gnn2, θ_train, θ_val, simulate, m = M, savepath = path * "/runs_GNN2", epochs = epochs, epochs_per_Z_refresh = 3)
 
 # GNN estimator trained with a range of n
 seed!(1)
 θ_val   = Parameters(K_val,   ξ, small_n:large_n, J = J)
 θ_train = Parameters(K_train, ξ, small_n:large_n, J = J)
-train(gnn3, θ_train, θ_val, simulate, m = M, savepath = path * "/runs_GNN3", epochs = epochs, epochs_per_data_refresh = 3)
+train(gnn3, θ_train, θ_val, simulate, m = M, savepath = path * "/runs_GNN3", epochs = epochs, epochs_per_Z_refresh = 3)
 
 # ---- Load the trained estimators ----
 

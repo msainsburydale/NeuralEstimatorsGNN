@@ -69,7 +69,7 @@ J = 3
 seed!(1)
 gnn = gnnarchitecture(p)
 @info "training the point estimator..."
-train(gnn, θ_train, θ_val, simulate, m = 1, savepath = path * "/runs_pointestimator", epochs = epochs, batchsize = 16, epochs_per_data_refresh = 3)
+train(gnn, θ_train, θ_val, simulate, m = 1, savepath = path * "/runs_pointestimator", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
 
 # ---- Credible-interval estimator ----
 
@@ -82,4 +82,4 @@ q = [α/2, 1-α/2] # quantiles
 qloss = (θ̂, θ) -> quantileloss(θ̂, θ, gpu(q))
 
 @info "training the credible-interval estimator..."
-train(intervalestimator, θ_train, θ_val, simulate, m = 1, savepath = path * "/runs_CIestimator", epochs = epochs, batchsize = 16, loss = qloss, epochs_per_data_refresh = 3)
+train(intervalestimator, θ_train, θ_val, simulate, m = 1, savepath = path * "/runs_CIestimator", epochs = epochs, batchsize = 16, loss = qloss, epochs_per_Z_refresh = 3)

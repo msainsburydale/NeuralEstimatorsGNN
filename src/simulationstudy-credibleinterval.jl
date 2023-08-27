@@ -93,7 +93,7 @@ if !skip_training
 	@info "Sampling set of parameter vectors used for training..."
 	θ_train = Parameters(K_train, ξ, n, J = J)
 	@info "training the GNN..."
-	trainx(intervalestimator, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN_CI", epochs = epochs, batchsize = 16, loss = qloss, epochs_per_data_refresh = 3)
+	trainx(intervalestimator, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN_CI", epochs = epochs, batchsize = 16, loss = qloss, epochs_per_Z_refresh = 3)
 
 end
 
