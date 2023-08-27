@@ -57,7 +57,6 @@ K_test = K_val
 
 p = ξ.p
 n = ξ.n
-r = ξ.r
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
@@ -90,8 +89,8 @@ if !skip_training
 
 	seed!(1)
 	@info "simulating training data for the GNN..."
-	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, neighbour_parameter = r, J = J, clustering = true)
-	θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, neighbour_parameter = r, J = J, clustering = true)
+	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, J = J)
+	θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, J = J)
 	@info "training the GNN-based credible-interval estimator..."
 	trainx(intervalestimator, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_CI", epochs = epochs, batchsize = 16, loss = qloss)
 
@@ -154,7 +153,7 @@ S = rand(n, 2)
 # Simulate data
 seed!(1)
 K = quick ? 100 : 3000
-θ, Z, ξ = variableirregularsetup(ξ, n, K = K, m = m, neighbour_parameter = r, J = 1, clustering = true, return_ξ = true)
+θ, Z = variableirregularsetup(ξ, n, K = K, m = m, J = 1)
 Z = Z[1]
 
 # Marginal coverage for
@@ -169,80 +168,80 @@ CSV.write(path * "/marginal_coverage.csv", df)
 #TODO add plots of the conditonal coverage in the supplementary material at the revision stage
 
 #TODO m should be an argument of this function, as should simulator
-"""
-	conditonalcoverage(estimator::Union{PointEstimator, IntervalEstimator}, θ, S, ξ; J::Integer = 1000)
-
-Computes the empirical coverage conditional on a single parameter configuration `θ` (stored as a
-p×1 matrix) over the spatial sample locations `S`, based on `J` simulations from the model.
-
-The credible intervals are consructed using either a parametric bootstrap (if
-`estimator` is a `PointEstimator`) or via the marginal posterior quantiles
-(if `estimator` is an `IntervalEstimator`).
-"""
-function conditonalcoverage(estimator, θ, S, ξ; J::Integer = 1000)
-
-	typeof(estimator) <: IntervalEstimator ? method = "quantile" : method = "bootstrap"
-
-	p, K = size(θ)
-	@assert K == 1
-
-	D = pairwise(Euclidean(), S, S, dims = 1)
-	A = adjacencymatrix(D, ξ.r)
-	g = GNNGraph(A)
-	ξ = (ξ..., S = S, D = D)      # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
-	parameters = Parameters(θ, ξ)
-
-	# simulate a large number J of data sets
-	Z = simulate(parameters, M, J)
-	Z = reshapedataGNN(Z, g)
-
-	if method == "quantile"
-		# Compute coverage using the posterior quantile estimator
-		intervals = interval(estimator, Z) # TODO need to document this method of interval in NeuralEstimators
-		cvg = coverage(intervals, θ)
-	else
-		# Compute coverage using parametric bootstrap
-		B = 400
-		intervals = map(Z) do z
-			θ̂ = estimator(z)
-			params = Parameters(θ̂, ξ)
-			Z̃ = simulate(params, M, B)
-			Z̃ = reshapedataGNN(Z̃, g)
-			# θ̃ = estimateinbatches(pointestimator, Z̃; batchsize = 400)
-			θ̃ = pointestimator(Z̃)
-			interval(θ̃; probs = [0.025, 0.975])
-		end
-		cvg = coverage(intervals, θ)
-	end
-
-	# store the coverage values, true parameters, and method name in a dataframe
-	df = DataFrame(
-		method = repeat([method], p),
-		parameter = ξ.parameter_names,
-		parameter_value = vec(θ),
-		coverage = vec(cvg)
-		)
-
-
-	return df
-end
-
-
-# Do this by constructing a grid of parameters, and testing the coverage at
-# each parameter value. This way, we can produce a coverage map.
-
-# Support that we want to test over
-# convert to array since broadcasting over dictionaries and NamedTuples is reserved
-# "narrow" the prior support to avoid boundary effects
-test_support = map([Ω...]) do x
-	[minimum(x) * 1.1, maximum(x) * 0.9]
-end
-
-# Grid of parameter values
-l = 10
-x = range(test_support[1][1], test_support[1][2], length = l)
-y = range(test_support[2][1], test_support[2][2], length = l)
-grd = expandgrid(x, y)
+# """
+# 	conditonalcoverage(estimator::Union{PointEstimator, IntervalEstimator}, θ, S, ξ; J::Integer = 1000)
+#
+# Computes the empirical coverage conditional on a single parameter configuration `θ` (stored as a
+# p×1 matrix) over the spatial sample locations `S`, based on `J` simulations from the model.
+#
+# The credible intervals are consructed using either a parametric bootstrap (if
+# `estimator` is a `PointEstimator`) or via the marginal posterior quantiles
+# (if `estimator` is an `IntervalEstimator`).
+# """
+# function conditonalcoverage(estimator, θ, S, ξ; J::Integer = 1000)
+#
+# 	typeof(estimator) <: IntervalEstimator ? method = "quantile" : method = "bootstrap"
+#
+# 	p, K = size(θ)
+# 	@assert K == 1
+#
+# 	D = pairwise(Euclidean(), S, S, dims = 1)
+# 	A = adjacencymatrix(D, ξ.δ)
+# 	g = GNNGraph(A)
+# 	ξ = (ξ..., S = S, D = D)      # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
+# 	parameters = Parameters(θ, ξ)
+#
+# 	# simulate a large number J of data sets
+# 	Z = simulate(parameters, M, J)
+# 	Z = reshapedataGNN(Z, g)
+#
+# 	if method == "quantile"
+# 		# Compute coverage using the posterior quantile estimator
+# 		intervals = interval(estimator, Z) # TODO need to document this method of interval in NeuralEstimators
+# 		cvg = coverage(intervals, θ)
+# 	else
+# 		# Compute coverage using parametric bootstrap
+# 		B = 400
+# 		intervals = map(Z) do z
+# 			θ̂ = estimator(z)
+# 			params = Parameters(θ̂, ξ)
+# 			Z̃ = simulate(params, M, B)
+# 			Z̃ = reshapedataGNN(Z̃, g)
+# 			# θ̃ = estimateinbatches(pointestimator, Z̃; batchsize = 400)
+# 			θ̃ = pointestimator(Z̃)
+# 			interval(θ̃; probs = [0.025, 0.975])
+# 		end
+# 		cvg = coverage(intervals, θ)
+# 	end
+#
+# 	# store the coverage values, true parameters, and method name in a dataframe
+# 	df = DataFrame(
+# 		method = repeat([method], p),
+# 		parameter = ξ.parameter_names,
+# 		parameter_value = vec(θ),
+# 		coverage = vec(cvg)
+# 		)
+#
+#
+# 	return df
+# end
+#
+#
+# # Do this by constructing a grid of parameters, and testing the coverage at
+# # each parameter value. This way, we can produce a coverage map.
+#
+# # Support that we want to test over
+# # convert to array since broadcasting over dictionaries and NamedTuples is reserved
+# # "narrow" the prior support to avoid boundary effects
+# test_support = map([Ω...]) do x
+# 	[minimum(x) * 1.1, maximum(x) * 0.9]
+# end
+#
+# # Grid of parameter values
+# l = 10
+# x = range(test_support[1][1], test_support[1][2], length = l)
+# y = range(test_support[2][1], test_support[2][2], length = l)
+# grd = expandgrid(x, y)
 
 # Estimate the coverage conditional on parameter configuration
 # for set ∈ ["uniform", "quadrants", "mixedsparsity", "cup"]

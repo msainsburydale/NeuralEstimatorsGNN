@@ -42,15 +42,6 @@ K_test = K_val
 p = ξ.p
 n = ξ.n
 
-# For uniformly sampled locations on a unit grid, the probability that a point
-# falls within a circle of radius d is πd². So, on average, we expect nπd²
-# neighbours for each spatial location. Use this information to choose k in a
-# way that makes for a fair comparison between the two approaches.
-small_n = 30
-large_n = 300
-neighbours = "radius"
-neighbour_parameter = neighbours == "radius" ? ξ.r : ceil(Int, large_n*π*d^2)
-
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
 epochs = quick ? 2 : 1000
@@ -66,20 +57,20 @@ gnn3 = deepcopy(gnn1)
 
 # GNN estimator trained with a fixed small n
 seed!(1)
-θ_val,   Z_val   = variableirregularsetup(ξ, small_n, K = K_val, m = M, neighbour_parameter = neighbour_parameter)
-θ_train, Z_train = variableirregularsetup(ξ, small_n, K = K_train, m = M, neighbour_parameter = neighbour_parameter)
+θ_val,   Z_val   = variableirregularsetup(ξ, small_n, K = K_val, m = M)
+θ_train, Z_train = variableirregularsetup(ξ, small_n, K = K_train, m = M)
 train(gnn1, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN1", epochs = epochs)
 
 # GNN estimator trained with a fixed large n
 seed!(1)
-θ_val,   Z_val   = variableirregularsetup(ξ, large_n, K = K_val, m = M, neighbour_parameter = neighbour_parameter)
-θ_train, Z_train = variableirregularsetup(ξ, large_n, K = K_train, m = M, neighbour_parameter = neighbour_parameter)
+θ_val,   Z_val   = variableirregularsetup(ξ, large_n, K = K_val, m = M)
+θ_train, Z_train = variableirregularsetup(ξ, large_n, K = K_train, m = M)
 train(gnn2, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN2", epochs = epochs)
 
 # GNN estimator trained with a range of n
 seed!(1)
-θ_val,   Z_val   = variableirregularsetup(ξ, small_n:large_n, K = K_val, m = M, neighbour_parameter = neighbour_parameter)
-θ_train, Z_train = variableirregularsetup(ξ, small_n:large_n, K = K_train, m = M, neighbour_parameter = neighbour_parameter)
+θ_val,   Z_val   = variableirregularsetup(ξ, small_n:large_n, K = K_val, m = M)
+θ_train, Z_train = variableirregularsetup(ξ, small_n:large_n, K = K_train, m = M)
 train(gnn3, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN3", epochs = epochs)
 
 # ---- Load the trained estimators ----
@@ -116,7 +107,8 @@ function assessestimators(n, ξ, K::Integer)
 	println("	Assessing estimators with n = $n...")
 	# test set for estimating the risk function
 	seed!(1)
-	θ, Z, ξ = variableirregularsetup(ξ, n, K = K, m = M, neighbour_parameter = neighbour_parameter, return_ξ = true)
+	#TODO will need to update ξ with the distance matrices, since they're needed for the ML estimator
+	θ, Z, ξ = variableirregularsetup(ξ, n, K = K, m = M, return_ξ = true)
 	assessment = assessestimators(θ, Z, ξ)
 	assessment.df[:, :n] .= n
 

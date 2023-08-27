@@ -8,12 +8,11 @@ using Random: seed!
 using Distributions
 using Distances
 
-export addsingleton
-export variableirregularsetup, irregularsetup
+export spatialconfigurations , addsingleton
+export variableirregularsetup
 export Parameters
 export reshapedataGNN
 export seed!
-export spatialconfigurations
 
 
 # ---- Utility functions ----
@@ -192,7 +191,7 @@ end
 
 Merges the vector of data sets `Z` with the graph(s) `g`.
 
-Each data set in `Z` should be stored as an array with final dimension sotring
+Each data set in `Z` should be stored as an array with final dimension storing
 the replicates dimension; this implies that each data set is replicated and
 observed over the same set of spatial locations.
 """
@@ -250,37 +249,23 @@ end
 
 # ---- Setting up data for training ----
 
-function irregularsetup(ξ, g; K::Integer, m, J::Integer = 5)
 
-	θ = Parameters(K, ξ, J = J)
-	Z = [simulate(θ, mᵢ) for mᵢ ∈ m]
-	Z = reshapedataGNN.(Z, Ref(g))
-
-	return θ, Z
-end
-
-# Note that neighbour_parameter can be a float or an integer
-# Note that clustering is set to false by default for backwards compatability
-function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter, clustering::Bool = false) where {R <: AbstractRange{I}} where I <: Integer
+function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5) where {R <: AbstractRange{I}} where I <: Integer
 
 	λ_prior = Uniform(10, 90) # λ is uniform between 10 and 90
 
 	# Generate spatial configurations
 	S = map(1:K) do k
 		nₖ = rand(n)
-		if clustering
-			λ = rand(λ_prior)
-			μ = nₖ / λ
-			S = maternclusterprocess(λ = λ, μ = μ)
-		else
-			S = rand(nₖ, 2)
-		end
+		λ = rand(λ_prior)
+		μ = nₖ / λ
+		S = maternclusterprocess(λ = λ, μ = μ)
 		S
 	end
 
 	# Compute distance matrices and construct the graphs
 	D = pairwise.(Ref(Euclidean()), S, S, dims = 1)
-	A = adjacencymatrix.(D, neighbour_parameter)
+	A = adjacencymatrix.(D, ξ.δ) # Note that ξ.δ can be a float or an integer, which will give different behaviours
 	g = GNNGraph.(A)
 
 	# Update ξ to contain the new distance matrices. Note that Parameters() can
@@ -292,8 +277,11 @@ function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5, return_
 	g = repeat(g, inner = J)
 	Z = reshapedataGNN.(Z, Ref(g))
 
-	return_ξ ? (parameters, Z, ξ) : (parameters, Z)
+	parameters, Z
 end
-variableirregularsetup(ξ, n::Integer; K::Integer, m, J::Integer = 5, return_ξ::Bool = false, neighbour_parameter, clustering::Bool = false) = variableirregularsetup(ξ, range(n, n); K = K, m = m, J = J, return_ξ = return_ξ, neighbour_parameter = neighbour_parameter, clustering = clustering)
+variableirregularsetup(ξ, n::Integer; K::Integer, m, J::Integer = 5) = variableirregularsetup(ξ, range(n, n); K = K, m = m, J = J)
+
+#TODO remove variableirregularsetup(); we can get the same functionality by storing the graphs in Parameters.
+
 
 end #module

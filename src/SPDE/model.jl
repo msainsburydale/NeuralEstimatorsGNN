@@ -21,7 +21,7 @@ parameter_names = String.(collect(keys(Ω)))
 	ρ_idx = findfirst(parameter_names .== "ρ"),
 	ν_idx = findfirst(parameter_names .== "ν"),
 	σ = 1.0,                 # marginal variance to use if σ is not included in Ω
-	r = 0.15f0,              # cutoff distance used to define the neighbourhood of each node
+	δ = 0.15f0,              # cutoff distance used to define the neighbourhood of each node
 	invtransform = x -> x^3  # inverse of variance-stabilising transformation
 )
 

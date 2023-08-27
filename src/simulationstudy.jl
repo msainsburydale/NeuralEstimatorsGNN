@@ -57,7 +57,6 @@ K_test = K_val
 
 p = ξ.p
 n = ξ.n
-r = ξ.r
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
@@ -76,8 +75,8 @@ if !skip_training
 
 	seed!(1)
 	@info "simulating training data for the GNN..."
-	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, neighbour_parameter = r, J = J, clustering = true)
-	θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, neighbour_parameter = r, J = J, clustering = true)
+	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, J = J)
+	θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, J = J)
 	@info "training the GNN..."
 	trainx(gnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16)
 

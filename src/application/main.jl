@@ -46,7 +46,6 @@ K_test = K_val
 
 p = ξ.p
 n = 30:750
-r = ξ.r
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
@@ -58,8 +57,8 @@ epochs = quick ? 2 : 1000
 seed!(1)
 @info "simulating training data..."
 J = 3
-θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, neighbour_parameter = r, J = J, clustering = true)
-θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, neighbour_parameter = r, J = J, clustering = true)
+θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, J = J)
+θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, J = J)
 Z_val   = Z_val[1]
 Z_train = Z_train[1]
 
