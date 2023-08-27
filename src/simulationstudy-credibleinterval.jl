@@ -88,11 +88,12 @@ pointestimator = PointEstimator(pointestimator)
 if !skip_training
 
 	seed!(1)
-	@info "simulating training data for the GNN..."
-	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, J = J)
-	θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, J = J)
-	@info "training the GNN-based credible-interval estimator..."
-	trainx(intervalestimator, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN_CI", epochs = epochs, batchsize = 16, loss = qloss)
+	@info "Sampling set of parameter vectors used for validation..."
+	θ_val = Parameters(K_val, ξ, n, J = J)
+	@info "Sampling set of parameter vectors used for training..."
+	θ_train = Parameters(K_train, ξ, n, J = J)
+	@info "training the GNN..."
+	trainx(intervalestimator, θ_train, θ_val, simulate, m = m, savepath = path * "/runs_GNN_CI", epochs = epochs, batchsize = 16, loss = qloss, epochs_per_data_refresh = 3)
 
 end
 
@@ -153,8 +154,8 @@ S = rand(n, 2)
 # Simulate data
 seed!(1)
 K = quick ? 100 : 3000
-θ, Z = variableirregularsetup(ξ, n, K = K, m = m, J = 1)
-Z = Z[1]
+θ = Parameters(K, ξ, n, J = 1)
+Z = simulate(θ, m)
 
 # Marginal coverage for
 intervals = interval(intervalestimator, Z, parameter_names = ξ.parameter_names)
@@ -226,6 +227,32 @@ CSV.write(path * "/marginal_coverage.csv", df)
 # 	return df
 # end
 #
+# import NeuralEstimatorsGNN: Parameters
+# function Parameters(θ::Matrix, ξ)
+#
+# 	p, K = size(θ)
+#
+# 	# Determine if we are estimating ν and σ
+# 	parameter_names = String.(collect(keys(ξ.Ω)))
+# 	estimate_ν = "ν" ∈ parameter_names
+# 	estimate_σ = "σ" ∈ parameter_names
+#
+# 	# GP covariance parameters and Cholesky factors
+# 	ρ_idx = findfirst(parameter_names .== "ρ")
+# 	ν_idx = findfirst(parameter_names .== "ν")
+# 	σ_idx = findfirst(parameter_names .== "σ")
+# 	ρ = θ[ρ_idx, :]
+# 	ν = estimate_ν ? θ[ν_idx, :] : fill(ξ.ν, K)
+# 	σ = estimate_σ ? θ[σ_idx, :] : fill(ξ.σ, K)
+# 	chols = maternchols(ξ.D, ρ, ν, σ.^2; stack = false)
+# 	chol_pointer = collect(1:K)
+#
+# 	# Construct the graphs
+# 	A = adjacencymatrix.(ξ.D, ξ.δ)
+# 	graphs = GNNGraph.(A)
+#
+# 	Parameters(θ, ξ.S, graphs, chols, chol_pointer)
+# end
 #
 # # Do this by constructing a grid of parameters, and testing the coverage at
 # # each parameter value. This way, we can produce a coverage map.

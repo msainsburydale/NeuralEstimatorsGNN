@@ -31,12 +31,13 @@ function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} wh
 
 	chols        = parameters.chols
 	chol_pointer = parameters.chol_pointer
+	g            = parameters.graphs
 
 	Z = Folds.map(1:K) do k
 		L = chols[chol_pointer[k]][:, :]
-		L = convert(Matrix, L) # FIXME shouldn't need to do this conversion. Think it's just a problem with the dispatching of simulateschlather()
+		L = convert(Matrix, L) # TODO shouldn't need to do this conversion. Think it's just a problem with the dispatching of simulateschlather()
 		z = simulateschlather(L, m̃[k])
-		z = Float32.(z)
+		z = batch([GNNGraph(g[chol_pointer[k]], ndata = z[:, l, :]') for l ∈ 1:m̃[k]])
 		z
 	end
 	return Z

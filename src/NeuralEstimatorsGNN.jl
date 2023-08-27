@@ -4,15 +4,15 @@ using NeuralEstimators
 using Flux
 using Flux: flatten
 using GraphNeuralNetworks
-using Random: seed!
+using Random: seed!; export seed!
 using Distributions
 using Distances
 
-export spatialconfigurations , addsingleton
-export variableirregularsetup
+export addsingleton
+export spatialconfigurations
 export Parameters
-export reshapedataGNN
-export seed!
+export reshapedataGNN, reshapedataGNNcompact
+
 
 
 # ---- Utility functions ----
@@ -97,7 +97,7 @@ to be sampled (the GP parameters will be repeated `J` times), and `ξ` is a
 named tuple containing fields:
 
 - `Ω`: the prior distribution, itself a named tuple where each field can be sampled using rand(),
-- `D`: a distance matrix (or possible a vector of distance matrices of length `K`),
+- `δ`: neighbour parameter for constructing the neighbour matrix.
 
 The type assumes the presence of a GP in the model, with range parameter
 ρ, smoothness ν, and marginal standard deviation σ; if the latter two parameters
@@ -107,29 +107,44 @@ in the prior Ω and single values for each should instead be stored in
 """
 struct Parameters{T, I} <: ParameterConfigurations
 	θ::Matrix{T}
+	locations
+	graphs
 	chols
 	chol_pointer::Vector{I}
 end
 # This is concretely typed for type stability of simulate().
 
+function Parameters(K::Integer, ξ, n; J::Integer = 1, λ_prior = Uniform(10, 90))
 
-function Parameters(K::Integer, ξ; J::Integer = 1)
+	if typeof(n) <: Integer
+		n = range(n, n)
+	end
 
-	# All parameters not associated with the Gaussian process
+	# Simulate spatial locations from a cluster process over the unit square
+	locations = map(1:K) do k
+		nₖ = rand(n)
+		λₖ = rand(λ_prior)
+		μₖ = nₖ / λ
+		Sₖ = maternclusterprocess(λ = λₖ, μ = μₖ)
+		Sₖ
+	end
+
+	# Compute distance matrices and construct the graphs
+	D = pairwise.(Ref(Euclidean()), locations, locations, dims = 1)
+	A = adjacencymatrix.(D, ξ.δ)
+	graphs = GNNGraph.(A)
+
+	# Sample parameters not associated with the Gaussian process
 	θ = [rand(ϑ, K * J) for ϑ in drop(ξ.Ω, (:ρ, :ν, :σ))]
 
-	# Determine if we are estimating ν and σ
-	# Note that we extract the parameter names here, even though ξ will
-	# typically contain the parameter_names too.
+	# Sample parameters from the Gaussian process and compute Cholesky factors
+	ρ = rand(ξ.Ω.ρ, K)
 	parameter_names = String.(collect(keys(ξ.Ω)))
 	estimate_ν = "ν" ∈ parameter_names
 	estimate_σ = "σ" ∈ parameter_names
-
-	# GP covariance parameters and Cholesky factors
-	ρ = rand(ξ.Ω.ρ, K)
 	ν = estimate_ν ? rand(ξ.Ω.ν, K) : fill(ξ.ν, K)
 	σ = estimate_σ ? rand(ξ.Ω.σ, K) : fill(ξ.σ, K)
-	chols = maternchols(ξ.D, ρ, ν, σ.^2; stack = false)
+	chols = maternchols(D, ρ, ν, σ.^2; stack = false)
 	chol_pointer = repeat(1:K, inner = J)
 	ρ = repeat(ρ, inner = J)
 	ν = repeat(ν, inner = J)
@@ -154,34 +169,13 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 		θ = [θ₁..., ρ, θ₂...]
 	end
 
-	# Concatenate θ into a matrix and convert to Float32 for efficiency
-	θ = hcat(θ...)'
-	θ = Float32.(θ)
+	# Combine parameters into a pxK matrix
+	θ = permutedims(hcat(θ...))
 
-	Parameters(θ, chols, chol_pointer)
+	Parameters(θ, locations, graphs, chols, chol_pointer)
 end
 
-function Parameters(θ::Matrix, ξ)
 
-	p, K = size(θ)
-
-	# Determine if we are estimating ν and σ
-	parameter_names = String.(collect(keys(ξ.Ω)))
-	estimate_ν = "ν" ∈ parameter_names
-	estimate_σ = "σ" ∈ parameter_names
-
-	# GP covariance parameters and Cholesky factors
-	ρ_idx = findfirst(parameter_names .== "ρ")
-	ν_idx = findfirst(parameter_names .== "ν")
-	σ_idx = findfirst(parameter_names .== "σ")
-	ρ = θ[ρ_idx, :]
-	ν = estimate_ν ? θ[ν_idx, :] : fill(ξ.ν, K)
-	σ = estimate_σ ? θ[σ_idx, :] : fill(ξ.σ, K)
-	chols = maternchols(ξ.D, ρ, ν, σ.^2; stack = false)
-	chol_pointer = collect(1:K)
-
-	Parameters(θ, chols, chol_pointer)
-end
 
 # ---- Reshaping data to the correct form for a GNN ----
 
@@ -246,42 +240,6 @@ function reshapedataGNNcompact(Z, v::V) where {V <: AbstractVector{A}} where A
 		Flux.batch([GNNGraph(v[j], ndata = (Matrix(vec(z[colons..., i])'))) for i ∈ 1:m])
 	end
 end
-
-# ---- Setting up data for training ----
-
-
-function variableirregularsetup(ξ, n::R; K::Integer, m, J::Integer = 5) where {R <: AbstractRange{I}} where I <: Integer
-
-	λ_prior = Uniform(10, 90) # λ is uniform between 10 and 90
-
-	# Generate spatial configurations
-	S = map(1:K) do k
-		nₖ = rand(n)
-		λ = rand(λ_prior)
-		μ = nₖ / λ
-		S = maternclusterprocess(λ = λ, μ = μ)
-		S
-	end
-
-	# Compute distance matrices and construct the graphs
-	D = pairwise.(Ref(Euclidean()), S, S, dims = 1)
-	A = adjacencymatrix.(D, ξ.δ) # Note that ξ.δ can be a float or an integer, which will give different behaviours
-	g = GNNGraph.(A)
-
-	# Update ξ to contain the new distance matrices. Note that Parameters() can
-	# handle a vector of distance matrices because maternchols() is able to do it.
-	ξ = (ξ..., S = S, D = D)
-	parameters = Parameters(K, ξ, J = J)
-	Z = [simulate(parameters, mᵢ) for mᵢ ∈ m]
-
-	g = repeat(g, inner = J)
-	Z = reshapedataGNN.(Z, Ref(g))
-
-	parameters, Z
-end
-variableirregularsetup(ξ, n::Integer; K::Integer, m, J::Integer = 5) = variableirregularsetup(ξ, range(n, n); K = K, m = m, J = J)
-
-#TODO remove variableirregularsetup(); we can get the same functionality by storing the graphs in Parameters.
 
 
 end #module

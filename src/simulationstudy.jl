@@ -74,11 +74,12 @@ J = 3
 if !skip_training
 
 	seed!(1)
-	@info "simulating training data for the GNN..."
-	θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, J = J)
-	θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, J = J)
+	@info "Sampling set of parameter vectors used for validation..."
+	θ_val = Parameters(K_val, ξ, n, J = J)
+	@info "Sampling set of parameter vectors used for training..."
+	θ_train = Parameters(K_train, ξ, n, J = J)
 	@info "training the GNN..."
-	trainx(gnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16)
+	trainx(gnn, θ_train, θ_val, simulate, m = m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_data_refresh = 3)
 
 end
 
@@ -94,7 +95,7 @@ if isdefined(Main, :ML)
 	seed!(1)
 	S = rand(n, 2)
 	D = pairwise(Euclidean(), S, S, dims = 1)
-	A = adjacencymatrix(D, r)
+	A = adjacencymatrix(D, ξ.δ)
 	g = GNNGraph(A)
 	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
 
@@ -135,7 +136,7 @@ end
 function assessestimators(S, ξ, K::Integer, set::String)
 
 	D = pairwise(Euclidean(), S, S, dims = 1)
-	A = adjacencymatrix(D, r)
+	A = adjacencymatrix(D, ξ.δ)
 	g = GNNGraph(A)
 	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
 

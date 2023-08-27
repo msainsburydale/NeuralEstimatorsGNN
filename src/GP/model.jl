@@ -21,15 +21,16 @@ function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} wh
 	K = size(parameters, 2)
 	m̃ = rand(m, K)
 
-	τ  = parameters.θ[1, :]
+	τ  			 = parameters.θ[1, :]
 	chols        = parameters.chols
 	chol_pointer = parameters.chol_pointer
+	g            = parameters.graphs
 
-	Z = Folds.map(1:K) do i
-		L = chols[chol_pointer[i]][:, :]
-		z = simulategaussianprocess(L, m̃[i])
-		z = z + τ[i] * randn(size(z)...) # add measurement error
-		z = Float32.(z)
+	Z = Folds.map(1:K) do k
+		L = chols[chol_pointer[k]][:, :]
+		z = simulategaussianprocess(L, m̃[k])
+		z = z + τ[k] * randn(size(z)...) # add measurement error
+		z = batch([GNNGraph(g[chol_pointer[k]], ndata = z[:, l, :]') for l ∈ 1:m̃[k]])
 		z
 	end
 	return Z

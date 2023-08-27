@@ -57,10 +57,11 @@ epochs = quick ? 2 : 1000
 seed!(1)
 @info "simulating training data..."
 J = 3
-θ_val,   Z_val   = variableirregularsetup(ξ, n, K = K_val, m = m, J = J)
-θ_train, Z_train = variableirregularsetup(ξ, n, K = K_train, m = m, J = J)
-Z_val   = Z_val[1]
-Z_train = Z_train[1]
+@info "Sampling set of parameter vectors used for validation..."
+θ_val = Parameters(K_val, ξ, n, J = J)
+@info "Sampling set of parameter vectors used for training..."
+θ_train = Parameters(K_train, ξ, n, J = J)
+@info "training the GNN..."
 
 
 # ---- Point estimator ----
@@ -68,7 +69,7 @@ Z_train = Z_train[1]
 seed!(1)
 gnn = gnnarchitecture(p)
 @info "training the point estimator..."
-train(gnn, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_pointestimator", epochs = epochs, batchsize = 16)
+train(gnn, θ_train, θ_val, simulate, m = 1, savepath = path * "/runs_pointestimator", epochs = epochs, batchsize = 16, epochs_per_data_refresh = 3)
 
 # ---- Credible-interval estimator ----
 
@@ -81,4 +82,4 @@ q = [α/2, 1-α/2] # quantiles
 qloss = (θ̂, θ) -> quantileloss(θ̂, θ, gpu(q))
 
 @info "training the credible-interval estimator..."
-train(intervalestimator, θ_train, θ_val, Z_train, Z_val, savepath = path * "/runs_CIestimator", epochs = epochs, batchsize = 16, loss = qloss)
+train(intervalestimator, θ_train, θ_val, simulate, m = 1, savepath = path * "/runs_CIestimator", epochs = epochs, batchsize = 16, loss = qloss, epochs_per_data_refresh = 3)
