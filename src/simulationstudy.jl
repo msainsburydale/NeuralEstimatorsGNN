@@ -79,7 +79,7 @@ if !skip_training
 	@info "Sampling set of parameter vectors used for training..."
 	θ_train = Parameters(K_train, ξ, n, J = J)
 	@info "training the GNN..."
-	trainx(gnn, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3) 
+	trainx(gnn, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
 
 end
 
@@ -99,7 +99,7 @@ if isdefined(Main, :ML)
 	g = GNNGraph(A)
 	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
 
-	θ = Parameters(1, ξ, J = 1)
+	θ = Parameters(1, ξ, n, J = 1)
 	Z = simulate(θ, M)
 
 	θ₀ = mean.([ξ.Ω...])
