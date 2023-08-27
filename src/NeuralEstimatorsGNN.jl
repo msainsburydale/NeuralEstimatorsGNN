@@ -124,7 +124,7 @@ function Parameters(K::Integer, ξ, n; J::Integer = 1)
 	end
 
 	# Simulate spatial locations from a cluster process over the unit square
-	λ_prior = Uniform(ceil(n/20), ceil(n/3))
+	λ_prior = Uniform(10, 100) # λ_prior = Uniform(ceil(n/20), ceil(n/3))
 	S = map(1:K) do k
 		nₖ = rand(n)
 		λₖ = rand(λ_prior)
