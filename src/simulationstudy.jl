@@ -60,7 +60,7 @@ n = ξ.n
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
-epochs = quick ? 2 : 1000
+epochs = quick ? 10 : 1000
 
 # ---- Estimators ----
 
@@ -74,9 +74,9 @@ J = 3
 if !skip_training
 
 	seed!(1)
-	@info "Sampling set of parameter vectors used for validation..."
+	@info "Sampling parameter vectors used for validation..."
 	θ_val = Parameters(K_val, ξ, n, J = J)
-	@info "Sampling set of parameter vectors used for training..."
+	@info "Sampling parameter vectors used for training..."
 	θ_train = Parameters(K_train, ξ, n, J = J)
 	@info "training the GNN..."
 	trainx(gnn, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
@@ -88,6 +88,8 @@ end
 Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_m$M"))
 
 # ---- Run-time assessment ----
+
+
 
 if isdefined(Main, :ML)
 
@@ -143,7 +145,7 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	# test set for estimating the risk function
 	seed!(1)
 	θ = Parameters(K_test, ξ)
-	Z = simulate(θ, M)
+	Z = simulate(θ, M; convert_to_graph = false) 
 	ξ = (ξ..., θ₀ = θ.θ)
 	assessment = assessestimators(θ, Z, g, ξ)
 	CSV.write(path * "/estimates_test_$set.csv", assessment.df)

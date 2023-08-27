@@ -16,7 +16,7 @@ using Folds
 	invtransform = identity # inverse of variance-stabilising transformation
 )
 
-function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} where I <: Integer
+function simulate(parameters::Parameters, m::R; convert_to_graph::Bool = true) where {R <: AbstractRange{I}} where I <: Integer
 
 	K = size(parameters, 2)
 	m̃ = rand(m, K)
@@ -30,7 +30,10 @@ function simulate(parameters::Parameters, m::R) where {R <: AbstractRange{I}} wh
 		L = chols[chol_pointer[k]][:, :]
 		z = simulategaussianprocess(L, m̃[k])
 		z = z + τ[k] * randn(size(z)...) # add measurement error
-		z = batch([GNNGraph(g[chol_pointer[k]], ndata = z[:, l, :]') for l ∈ 1:m̃[k]])
+		z = Float32.(z)
+		if convert_to_graph
+			z = batch([GNNGraph(g[chol_pointer[k]], ndata = z[:, l, :]') for l ∈ 1:m̃[k]])
+		end
 		z
 	end
 	return Z

@@ -97,6 +97,7 @@ to be sampled (the GP parameters will be repeated `J` times), and `ξ` is a
 named tuple containing fields:
 
 - `Ω`: the prior distribution, itself a named tuple where each field can be sampled using rand(),
+- `D`: distance matrix or (K-vector of distance matrices), 
 - `δ`: neighbour parameter for constructing the neighbour matrix.
 
 The type assumes the presence of a GP in the model, with range parameter
@@ -112,8 +113,9 @@ struct Parameters{T, I} <: ParameterConfigurations
 	chols
 	chol_pointer::Vector{I}
 end
-# This is concretely typed for type stability of simulate().
 
+
+# Method that automatically constructs spatial locations from a Matern cluster process
 function Parameters(K::Integer, ξ, n; J::Integer = 1, λ_prior = Uniform(10, 90))
 
 	if typeof(n) <: Integer
@@ -121,7 +123,7 @@ function Parameters(K::Integer, ξ, n; J::Integer = 1, λ_prior = Uniform(10, 90
 	end
 
 	# Simulate spatial locations from a cluster process over the unit square
-	locations = map(1:K) do k
+	S = map(1:K) do k
 		nₖ = rand(n)
 		λₖ = rand(λ_prior)
 		μₖ = nₖ / λₖ
@@ -130,7 +132,17 @@ function Parameters(K::Integer, ξ, n; J::Integer = 1, λ_prior = Uniform(10, 90
 	end
 
 	# Compute distance matrices and construct the graphs
-	D = pairwise.(Ref(Euclidean()), locations, locations, dims = 1)
+	D = pairwise.(Ref(Euclidean()), S, S, dims = 1)
+
+	# Pass these objects into the next constructor
+	Parameters(K, (ξ..., D = D); J = J)
+end
+
+# Method that assumes the spatial locations and distance matrices are stored in ξ
+function Parameters(K::Integer, ξ; J::Integer = 1)
+
+	D = ξ.D
+
 	A = adjacencymatrix.(D, ξ.δ)
 	graphs = GNNGraph.(A)
 
@@ -171,6 +183,7 @@ function Parameters(K::Integer, ξ, n; J::Integer = 1, λ_prior = Uniform(10, 90
 
 	# Combine parameters into a pxK matrix
 	θ = permutedims(hcat(θ...))
+	θ = Float32.(θ)
 
 	Parameters(θ, locations, graphs, chols, chol_pointer)
 end
