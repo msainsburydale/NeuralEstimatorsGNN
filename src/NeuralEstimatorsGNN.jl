@@ -97,7 +97,8 @@ to be sampled (the GP parameters will be repeated `J` times), and `ξ` is a
 named tuple containing fields:
 
 - `Ω`: the prior distribution, itself a named tuple where each field can be sampled using rand(),
-- `D`: distance matrix or (K-vector of distance matrices), 
+- `S`: matrix of spatial coordinates (or K-vector of matrices),
+- `D`: distance matrix (or K-vector of matrices),
 - `δ`: neighbour parameter for constructing the neighbour matrix.
 
 The type assumes the presence of a GP in the model, with range parameter
@@ -116,13 +117,14 @@ end
 
 
 # Method that automatically constructs spatial locations from a Matern cluster process
-function Parameters(K::Integer, ξ, n; J::Integer = 1, λ_prior = Uniform(10, 90))
+function Parameters(K::Integer, ξ, n; J::Integer = 1)
 
 	if typeof(n) <: Integer
 		n = range(n, n)
 	end
 
 	# Simulate spatial locations from a cluster process over the unit square
+	λ_prior = Uniform(ceil(n/20), ceil(n/3))
 	S = map(1:K) do k
 		nₖ = rand(n)
 		λₖ = rand(λ_prior)
