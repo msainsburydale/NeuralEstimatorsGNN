@@ -187,7 +187,7 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	θ = permutedims(hcat(θ...))
 	θ = Float32.(θ)
 
-	Parameters(θ, locations, graphs, chols, chol_pointer)
+	Parameters(θ, ξ.S, graphs, chols, chol_pointer)
 end
 
 
