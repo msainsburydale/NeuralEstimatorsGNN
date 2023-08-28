@@ -34,18 +34,18 @@ function simulate(parameters::Parameters, m::R; convert_to_graph::Bool = true) w
 	loc_pointer  = parameters.loc_pointer
 	g            = parameters.graphs
 
-	Z = Folds.map(1:K) do k
+	z = Folds.map(1:K) do k
 		Lₖ = chols[chol_pointer[k]][:, :]
 		Lₖ = convert(Matrix, Lₖ) # TODO shouldn't need to do this conversion. Think it's just a problem with the dispatching of simulateschlather()
 		mₖ = m[k]
-		z = simulateschlather(Lₖ, mₖ)
-		z = Float32.(z)
+		zₖ = simulateschlather(Lₖ, mₖ)
+		zₖ = Float32.(zₖ)
 		if convert_to_graph
 			gₖ = g[loc_pointer[k]]
-			z = batch([GNNGraph(gₖ, ndata = z[:, l, :]') for l ∈ 1:mₖ])
+			zₖ = batch([GNNGraph(gₖ, ndata = zₖ[:, l, :]') for l ∈ 1:mₖ])
 		end
-		z
+		zₖ
 	end
-	return Z
+	return z
 end
-simulate(parameters::Parameters, m::Integer; convert_to_graph::Bool = true) = simulate(parameters, range(m, m); convert_to_graph = convert_to_graph)
+simulate(parameters::Parameters, m::Integer; kwargs...) = simulate(parameters, range(m, m); kwargs...)

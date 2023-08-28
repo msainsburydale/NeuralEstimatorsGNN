@@ -25,10 +25,10 @@ m = let expr = Meta.parse(parsed_args["m"])
     Int.(expr.args)
 end
 
-model="GP/nuFixed"
-m=[1]
-skip_training = true
-quick=true
+# model="GP/nuFixed"
+# m=[1]
+# skip_training = true
+# quick=true
 
 M = maximum(m)
 using NeuralEstimators
@@ -89,8 +89,6 @@ Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_m$M"))
 
 # ---- Run-time assessment ----
 
-
-
 if isdefined(Main, :ML)
 
 	# Accurately assess the run-time for a single data set
@@ -129,13 +127,18 @@ function assessestimators(θ, Z, g, ξ)
 	)
 
 	if isdefined(Main, :ML)
-		assessment = merge(assessment, assess([ML], θ, Z; estimator_names = ["ML"], parameter_names = ξ.parameter_names, use_ξ = true, ξ = ξ))
+		assessment = merge(
+			assessment,
+			assess([ML], θ, Z; estimator_names = ["ML"], use_ξ = true, ξ = ξ)
+		)
 	end
 
 	return assessment
 end
 
-function assessestimators(S, ξ, K::Integer, set::String)
+function assessestimators(ξ, set::String)
+
+	S = spatialconfigurations(n, set)
 
 	D = pairwise(Euclidean(), S, S, dims = 1)
 	A = adjacencymatrix(D, ξ.δ)
@@ -156,7 +159,7 @@ function assessestimators(S, ξ, K::Integer, set::String)
 	seed!(1)
 	θ = Parameters(K_scenarios, ξ)
 	J = quick ? 10 : 100
-	Z = simulate(θ, M, J)
+	Z = simulate(θ, M, J; convert_to_graph = false) 
 	ξ = (ξ..., θ₀ = θ.θ)
 	assessment = assessestimators(θ, Z, g, ξ)
 	CSV.write(path * "/estimates_scenarios_$set.csv", assessment.df)
@@ -181,10 +184,7 @@ end
 
 # Test with respect to a set of uniformly sampled locations
 seed!(1)
-set = "uniform"
-S = spatialconfigurations(n, set)
-seed!(1)
-assessestimators(S, ξ, K_test, set)
+assessestimators(ξ, "uniform")
 
 # Test with respect to locations sampled only in the first and third quadrants
 #         . . .
@@ -194,10 +194,7 @@ assessestimators(S, ξ, K_test, set)
 #  . . .
 #  . . .
 seed!(1)
-set = "quadrants"
-S = spatialconfigurations(n, set)
-seed!(1)
-assessestimators(S, ξ, K_test, set)
+assessestimators(ξ, "quadrants")
 
 
 # Test with respect to locations with mixed sparsity.
@@ -214,10 +211,7 @@ assessestimators(S, ξ, K_test, set)
 #    .        . . .
 # .             .
 seed!(1)
-set = "mixedsparsity"
-S = spatialconfigurations(n, set)
-seed!(1)
-assessestimators(S, ξ, K_test, set)
+assessestimators(ξ, "mixedsparsity")
 
 
 # Test with respect to locations with a cup shape ∪.
@@ -232,7 +226,4 @@ assessestimators(S, ξ, K_test, set)
 # . . . . . . . . .
 #Construct by considering the domain split into three vertical strips
 seed!(1)
-set = "cup"
-S = spatialconfigurations(n, set)
-seed!(1)
-assessestimators(S, ξ, K_test, set)
+assessestimators(ξ, "cup")
