@@ -113,6 +113,7 @@ struct Parameters{T, I} <: ParameterConfigurations
 	graphs
 	chols
 	chol_pointer::Vector{I}
+	loc_pointer::Vector{I}
 end
 
 
@@ -144,6 +145,15 @@ end
 function Parameters(K::Integer, ξ; J::Integer = 1)
 
 	D = ξ.D
+	S = ξ.S
+
+	if !(typeof(D) <: AbstractVector) D = [D] end
+	if !(typeof(S) <: AbstractVector) S = [S] end
+
+	@assert length(S) ∈ (1, K)
+	@assert length(D) ∈ (1, K)
+	@assert length(S) == length(D)
+	loc_pointer = length(S) == 1 ? repeat([1], K*J) : repeat(1:K, inner = J)
 
 	A = adjacencymatrix.(D, ξ.δ)
 	graphs = GNNGraph.(A)
@@ -170,6 +180,7 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	σ_idx = findfirst(parameter_names .== "σ")
 	θ₁ = θ[1:(ρ_idx-1)]
 	θ₂ = θ[ρ_idx:end] # Note that ρ and ν are not in θ, so we don't need to skip any indices.
+	#TODO can't we just place the parameters in the right place using their _idx value? Would be good not to require a certain artificial ordering.
 	if estimate_ν && estimate_σ
 		@assert (ν_idx == ρ_idx + 1) && (σ_idx == ν_idx + 1) "The code assumes that ρ, ν, and σ are stored continguously in the prior Ω, and in that order"
 		θ = [θ₁..., ρ, ν, σ, θ₂...]
@@ -187,7 +198,7 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	θ = permutedims(hcat(θ...))
 	θ = Float32.(θ)
 
-	Parameters(θ, ξ.S, graphs, chols, chol_pointer)
+	Parameters(θ, S, graphs, chols, chol_pointer, loc_pointer)
 end
 
 
