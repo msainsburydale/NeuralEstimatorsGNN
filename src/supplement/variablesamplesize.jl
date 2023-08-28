@@ -36,6 +36,7 @@ K_val   = K_train ÷ 10
 if quick
 	K_train = K_train ÷ 100
 	K_val   = K_val   ÷ 100
+	K_val   = max(K_val, 100)
 end
 K_test = K_val
 
@@ -54,6 +55,10 @@ gnn2 = deepcopy(gnn1)
 gnn3 = deepcopy(gnn1)
 
 # ---- Training ----
+
+J = 3
+small_n = 30
+large_n = 300
 
 # GNN estimator trained with a fixed small n
 seed!(1)
@@ -80,6 +85,8 @@ Flux.loadparams!(gnn2,  loadbestweights(path * "/runs_GNN2"))
 Flux.loadparams!(gnn3,  loadbestweights(path * "/runs_GNN3"))
 
 # ---- Assess the estimators ----
+
+#TODO write this code to be more consistent with that in variablesamplesize.jl (e.g., use convert_to_graph = false)
 
 function assessestimators(θ, Z, ξ)
 
@@ -112,10 +119,8 @@ function assessestimators(n, ξ, K::Integer)
 	Z = simulate(θ, M)
 	# ML estimator requires the locations and distance matrix:
 	S = θ.locations
-	D = pairwise(Euclidean(), S, S, dims = 1)
-	A = adjacencymatrix(D, ξ.δ)
-	g = GNNGraph(A)
-	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
+	D = pairwise.(Ref(Euclidean()), S, S, dims = 1)
+	ξ = (ξ..., S = S, D = D)
 
 	assessment = assessestimators(θ, Z, ξ)
 	assessment.df[:, :n] .= n

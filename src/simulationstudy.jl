@@ -118,6 +118,8 @@ end
 
 # ---- Assess the estimators ----
 
+
+#TODO why do I need to pass g? This is stored in the Parameters object
 function assessestimators(θ, Z, g, ξ)
 
 	assessment = assess(
@@ -127,6 +129,7 @@ function assessestimators(θ, Z, g, ξ)
 	)
 
 	if isdefined(Main, :ML)
+		ξ = (ξ..., θ₀ = θ.θ)
 		assessment = merge(
 			assessment,
 			assess([ML], θ, Z; estimator_names = ["ML"], use_ξ = true, ξ = ξ)
@@ -141,6 +144,7 @@ function assessestimators(ξ, set::String)
 	S = spatialconfigurations(n, set)
 
 	D = pairwise(Euclidean(), S, S, dims = 1)
+	#TODO why do I need to pass g? This is stored in the Parameters object
 	A = adjacencymatrix(D, ξ.δ)
 	g = GNNGraph(A)
 	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
@@ -148,8 +152,7 @@ function assessestimators(ξ, set::String)
 	# test set for estimating the risk function
 	seed!(1)
 	θ = Parameters(K_test, ξ)
-	Z = simulate(θ, M; convert_to_graph = false)
-	ξ = (ξ..., θ₀ = θ.θ)
+	Z = simulate(θ, M, convert_to_graph = false)
 	assessment = assessestimators(θ, Z, g, ξ)
 	CSV.write(path * "/estimates_test_$set.csv", assessment.df)
 	CSV.write(path * "/runtime_test_$set.csv", assessment.runtime)
@@ -159,8 +162,7 @@ function assessestimators(ξ, set::String)
 	seed!(1)
 	θ = Parameters(K_scenarios, ξ)
 	J = quick ? 10 : 100
-	Z = simulate(θ, M, J; convert_to_graph = false)
-	ξ = (ξ..., θ₀ = θ.θ)
+	Z = simulate(θ, M, J, convert_to_graph = false)
 	assessment = assessestimators(θ, Z, g, ξ)
 	CSV.write(path * "/estimates_scenarios_$set.csv", assessment.df)
 	CSV.write(path * "/runtime_scenarios_$set.csv", assessment.runtime)

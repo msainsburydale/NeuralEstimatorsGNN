@@ -15,18 +15,7 @@ else
 fi
 
 echo ""
-echo "##### Starting supplementary experiments #####"
-echo ""
-
-echo ""
-echo "##### Starting experiment on variable sample sizes #####"
+echo "##### Starting supplementary experiment on variable number of spatial locations #####"
 echo ""
 julia --threads=auto --project=. src/supplement/variablesamplesize.jl $quick
 Rscript src/supplement/variablesamplesize.R
-
-
-# echo ""
-# echo "##### Starting experiment on variable graph structures #####"
-# echo ""
-# julia --threads=auto --project=. src/supplement/graphstructures.jl $quick
-# Rscript src/supplement/graphstructures.R
