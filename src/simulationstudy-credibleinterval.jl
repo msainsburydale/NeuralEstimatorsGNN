@@ -72,7 +72,6 @@ if isfile(path * "/runs_GNN_m$M")
 	Flux.loadparams!(pointestimator, loadbestweights(path * "/runs_GNN_m$M"))
 end
 
-
 lower = deepcopy(pointestimator)
 upper = deepcopy(pointestimator)
 intervalestimator = IntervalEstimator(deepcopy(lower), deepcopy(upper))
@@ -94,7 +93,6 @@ if !skip_training
 	θ_train = Parameters(K_train, ξ, n, J = J)
 	@info "training the GNN..."
 	trainx(intervalestimator, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN_CI", epochs = epochs, batchsize = 16, loss = qloss, epochs_per_Z_refresh = 3)
-
 end
 
 # ---- Load the trained estimator ----
@@ -155,7 +153,7 @@ S = rand(n, 2)
 seed!(1)
 K = quick ? 100 : 3000
 θ = Parameters(K, ξ, n, J = 1)
-Z = simulate(θ, m)
+Z = simulate(θ, M)
 
 # Marginal coverage for
 intervals = interval(intervalestimator, Z, parameter_names = ξ.parameter_names)

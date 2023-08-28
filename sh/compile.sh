@@ -3,7 +3,7 @@
 set -e
 
 echo ""
-echo "Compiling C code..."
+echo "Compiling C code for Brown-Resnick process..."
 echo ""
 
 touch src/BrownResnick/PairwiseLikelihoodBR.c # touch the script to force recompilation

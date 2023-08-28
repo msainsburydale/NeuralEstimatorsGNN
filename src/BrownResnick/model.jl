@@ -11,15 +11,12 @@ using RCall
 	ρ = Uniform(0.05, 0.3),
 	ν = Uniform(0.5, 1.5)
 )
-parameter_names = String.(collect(keys(Ω)))
 
 ξ = (
 	Ω = Ω,
 	p = length(Ω),
 	n = 250,
-	parameter_names = parameter_names,
-	ρ_idx = findfirst(parameter_names .== "ρ"),
-	ν_idx = findfirst(parameter_names .== "ν"),
+	parameter_names = String.(collect(keys(Ω))),
 	σ = 1.0,                # marginal variance to use if σ is not included in Ω
 	δ = 0.15f0,             # cutoff distance used to define the neighbourhood of each node
 	invtransform = exp      # inverse of variance-stabilising transformation
@@ -108,9 +105,6 @@ function simulatebrownresnick(loc, ρ, ν, m; Gumbel::Bool = true, exact::Bool =
 	@rput m
 	@rput loc
   	@rput exact
-	# R"""
-	# z = simulateBR(m=m, coord=loc, vario=vario, range=range, smooth=smooth, exact=exact)
-	# """
 	R"""
 	z = rmaxstab(n=m, coord = coord, range = range, smooth = smooth, cov.mod = "brown", control = list(method = "exact"))
 	z = t(z)

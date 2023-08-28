@@ -14,12 +14,16 @@ else
     exit 1
 fi
 
-for model in GP/nuFixed # Schlather # SPDE # BrownResnick
+for model in GP/nuFixed # Schlather BrownResnick SPDE 
 do
 
     echo ""
     echo "##### Starting simulation study for $model model #####"
     echo ""
+
+    if [[ $model == "BrownResnick"  ]]; then
+        bash sh/compile.sh
+    fi
 
     if [[ $model == "GP/nuFixed"  ]]; then
         m="[1]"

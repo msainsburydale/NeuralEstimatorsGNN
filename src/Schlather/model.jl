@@ -10,15 +10,12 @@ using Folds
 	ρ = Uniform(0.05, 0.3),
 	ν = Uniform(0.5, 1.5)
 )
-parameter_names = String.(collect(keys(Ω)))
 
 ξ = (
 	Ω = Ω,
 	p = length(Ω),
 	n = 256,
-	parameter_names = parameter_names,
-	ρ_idx = findfirst(parameter_names .== "ρ"),
-	ν_idx = findfirst(parameter_names .== "ν"),
+	parameter_names = String.(collect(keys(Ω))),
 	σ = 1.0, # marginal variance to use if σ is not included in Ω
 	δ = 0.15, # cutoff distance used to define the neighbourhood of each node
 	invtransform = exp # inverse of variance-stabilising transformation

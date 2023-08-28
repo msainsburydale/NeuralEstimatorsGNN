@@ -18,8 +18,8 @@ fi
 # script, we pipe the above response to each .sh file
 Rscript src/pointprocesses.R                          # Point process figure in Section 2
 yes $quick_str | bash sh/simulationstudies.sh     # Section 3
-yes $quick_str | bash sh/application.sh           # Section 4
 yes $quick_str | bash sh/supplement.sh            # Supplementary material
+yes $quick_str | bash sh/application.sh           # Section 4
 
 echo ""
 echo "######## Everything finished! ############"

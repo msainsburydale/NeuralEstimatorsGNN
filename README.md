@@ -15,7 +15,6 @@ We first briefly describe the repository structure, although an understanding of
 ├── supplement          (Supplementary Material)
 ```
 
-
 ## Instructions
 
 First, download this repository and navigate to its top-level directory within terminal.
@@ -59,9 +58,10 @@ The fast construction of neural Bayes estimators requires graphical processing u
 
 The replication script is `sh/all.sh`, invoked using `bash sh/all.sh` from the top level of this repository. For all studies, the replication script will automatically train the neural estimators, generate estimates from both the neural and likelihood-based estimators, and populate the `img` folder with the figures and results of the manuscript.
 
-The nature of our experiments means that the run time for reproducing the results of the manuscript can be substantial (1-2 days in total). When running the replication script, the user will be prompted with an option to quickly establish that the code is working by using a small number of parameter configurations and epochs. Our envisioned workflow is to establish that the code is working with this "quick" option, clear the populated folders by simply entering `bash sh/clear.sh`, and then run the code in full (possibly over the weekend). By default, results for the max-stable models are not produced, since the simulation of data sets with independent replicates can lead to memory problems on some personal computers; results for these models can be produced by un-commenting the appropriate command in `sh/simulationstudies.sh`.
+The nature of our experiments means that the run time for reproducing the results of the manuscript can be substantial (1-2 days in total). When running the replication script, the user will be prompted with an option to quickly establish that the code is working by using a small number of parameter configurations and epochs. Our envisioned workflow is to establish that the code is working with this "quick" option, clear the populated folders by simply entering `bash sh/clear.sh`, and then run the code in full (possibly over the weekend).
 
-Note that the replication script is clearly presented and commented; hence, one may easily "comment out" sections to produce a subset of the results. (Comments in `.sh` files are made with `#`.)
+Note that the replication script is clearly presented and commented; hence, one may easily "comment out" sections to produce a subset of the results. (Comments in `.sh` files are made with `#`.) By default, results for the max-stable models are not produced, since the simulation of data sets with independent replicates can lead to memory problems on personal computers with limited memory resources; results for these models can be produced by un-commenting the appropriate command in `sh/simulationstudies.sh`. Note that the pairwise likelihood for the max-stable Brown-Resnick process is computed using `C` code, which must be compiled by running the command `bash sh/compile.sh`.
+
 
 #### Minor reproducibility difficulties
 
