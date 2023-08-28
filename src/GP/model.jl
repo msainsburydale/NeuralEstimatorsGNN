@@ -29,7 +29,7 @@ function simulate(parameters::Parameters, m::R; convert_to_graph::Bool = true) w
 
 	z = Folds.map(1:K) do k
 		Lₖ = chols[chol_pointer[k]][:, :]
-		τₖ = [k]
+		τₖ = τ[k]
 		mₖ = m[k]
 		zₖ = simulategaussianprocess(Lₖ, mₖ)
 		zₖ = zₖ + τₖ * randn(size(zₖ)...) # add measurement error
@@ -40,7 +40,7 @@ function simulate(parameters::Parameters, m::R; convert_to_graph::Bool = true) w
 		end
 		zₖ
 	end
-	
+
 	return z
 end
 simulate(parameters::Parameters, m::Integer; kwargs...) = simulate(parameters, range(m, m); kwargs...)

@@ -82,8 +82,7 @@ function simulate(parameters::Parameters, m::R; exact::Bool = false) where {R <:
 
 	return z
 end
-simulate(parameters::Parameters, m::Integer; exact::Bool = false) = simulate(parameters, range(m, m); exact = exact)
-simulate(parameters::Parameters; exact::Bool = false) = stackarrays(simulate(parameters, 1; exact = exact))
+simulate(parameters::Parameters, m::Integer; kwargs...) = simulate(parameters, range(m, m); kwargs...)
 
 
 
