@@ -19,7 +19,7 @@ using Folds
 function simulate(parameters::Parameters, m::R; convert_to_graph::Bool = true) where {R <: AbstractRange{I}} where I <: Integer
 
 	K = size(parameters, 2)
-	m̃ = rand(m, K)
+	m = rand(m, K)
 
 	τ  			 = parameters.θ[1, :]
 	chols        = parameters.chols

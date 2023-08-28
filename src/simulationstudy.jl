@@ -25,10 +25,10 @@ m = let expr = Meta.parse(parsed_args["m"])
     Int.(expr.args)
 end
 
-# model="GP/nuFixed"
-# m=[1]
-# skip_training = false
-# quick=true
+model="GP/nuFixed"
+m=[1]
+skip_training = true
+quick=true
 
 M = maximum(m)
 using NeuralEstimators
