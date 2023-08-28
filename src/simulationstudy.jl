@@ -159,7 +159,7 @@ function assessestimators(ξ, set::String)
 	seed!(1)
 	θ = Parameters(K_scenarios, ξ)
 	J = quick ? 10 : 100
-	Z = simulate(θ, M, J; convert_to_graph = false) 
+	Z = simulate(θ, M, J; convert_to_graph = false)
 	ξ = (ξ..., θ₀ = θ.θ)
 	assessment = assessestimators(θ, Z, g, ξ)
 	CSV.write(path * "/estimates_scenarios_$set.csv", assessment.df)
@@ -183,6 +183,12 @@ end
 
 
 # Test with respect to a set of uniformly sampled locations
+#  .   . . . .
+#  . . . . .
+#  . . . . . .
+#  .   . .   .
+#  . . . . . .
+#  .   . . .
 seed!(1)
 assessestimators(ξ, "uniform")
 

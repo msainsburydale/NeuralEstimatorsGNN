@@ -32,7 +32,7 @@ function simulate(parameters::Parameters, m::R; convert_to_graph::Bool = true) w
 		τₖ = [k]
 		mₖ = m[k]
 		zₖ = simulategaussianprocess(Lₖ, mₖ)
-		zₖ = zₖ + τₖ * randn(size(z)...) # add measurement error
+		zₖ = zₖ + τₖ * randn(size(zₖ)...) # add measurement error
 		zₖ = Float32.(zₖ)
 		if convert_to_graph
 			gₖ = g[loc_pointer[k]]
@@ -40,6 +40,7 @@ function simulate(parameters::Parameters, m::R; convert_to_graph::Bool = true) w
 		end
 		zₖ
 	end
+	
 	return z
 end
 simulate(parameters::Parameters, m::Integer; kwargs...) = simulate(parameters, range(m, m); kwargs...)
