@@ -8,10 +8,16 @@ source("src/plotting.R")
 df <- read.csv(paste0(int_path, "/estimates_test.csv"))
 
 ## Bayes risk with respect to absolute error
+# df <- df %>%
+#   mutate(loss = abs(estimate - truth)) %>%
+#   group_by(estimator, n) %>%
+#   summarise(risk = mean(loss), sd = sd(loss)/sqrt(length(loss)))
+
+## RMSE
 df <- df %>%
-  mutate(loss = abs(estimate - truth)) %>%
+  mutate(loss = (estimate - truth)^2) %>%
   group_by(estimator, n) %>%
-  summarise(risk = mean(loss), sd = sd(loss)/sqrt(length(loss)))
+  summarise(risk = sqrt(mean(loss))) 
 
 ## average risk plot
 breaks <- unique(df$n)
@@ -21,7 +27,12 @@ figure <- ggplot(data = df,
                  aes(x = n, y = risk, colour = estimator, group = estimator)) +
   geom_point() +
   geom_line(alpha = 0.75) +
-  labs(colour = "", x = expression(n), y = expression(r[Omega](hat(theta)("·")))) +
+  labs(
+    colour = "", 
+    x = expression(n), 
+    # y = expression(r[Omega](hat(theta)("·")))
+    y = "RMSE"
+  ) +
   scale_x_continuous(breaks = breaks) +
   scale_estimator(df) +
   theme_bw() +
@@ -33,15 +44,17 @@ figure <- ggplot(data = df,
     strip.text.x = element_blank()
   )
 
-ggsave(
-  figure,
-  file = "risk_vs_n.pdf",
-  width = 8, height = 4, path = img_path, device = "pdf"
-)
+suppressWarnings({
+  ggsave(
+    figure,
+    file = "risk_vs_n.pdf",
+    width = 8, height = 4, path = img_path, device = "pdf"
+  )
+})
 
 # Zoom in on the larger sample sizes.
 xmin1=200;  xmax1=400
-ymin1=0.03; ymax1 = 0.05
+ymin1=0.035; ymax1 = 0.055
 
 window1 <- figure +
   theme(axis.title.y = element_blank()) +
@@ -51,7 +64,7 @@ window1 <- figure +
 
 # Zoom in on the smaller sample sizes.
 xmin=15;  xmax=45
-ymin=0.09; ymax = 0.12
+ymin=0.095; ymax = 0.125
 
 window2 <- figure +
   theme(axis.title.y = element_blank()) +
@@ -70,19 +83,22 @@ figure <- figure +
   geom_rect(aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
             linewidth = 0.3, colour = "grey50", fill = "transparent")
 
-figure <- ggpubr::ggarrange(
-  figure,
-  ggpubr::ggarrange(window2, window1, ncol = 1, legend = "none"),
-  legend = "top", 
-  nrow = 1
-)
+suppressWarnings({
+  figure <- ggpubr::ggarrange(
+    figure,
+    ggpubr::ggarrange(window2, window1, ncol = 1, legend = "none"),
+    legend = "top", 
+    nrow = 1
+  )
+})
 
-ggsave(
-  figure,
-  file = "risk_vs_n_window.pdf",
-  width = 9.5, height = 4.5, path = img_path, device = "pdf"
-)
-
+suppressWarnings({
+  ggsave(
+    figure,
+    file = "risk_vs_n_window.pdf",
+    width = 9.5, height = 4.5, path = img_path, device = "pdf"
+  )
+})
 
 
 # # Zoom in on the larger sample sizes.

@@ -8,7 +8,7 @@ library("dplyr")
 library("FRK")
 library("sp")
 library("ggpubr")
-library("spdep") # poly2nb()
+library("spdep") # poly2nb() and dnearneigh()
 options(dplyr.summarise.inform = FALSE) 
 })
 
@@ -16,6 +16,7 @@ img_path <- "img/application/SST"
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
 p = 3L # number of parameters
+
 
 # ---- Helper functions ----
 
@@ -82,7 +83,6 @@ chord_length <- function(S){
 
   as.matrix(D)
 }
-
 
 # ---- Load the data ----
 
@@ -189,7 +189,8 @@ ggsave(
 # ---- Hexgon pre-processing ----
 
 ## Bin the data into hexagons
-set.seed(1); spdf <- df[sample(1:nrow(df), 100000), ] # thin the data set for faster prototyping
+# set.seed(1); spdf <- df[sample(1:nrow(df), 100000), ] # thin the data set for faster prototyping
+spdf <- df
 coordinates(spdf) = ~ lon + lat
 slot(spdf, 'proj4string') <- CRS('+proj=longlat +ellps=sphere')
 baus <- auto_BAUs(manifold = sphere(), type = "hex", isea3h_res = 5, data = spdf)
@@ -230,8 +231,10 @@ bau_subset1 <- subset_baus(baus, 400, nb)
 bau_subset2 <- subset_baus(baus, 800, nb)
 bau_subset <- rbind(bau_subset1, bau_subset2)
 gg <- plot_spatial_or_ST(bau_subset, "central_hexagon", plot_over_world = T)[[1]]
-gg <- gg %>% draw_world_custom
-gg <- gg + theme(legend.position = "none", axis.title = element_blank())
+gg <- draw_world_custom(gg)
+gg <- gg + theme(legend.position = "none", axis.title = element_blank(), panel.border = element_blank(), panel.background = element_blank())
+# ggsave(gg, filename = "clustering.pdf", device = "pdf", width = 6.8, height = 3.8, path = img_path)
+# ggsave(gg, filename = "clustering.png", device = "png", width = 6.8, height = 3.8, path = img_path)
 
 # Now create a list of hexagon clusters, each associated with a central hexagon.
 # We just need to store the coordinates and data as a data frame.
@@ -256,6 +259,12 @@ gg <- ggarrange(gg1, gg2)
 
 clustered_split_df <- clustered_split_df[!sapply(clustered_split_df, is.null)]
 
+# Summarise the number of observed locations, n, across the clusters:
+length(clustered_split_df) # 2161: number of clusters that we are making inference over 
+x <- sapply(clustered_split_df, nrow)
+summary(x) #Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+           # 30    1081    2769    3204    4976   12591 
+hist(x)
 
 # ---- Estimation ----
 
@@ -281,24 +290,36 @@ estimate_parameters <- function(estimator, ciestimator, dat) {
   Z <- matrix(dat$Z, nrow = 1)
   Z <- Z - mean(Z)
 
+  # Previous version: not memory efficient (constructs the )
+  # # Spatial distance matrix
+  # S <- as.matrix(dat[, c("lon", "lat")])
+  # colnames(S) <- NULL
+  # S <- chord_length(S)
+  # 
+  # # Scale the distances so that they are between 0 and sqrt(2)
+  # scale_factor <- sqrt(2) / (max(S) - min(S))
+  # S <- (S-min(S)) * scale_factor
+  
   # Spatial distance matrix
+  preprocessing_time <<- preprocessing_time + system.time({
   S <- as.matrix(dat[, c("lon", "lat")])
   colnames(S) <- NULL
   S <- chord_length(S)
-
+  
   # Scale the distances so that they are between 0 and sqrt(2)
   scale_factor <- sqrt(2) / (max(S) - min(S))
   S <- (S-min(S)) * scale_factor
 
   # Construct the graph
   g <- juliaLet("A = adjacencymatrix(S, 0.15); GNNGraph(A,  ndata = Z)", S = S, Z = Z)
+  })["elapsed"]
 
-  tm <- system.time({
-  thetahat <- estimate(estimator, g)
+  # Super-assignment to keep track of the estimation time
+  estimation_time <<- estimation_time + system.time({
+  thetahat   <- estimate(estimator, g)
   thetahatci <- estimate(ciestimator, g)
   })["elapsed"]
-  total_time <<- total_time + tm  # Super-assignment to keep track of the time
-
+    
   # inverse of scale transformation to range parameter
   thetahat[2, ] <- thetahat[2, ] / scale_factor
   thetahatci[2, ] <- thetahatci[2, ] / scale_factor
@@ -308,13 +329,22 @@ estimate_parameters <- function(estimator, ciestimator, dat) {
   estimates <- rbind(thetahat, thetahatci)
   rownames(estimates) <- c("tau", "rho", "sigma", "tau_lower", "rho_lower", "sigma_lower", "tau_upper", "rho_upper", "sigma_upper")
   
-
   return(estimates)
 }
 
-# TODO parallel estimation to improve run times even further. 
-# TODO This runs into memory problems because a large number of distance 
-#      matrices need to be computed. Just stick with non-parallel version for now.
+# Testing
+estimation_time <- preprocessing_time <- 0
+estimates <- sapply(clustered_split_df[1:2], function(dat) {
+  estimate_parameters(estimator, ciestimator, dat)
+})
+preprocessing_time # original:
+estimation_time    #    
+
+
+# TODO parallel estimation to improve estimation times. 
+# TODO This could run into memory problems because a large number of distance 
+#      matrices need to be computed (although could remedy this using 
+#      mini-batching). Just stick with non-parallel version for now.
 estimate_parameters_parallel <- function(estimator, ciestimator, split_df_list) {
   
   # Convert data into correct form (n x m matrix, where n is the number of
@@ -369,15 +399,16 @@ estimate_parameters_parallel <- function(estimator, ciestimator, split_df_list) 
 
 ## non-parallel version
 # Dummy run to compile the Julia code (more accurate timings)
-total_time <- 0
+estimation_time <- preprocessing_time <- 0
 estimates <- sapply(clustered_split_df[1:10], function(dat) {
   estimate_parameters(estimator, ciestimator, dat)
 })
-total_time <- 0
+estimation_time <- preprocessing_time <- 0
 estimates <- sapply(clustered_split_df, function(dat) {
   estimate_parameters(estimator, ciestimator, dat)
 })
-write.csv(total_time, paste0(img_path, "/estimation_time.csv"))
+write.csv(preprocessing_time, paste0(img_path, "/preprocessing_time.csv"))
+write.csv(estimation_time, paste0(img_path, "/estimation_time.csv"))
 ## parallel version
 # estimates <- estimate_parameters_parallel(estimator, ciestimator, clustered_split_df)
 
@@ -480,7 +511,3 @@ ggsave(
   filename = "intervals.pdf", device = "pdf", width = 8, height = 7,
   path = img_path
 )
-
-#TODO the scaling factor should account for the fact that we are including
-#     neighbours: notice that without doing so, rho is estimated to be
-#     larger using the clustering approach.

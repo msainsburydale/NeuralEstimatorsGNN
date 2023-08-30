@@ -58,7 +58,7 @@ gnn3 = deepcopy(gnn1)
 
 J = 3
 small_n = 30
-large_n = 300
+large_n = 500
 
 # GNN estimator trained with a fixed small n
 seed!(1)
@@ -104,7 +104,7 @@ function assessestimators(θ, Z, ξ)
 	Z = broadcast(z -> reshape(z.ndata.x, :, 1), Z)
 	assessment = merge(
 		assessment,
-		assess([ML], θ, Z; estimator_names = ["maximum-likelihood"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ, verbose=false)
+		assess([ML], θ, Z; estimator_names = ["ML"], parameter_names = ξ.parameter_names, use_gpu = false, use_ξ = true, ξ = ξ, verbose=false)
 		)
 
 	return assessment

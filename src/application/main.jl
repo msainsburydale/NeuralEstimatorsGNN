@@ -45,7 +45,7 @@ end
 K_test = K_val
 
 p = ξ.p
-n = 30:750
+n = 30:1500
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
