@@ -5,7 +5,7 @@ dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
 source("src/plotting.R")
 
-df <- read.csv(paste0(int_path, "/estimates_test.csv"))
+df <- read.csv(paste0(int_path, "/estimates.csv"))
 
 ## Bayes risk with respect to absolute error
 # df <- df %>%

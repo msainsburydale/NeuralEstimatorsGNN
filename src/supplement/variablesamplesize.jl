@@ -130,4 +130,5 @@ end
 
 assessment = [assessestimators(n, ξ, K_test) for n ∈ [30, 60, 100, 200, 350, 500, 750, 1000, 1500, 2000]]
 assessment = merge(assessment...)
-CSV.write(path * "/estimates_test.csv", assessment.df)
+CSV.write(path * "/estimates.csv", assessment.df)
+CSV.write(path * "/runtime.csv", assessment.df)
