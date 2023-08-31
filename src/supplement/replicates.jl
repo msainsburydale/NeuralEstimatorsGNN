@@ -83,7 +83,7 @@ pts = range(0, 1, length = isqrt(n))
 S = expandgrid(pts, pts)
 D = pairwise(Euclidean(), S, S, dims = 1)
 ξ = (ξ..., D = D)
-A = adjacencymatrix(ξ.D, ξ.δ)
+A = adjacencymatrix(ξ.D, ξ.δ, ξ.k)
 g = GNNGraph(A)
 
 seed!(1)

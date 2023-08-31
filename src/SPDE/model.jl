@@ -19,6 +19,7 @@ using RCall
 	parameter_names = String.(collect(keys(Ω))),
 	σ = 1.0,                 # marginal variance to use if σ is not included in Ω
 	δ = 0.15,              # cutoff distance used to define the neighbourhood of each node
+	k = 30, # maximum number of neighbours to consider when constructing the neighbourhood
 	invtransform = x -> x^3  # inverse of variance-stabilising transformation
 )
 

@@ -95,7 +95,8 @@ if isdefined(Main, :ML)
 	seed!(1)
 	S = rand(n, 2)
 	D = pairwise(Euclidean(), S, S, dims = 1)
-	A = adjacencymatrix(D, ξ.δ)
+	#TODO why do I need to construct A and g? This is stored in the Parameters object. Remove. 
+	A = adjacencymatrix(D, ξ.δ, ξ.k)
 	g = GNNGraph(A)
 	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
 
@@ -145,7 +146,7 @@ function assessestimators(ξ, set::String)
 
 	D = pairwise(Euclidean(), S, S, dims = 1)
 	#TODO why do I need to pass g? This is stored in the Parameters object
-	A = adjacencymatrix(D, ξ.δ)
+	A = adjacencymatrix(D, ξ.δ, ξ.k)
 	g = GNNGraph(A)
 	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
 

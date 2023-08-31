@@ -99,7 +99,8 @@ named tuple containing fields:
 - `Ω`: the prior distribution, itself a named tuple where each field can be sampled using rand(),
 - `S`: matrix of spatial coordinates (or K-vector of matrices),
 - `D`: distance matrix (or K-vector of matrices),
-- `δ`: neighbour parameter for constructing the neighbour matrix.
+- `δ`: fixed radius when constructing the neighbour matrix,
+- `k`: maximum number of neighbours to consider when constructing the neighbour matrix.
 
 The type assumes the presence of a GP in the model, with range parameter
 ρ, smoothness ν, and marginal standard deviation σ; if the latter two parameters
@@ -155,7 +156,7 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	@assert length(S) == length(D)
 	loc_pointer = length(S) == 1 ? repeat([1], K*J) : repeat(1:K, inner = J)
 
-	A = adjacencymatrix.(D, ξ.δ)
+	A = adjacencymatrix.(D, ξ.δ, ξ.k)
 	graphs = GNNGraph.(A)
 
 	# Sample parameters not associated with the Gaussian process

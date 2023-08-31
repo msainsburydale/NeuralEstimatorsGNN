@@ -58,7 +58,7 @@ gnn3 = deepcopy(gnn1)
 
 J = 3
 small_n = 30
-large_n = 500
+large_n = 1000
 
 # GNN estimator trained with a fixed small n
 seed!(1)
@@ -86,7 +86,7 @@ Flux.loadparams!(gnn3,  loadbestweights(path * "/runs_GNN3"))
 
 # ---- Assess the estimators ----
 
-#TODO write this code to be more consistent with that in variablesamplesize.jl (e.g., use convert_to_graph = false)
+#TODO write this code to be more consistent with that in simulationstudy.jl (e.g., use convert_to_graph = false)
 
 function assessestimators(θ, Z, ξ)
 
@@ -128,6 +128,6 @@ function assessestimators(n, ξ, K::Integer)
 	return assessment
 end
 
-assessment = [assessestimators(n, ξ, K_test) for n ∈ [30, 60, 100, 200, 300, 500, 750, 1000]]
+assessment = [assessestimators(n, ξ, K_test) for n ∈ [30, 60, 100, 200, 350, 500, 750, 1000, 1500, 2000]]
 assessment = merge(assessment...)
 CSV.write(path * "/estimates_test.csv", assessment.df)

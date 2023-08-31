@@ -185,7 +185,7 @@ CSV.write(path * "/marginal_coverage.csv", df)
 # 	@assert K == 1
 #
 # 	D = pairwise(Euclidean(), S, S, dims = 1)
-# 	A = adjacencymatrix(D, ξ.δ)
+# 	A = adjacencymatrix(D, ξ.δ, ξ.k)
 # 	g = GNNGraph(A)
 # 	ξ = (ξ..., S = S, D = D)      # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
 # 	parameters = Parameters(θ, ξ)
@@ -246,7 +246,7 @@ CSV.write(path * "/marginal_coverage.csv", df)
 # 	chol_pointer = collect(1:K)
 #
 # 	# Construct the graphs
-# 	A = adjacencymatrix.(ξ.D, ξ.δ)
+# 	A = adjacencymatrix.(ξ.D, ξ.δ, ξ.k)
 # 	graphs = GNNGraph.(A)
 #
 # 	Parameters(θ, ξ.S, graphs, chols, chol_pointer)
