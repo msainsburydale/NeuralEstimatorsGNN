@@ -27,7 +27,7 @@ include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/$model/ML.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
-path = "intermediates/supplement/samplesize/$model"
+path = "intermediates/supplement/variablesamplesize/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
@@ -131,4 +131,4 @@ end
 assessment = [assessestimators(n, ξ, K_test) for n ∈ [30, 60, 100, 200, 350, 500, 750, 1000, 1500, 2000]]
 assessment = merge(assessment...)
 CSV.write(path * "/estimates.csv", assessment.df)
-CSV.write(path * "/runtime.csv", assessment.df)
+CSV.write(path * "/runtime.csv", assessment.runtime)

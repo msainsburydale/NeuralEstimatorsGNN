@@ -101,11 +101,6 @@ Flux.loadparams!(intervalestimator, loadbestweights(path * "/runs_GNN_CI_m$M"))
 
 # ---- Marginal coverage (coverage over the whole parameter space) ----
 
-#TODO in addition to overall coverage, check that central credible intervals are
-# indeed central, in the sense that alpha/2 mass lies in each tail. See Efron 2003
-# "That being said, current bootstrap intervals, even nonparametric ones, are usually more accurate than their standard counterparts. “Accuracy” is a word that needs careful definition when applied to confidence intervals. The worst definition (seen unfortunately often in simulation studies of competing confidence interval techniques) concentrates on overall coverage. Even the standard intervals might come reasonably close to 90% overall coverage in the situation in Table 1, but they do so in a lopsided fashion, often failing to cover much more than 5% on the left and much less than 5% on the right. The purpose of a two- sided confidence interval is accurate inference in both directions.""
-# "Coverage, even appropriately defined, is not the end of the story. Stability of the intervals, in length and location, is also important. Here is an example. Sup- pose we are in a standard normal situation where the exact interval is Student’s t with 10 degrees of free- dom. Method A produces the exact 90% interval except shortened by a factor of 0.90; method B produces the exact 90% interval either shortened by a factor of 2/3 or lengthened by a factor of 3/2, with equal proba- bility. Both methods provide about 86% coverage, but the intervals in method B will always be substantially misleading."
-
 """
 	coverage(intervals::V, θ) where  {V <: AbstractArray{M}} where M <: AbstractMatrix
 
@@ -155,14 +150,26 @@ K = quick ? 100 : 3000
 θ = Parameters(K, ξ, n, J = 1)
 Z = simulate(θ, M)
 
-# Marginal coverage for
+# Marginal coverage
 intervals = interval(intervalestimator, Z, parameter_names = ξ.parameter_names)
 cvg = coverage(intervals, θ.θ)
 df  = DataFrame(cvg', ξ.parameter_names)
-CSV.write(path * "/marginal_coverage.csv", df)
+CSV.write(path * "/marginal_coverage_interval-estimator.csv", df)
+
+#TODO add bootstrap-based UQ (it will be a parametric boostrap)
+# intervals = interval(intervalestimator, Z, parameter_names = ξ.parameter_names)
+# cvg = coverage(intervals, θ.θ)
+# df  = DataFrame(cvg', ξ.parameter_names)
+# CSV.write(path * "/marginal_coverage_interval-estimator.csv", df)
 
 
 # ---- Conditional coverage (coverage given specific parameter values) ----
+
+#TODO in addition to overall coverage, check that central credible intervals are
+# indeed central, in the sense that alpha/2 mass lies in each tail. See Efron 2003
+# "That being said, current bootstrap intervals, even nonparametric ones, are usually more accurate than their standard counterparts. “Accuracy” is a word that needs careful definition when applied to confidence intervals. The worst definition (seen unfortunately often in simulation studies of competing confidence interval techniques) concentrates on overall coverage. Even the standard intervals might come reasonably close to 90% overall coverage in the situation in Table 1, but they do so in a lopsided fashion, often failing to cover much more than 5% on the left and much less than 5% on the right. The purpose of a two- sided confidence interval is accurate inference in both directions.""
+# "Coverage, even appropriately defined, is not the end of the story. Stability of the intervals, in length and location, is also important. Here is an example. Sup- pose we are in a standard normal situation where the exact interval is Student’s t with 10 degrees of free- dom. Method A produces the exact 90% interval except shortened by a factor of 0.90; method B produces the exact 90% interval either shortened by a factor of 2/3 or lengthened by a factor of 3/2, with equal proba- bility. Both methods provide about 86% coverage, but the intervals in method B will always be substantially misleading."
+
 
 #TODO add plots of the conditonal coverage in the supplementary material at the revision stage
 

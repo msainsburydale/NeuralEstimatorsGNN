@@ -16,8 +16,8 @@ suppressMessages({
 # see: latex2exp_supported()
 estimator_labels <- c(
   "GNN1" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30})$"),
-  "GNN2" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{300})$"),
-  "GNN3" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30;300})$"),
+  "GNN2" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{1000})$"),
+  "GNN3" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30;1000})$"),
   "GNN3 radius" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30;300})$ : Fixed cut-off distance"),
   "GNN3 fixednum" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30;300})$ : $k$-nearest neighbours"),
   "GNN" = "GNN",

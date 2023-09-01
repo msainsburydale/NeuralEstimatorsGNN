@@ -7,14 +7,9 @@ function gnnarchitecture(
 	p::Integer;
 	propagation::String = "WeightedGraphConv",
 	d::Integer = 1,
-	## Larger network with mean pooling
 	nh::Integer = 128,
 	nlayers::Integer = 3, # number of propagation layers (in addition to the first layer)
 	readout::String = "mean"
-	## Small network with universal pooling
-	# nh::Integer = 64,
-	# nlayers::Integer = 2, # number of propagation layers (in addition to the first layer)
-	# readout::String = "universal"
 	)
 
 	@assert nlayers > 0
@@ -54,27 +49,8 @@ function gnnarchitecture(
 	ϕ = Chain(
 		Dense(no => nh, relu),
 		Dense(nh => nh, relu),
-		Dense(nh => p)
+		Dense(nh => p, exp)
 	)
 
 	return GNN(propagation, readout, ϕ)
 end
-
-# ?GNN
-# p = 2
-# x = gnnarchitecture(p)
-# x = gnnarchitecture(p, nh = 128, readout = "mean")
-# y = gnnarchitecture(p, nh = 64, readout = "universal")
-#
-# d = 1
-# n = 250                           # number of nodes
-# e = 2000                          # number of edges
-# g = rand_graph(n, e, ndata=rand(d, n))
-# z = batch([g, g])
-#
-# g |> x.propagation |> x.readout
-# g |> y.propagation |> y.readout
-#
-# using BenchmarkTools
-# @btime x(z)
-# @btime y(z)

@@ -115,7 +115,7 @@ draw_world_custom <- function(g) {
   worldmap <- FRK:::.homogenise_maps(worldmap)
   
   ## Now return a gg object with the map overlayed
-  g + geom_polygon(data = worldmap, aes(x=long, y=lat, group=group), fill="black", size=0.1)
+  g + geom_polygon(data = worldmap, aes(x=long, y=lat, group=group), fill="black", linewidth=0.1)
 }
 
 ## A palette for the data and predictions
@@ -148,8 +148,8 @@ suppressMessages({
 
 
 Zplot <- Zplot +
-  annotate("rect", xmin = BM_box[1, "lon"], xmax = BM_box[2, "lon"], ymin = BM_box[1, "lat"], ymax = BM_box[2, "lat"], fill=NA, color="red", size=1) +
-  annotate("rect", xmin = Ocean_box[1, "lon"], xmax = Ocean_box[2, "lon"], ymin = Ocean_box[1, "lat"], ymax = Ocean_box[2, "lat"], fill=NA, color="red", size=1)
+  annotate("rect", xmin = BM_box[1, "lon"], xmax = BM_box[2, "lon"], ymin = BM_box[1, "lat"], ymax = BM_box[2, "lat"], fill=NA, color="red", linewidth=1) +
+  annotate("rect", xmin = Ocean_box[1, "lon"], xmax = Ocean_box[2, "lon"], ymin = Ocean_box[1, "lat"], ymax = Ocean_box[2, "lat"], fill=NA, color="red", linewidth=1)
 
 ggsave(
   Zplot,
@@ -161,7 +161,7 @@ map_layer <- geom_map(
   data = map_data("world"),
   map = map_data("world"),
   aes(group = group, map_id = region),
-  fill = "black", colour = "black", size = 0.1
+  fill = "black", colour = "black", linewidth = 0.1
 )
 
 BMconfluence <- ggplot() +
@@ -199,7 +199,9 @@ suppressWarnings({
 # set.seed(1); spdf <- df[sample(1:nrow(df), 100000), ] # thin the data set for faster prototyping
 spdf <- df
 coordinates(spdf) = ~ lon + lat
-slot(spdf, 'proj4string') <- CRS('+proj=longlat +ellps=sphere')
+suppressWarnings({
+  slot(spdf, 'proj4string') <- CRS('+proj=longlat +ellps=sphere')
+})
 baus <- auto_BAUs(manifold = sphere(), type = "hex", isea3h_res = 5, data = spdf)
 
 # relabel the BAUs to be from 1:N (by default, there are some missing numbers
@@ -269,6 +271,7 @@ gg2 <- plot_spatial_or_ST(subset_baus(baus, i, nb), "central_hexagon", plot_over
 # ggarrange(gg1, gg2)
 
 
+## Remove null entries
 clustered_split_df <- clustered_split_df[!sapply(clustered_split_df, is.null)]
 
 # Summarise the number of observed locations, n, across the clusters:
@@ -324,67 +327,6 @@ estimate_parameters <- function(estimator, ciestimator, dat) {
   colnames(S) <- NULL
   n <- nrow(S)
   
-  # ---- Version 1: not memory or time efficient (constructs the full distance matrix)
-  
-  # # Spatial distance matrix
-  # distance_time <<- distance_time + system.time({
-  #   S <- chord_length(S)
-  # })["elapsed"]
-  #   
-  # # Scale the distances so that they are between 0 and sqrt(2)
-  # scale_factor <- sqrt(2) / (max(S) - min(S))
-  # S <- (S-min(S)) * scale_factor
-  # 
-  # preprocessing_time <<- preprocessing_time + system.time({
-  #   # Construct the graph
-  #   g <- juliaLet("A = adjacencymatrix(S, 0.15); GNNGraph(A,  ndata = Z)", S = S, Z = Z)
-  # })["elapsed"]
-  
-  # ---- Version 2: creating adjacency matrix in R
-  
-  # # Convert from (lon, lat) to (x, y, z)
-  # S <- t(apply(S, 1, xyz_conversion))
-  # 
-  # # Compute the scale factor use to scale distances between [0, sqrt(2)]
-  # max_dist <- max(dist(S[chull(S), ]))
-  # min_dist <- min(nndist(S)) 
-  # scale_factor <- sqrt(2) / (max_dist - min_dist) 
-  # 
-  # preprocessing_time <<- preprocessing_time + system.time({
-  #   
-  #   # Compute the (sparse) adjacency matrix quickly
-  #   # https://stackoverflow.com/a/47690594
-  #   # See also: https://cran.r-project.org/web/packages/N2R/N2R.pdf
-  #   r0 <- 0.15                # fixed radius used during training on the unit square
-  #   r  <- r0 / scale_factor   # neighbourhood disc radius we'll use here
-  #   k <- round(pi * r0^2 * n) # expected number of points within a radius of r0 (assuming spatial locations are uniformaly sampled)
-  #   A <- knn(S, radius = r, k = k)
-  #   # Scale the distances so that they are between [0, sqrt(2)] (TODO not sure if we should be subtracting here)
-  #   A$nn.dists <- (A$nn.dists - min_dist) * scale_factor 
-  #   k_max <- min(k, 50) # number of neighbours randomly sampled from the neighbourhood disc
-  #   retain <- sample(1:k, k_max, replace = F)
-  #   A$nn.idx   <- A$nn.idx[, retain]
-  #   A$nn.dists <- A$nn.dists[, retain]
-  #   i <- rep(1:n, each = k_max) 
-  #   j <- c(t(A$nn.idx)) 
-  #   x <- c(t(A$nn.dists))
-  #   idx <- which(j != 0)
-  #   i <- i[idx]
-  #   j <- j[idx]
-  #   x <- x[idx]
-  #   
-  #   # Note: could construct the sparse matrix in R and then pass to Julia,
-  #   # but JuliaConnectoR takes a very long time to convert sparse matrices. So,
-  #   # it is better to pass the row and column indices and non-zero values, 
-  #   # and then build the sparse matrix in Julia. 
-  #   
-  #   # R code: A <- sparseMatrix(i=i, j=j, x=x, dims=c(n, n)) 
-  #   A <- juliaLet("A = sparse(i, j, x, n, n)", i=as.integer(i), j=as.integer(j), x=x, n=as.integer(n))
-  #   g <- juliaLet("GNNGraph(A, ndata = Z)", A = A, Z = Z)
-  #   
-  # })["elapsed"]
-  
-  # ---- Version 3: creating adjacency matrix in Julia
   
   preprocessing_time <<- preprocessing_time + system.time({
     
@@ -441,36 +383,28 @@ estimate_parameters <- function(estimator, ciestimator, dat) {
   return(estimates)
 }
 
-# Testing
+# Dummy run to compile the Julia code (more accurate timings)
 estimation_time <- preprocessing_time <- 0
-system.time({
-  # estimates <- sapply(clustered_split_df[1:2], function(dat) {
-  # estimates <- sapply(clustered_split_df[which.max(n)], function(dat) {
-  estimates <- sapply(clustered_split_df[1:20], function(dat) {
-    estimate_parameters(estimator, ciestimator, dat)
-  })
+estimates <- sapply(clustered_split_df[1:3], function(dat) {
+  estimate_parameters(estimator, ciestimator, dat)
 })
-preprocessing_time; estimation_time
 
 
 # ---- Estimation ----
 
 # NB just replace "clustered_split_df" with "split_df" to generate estimates without the clustering approach
 
+estimation_time <- preprocessing_time <- 0
+
 ## non-parallel version
-# Dummy run to compile the Julia code (more accurate timings)
-estimation_time <- distance_time <- 0
-estimates <- sapply(clustered_split_df[1:3], function(dat) {
-  estimate_parameters(estimator, ciestimator, dat)
-})
-estimation_time <- distance_time <- 0
 estimates <- sapply(clustered_split_df, function(dat) {
   estimate_parameters(estimator, ciestimator, dat)
 })
-write.csv(preprocessing_time, paste0(img_path, "/preprocessing_time.csv"))
-write.csv(estimation_time, paste0(img_path, "/estimation_time.csv"))
 ## parallel version
 # estimates <- estimate_parameters_parallel(estimator, ciestimator, clustered_split_df)
+
+write.csv(preprocessing_time, paste0(img_path, "/preprocessing_time.csv"))
+write.csv(estimation_time, paste0(img_path, "/estimation_time.csv"))
 
 # estimates_backup <- estimates
 rownames(estimates) <- c("tau", "rho", "sigma", "tau_lower", "rho_lower", "sigma_lower", "tau_upper", "rho_upper", "sigma_upper")
@@ -490,15 +424,20 @@ plot_estimates <- function(baus, estimates, param, limits = c(NA, NA)) {
   
   baus <- merge(baus, filter(estimates, parameter == param))
   
-  gg <- plot_spatial_or_ST(baus, column_names = "estimate", plot_over_world = T)[[1]]
-  gg <- draw_world_custom(gg)
-  gg <- gg +
-    scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1, limits = limits) +
-    theme(axis.title = element_blank(),
-          panel.border = element_blank(),
-          panel.background = element_blank(),
-          legend.position = "top",
-          legend.key.width = unit(1, 'cm'))
+  suppressMessages({
+  
+    gg <- plot_spatial_or_ST(baus, column_names = "estimate", plot_over_world = T)[[1]]
+    gg <- draw_world_custom(gg)
+    gg <- gg +
+      scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1, limits = limits) +
+      theme(axis.title = element_blank(),
+            panel.border = element_blank(),
+            panel.background = element_blank(),
+            legend.position = "top",
+            legend.key.width = unit(1, 'cm'))
+    
+  })
+  
   gg
 }
 
@@ -533,7 +472,7 @@ ggsave(
     rho_plot, sigma_plot, tau_plot,
     rhoci_plot, sigmaci_plot, tauci_plot,
     align = "hv", nrow = 2, ncol = p),
-  filename = "estimates_clustered.pdf", device = "pdf", width = 14, height = 6,
+  filename = "estimates.pdf", device = "pdf", width = 14, height = 6,
   path = img_path
 )
 

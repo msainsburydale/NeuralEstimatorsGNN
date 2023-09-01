@@ -51,8 +51,6 @@ figures <- lapply(unique(df$k), function(K) {
   gg2 <- plotdistribution(df, type = "scatter", parameter_labels = parameter_labels)[[1]] # , truth_line_size = 1
   gg3 <- plotdistribution(df, parameter_labels = parameter_labels, return_list = T)
 
-  # TODO suppress the message/warnings here
-
   suppressMessages({
     gg2 <- gg2 + scale_estimator(df)
     gg3 <- lapply(gg3, function(gg) gg + scale_estimator(df) + theme(legend.position = "top") + labs(y = ""))

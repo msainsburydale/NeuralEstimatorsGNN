@@ -181,7 +181,7 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	σ_idx = findfirst(parameter_names .== "σ")
 	θ₁ = θ[1:(ρ_idx-1)]
 	θ₂ = θ[ρ_idx:end] # Note that ρ and ν are not in θ, so we don't need to skip any indices.
-	#TODO can't we just place the parameters in the right place using their _idx value? Would be good not to require a certain artificial ordering.
+	#NB Would be better to just place the parameters in the right place using their _idx value, rather than imposing an artificial ordering.
 	if estimate_ν && estimate_σ
 		@assert (ν_idx == ρ_idx + 1) && (σ_idx == ν_idx + 1) "The code assumes that ρ, ν, and σ are stored continguously in the prior Ω, and in that order"
 		θ = [θ₁..., ρ, ν, σ, θ₂...]
