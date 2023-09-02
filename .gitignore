@@ -10,7 +10,6 @@ Icon?
 TeX
 
 # misc. files that I keep in the Dropbox folder but don't currently need to be tracked
-src/SPDE
 src/.backups/
 
 # Data files that are too large:
