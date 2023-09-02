@@ -9,8 +9,8 @@ Icon?
 .backups
 TeX
 
-# misc. files that I keep in the Dropbox folder but don't need to be tracked
-Zhang_et_al/
+# misc. files that I keep in the Dropbox folder but don't currently need to be tracked
+src/SPDE
 src/.backups/
 
 # Data files that are too large:

@@ -10,7 +10,7 @@ suppressMessages({
   library("ggpubr")
   library("spdep") # poly2nb()
   library("spatstat.geom") # nndist()
-  options(dplyr.summarise.inform = FALSE) 
+  options(dplyr.summarise.inform = FALSE)
 })
 
 img_path <- "img/application/SST"
@@ -22,66 +22,66 @@ p = 3L # number of parameters
 # ---- Helper functions ----
 
 map_to_BAUs <- function(data_sp, sp_pols) {
-  
+
   ## Suppress bindings warnings
   . <- BAU_name <- NULL
-  
+
   ## Add BAU ID to the data frame of the SP object
   sp_pols$BAU_name <- as.character(row.names(sp_pols))
-  
+
   ## Add coordinates to @data if not already there
   if(!(all(coordnames(sp_pols) %in% names(sp_pols@data))))
     sp_pols@data <- cbind(sp_pols@data,coordinates(sp_pols))
-  
+
   ## Find which fields in the data object are not already declared in the BAUs
   diff_fields <- intersect(setdiff(names(data_sp),names(sp_pols)),names(data_sp))
-  
+
   ## Create a data frame just of these fields
   data_df <- data_sp@data[diff_fields]
-  
+
   ## Assign the CRS from sp_pols to data_sp. Note that the sp_pols
   ## are typically the BAUs object, and have not been altered
   ## significantly to this point (while data_sp has, and so
   ## its CRS is often NA).
   slot(data_sp, "proj4string") <- slot(sp_pols, "proj4string")
   data_over_sp <- FRK:::.parallel_over(data_sp, sp_pols)
-  
+
   ## We now cbind the original data with data_over_sp
   data_over_sp <- cbind(data_df, data_over_sp)
-  
+
   if(any(is.na(data_over_sp$BAU_name))) {  # data points at 180 boundary or outside BAUs -- remove
     ii <- which(is.na((data_over_sp$BAU_name)))
     data_sp <- data_sp[-ii,]
     data_over_sp <- data_over_sp[-ii,]
     warning("Removing data points that do not fall into any BAUs.")
   }
-  
+
   new_sp_pts <- SpatialPointsDataFrame(
     coords=data_sp@coords,         # coordinates of summarised data
     data= data_over_sp ,                                # data frame
     proj4string = CRS(slot(data_sp, "proj4string")@projargs) # CRS of original data
   )
-  
+
   new_sp_pts
 }
 
 # conversions from here: https://stackoverflow.com/a/1185413
 xyz_conversion <- function(lonlat, R = 6371) {
-  
+
   lon <- lonlat[1] * pi/180
   lat <- lonlat[2] * pi/180
-  
+
   x = R * cos(lat) * cos(lon)
   y = R * cos(lat) * sin(lon)
   z = R * sin(lat)
-  
+
   c(x, y, z)
 }
 
 chord_length <- function(S){
   S <- t(apply(S, 1, xyz_conversion))
   D <- dist(S, upper = T, diag = T)
-  
+
   as.matrix(D)
 }
 
@@ -107,13 +107,13 @@ df$sst  <- df$lat2 <- NULL
 # ---- Plot the raw data ----
 
 draw_world_custom <- function(g) {
-  
+
   ## Load the world map data from the FRK package
   data(worldmap, envir=environment(), package = "FRK")
-  
+
   ## Homogenise (see details) to avoid lines crossing the map
   worldmap <- FRK:::.homogenise_maps(worldmap)
-  
+
   ## Now return a gg object with the map overlayed
   g + geom_polygon(data = worldmap, aes(x=long, y=lat, group=group), fill="black", linewidth=0.1)
 }
@@ -143,7 +143,7 @@ suppressMessages({
     labs(colour = expression(bold(Z)~(degree*C))) +
     theme(axis.title = element_blank()) +
     theme(panel.border = element_blank(),
-          panel.background = element_blank())  
+          panel.background = element_blank())
 })
 
 
@@ -189,7 +189,7 @@ suppressWarnings({
     ggarrange(Zplot, BMconfluence, Ocean, common.legend = T, nrow = 1, ncol = 3, legend = "right"),
     filename = "data_highlights.png", device = "png", width = 9, height = 2.5,
     path = img_path
-  )  
+  )
 })
 
 
@@ -225,7 +225,7 @@ split_df <- split_df[idx]
 ## Hexagon clusters
 suppressMessages(suppressWarnings({
   sf_use_s2(FALSE) # https://github.com/r-spatial/sf/issues/1762#issuecomment-900571711
-  nb <- poly2nb(baus)  
+  nb <- poly2nb(baus)
 }))
 
 
@@ -275,15 +275,15 @@ gg2 <- plot_spatial_or_ST(subset_baus(baus, i, nb), "central_hexagon", plot_over
 clustered_split_df <- clustered_split_df[!sapply(clustered_split_df, is.null)]
 
 # Summarise the number of observed locations, n, across the clusters:
-# length(clustered_split_df) # 2161: number of clusters that we are making inference over 
+# length(clustered_split_df) # 2161: number of clusters that we are making inference over
 n <- sapply(clustered_split_df, nrow)
 # hist(n)
-# summary(n) 
-#Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-# 30    1081    2769    3204    4976   12591 
+# summary(n)
+#Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+# 30    1081    2769    3204    4976   12591
 
 # histogram of sample sizes
-gghist <- ggplot() + 
+gghist <- ggplot() +
   geom_histogram(aes(x = n), bins = 20, fill = "gray", colour= "black") +
   labs(x = expression("Number of observed locations,"~italic(n)), y = "Frequency") +
   theme_bw()
@@ -315,71 +315,70 @@ estimator   <- loadbestweights(estimator, "intermediates/application/SST/runs_po
 ciestimator <- loadbestweights(ciestimator, "intermediates/application/SST/runs_CIestimator")
 
 estimate_parameters <- function(estimator, ciestimator, dat) {
-  
+
   # Convert data into correct form (n x m matrix, where n is the number of
   # observations and m is the number of replicates, here equal to 1).
   # Also centre the data around zero.
   Z <- matrix(dat$Z, nrow = 1)
   Z <- Z - mean(Z)
-  
+
   # Matrix of spatial locations
   S <- as.matrix(dat[, c("lon", "lat")])
   colnames(S) <- NULL
   n <- nrow(S)
-  
-  
+
+
   preprocessing_time <<- preprocessing_time + system.time({
-    
+
     # Convert from (lon, lat) to (x, y, z)
     S <- t(apply(S, 1, xyz_conversion))
-    
+
     # Compute the scale factor use to scale distances between [0, sqrt(2)]
     max_dist <- max(dist(S[chull(S), ]))
-    min_dist <- min(nndist(S)) 
-    scale_factor <- sqrt(2) / (max_dist - min_dist) 
-    
+    min_dist <- min(nndist(S))
+    scale_factor <- sqrt(2) / (max_dist - min_dist)
+
     # Compute the (sparse) adjacency matrix quickly
     # https://stackoverflow.com/a/47690594
     # See also: https://cran.r-project.org/web/packages/N2R/N2R.pdf
     r0 <- 0.15                # fixed radius used during training on the unit square
     r  <- r0 / scale_factor   # neighbourhood disc radius used here
     k  <- 30L                 # maximum number of neighbours to consider
-    
+
     # Construct the graph
     g = juliaLet('
     # Compute the adjacency matrix
     A = adjacencymatrix(S, r, k)
-    
+
     # scale the distances so that they are between [0, sqrt(2)]
-    # TODO not sure if we should be subtracting by min_dist; does this affect interpretation?
     v = A.nzval
     v .-=  min_dist
     v .*= scale_factor
-    
+
     # construct the graph
     g = GNNGraph(A, ndata = Z)
     g
     ', S=S, r=r, k=k, Z=Z, min_dist=min_dist, scale_factor=scale_factor)
-    
+
   })["elapsed"]
-  
+
   # ---- Estimate
-  
+
   # Super-assignment to keep track of the estimation time
   estimation_time <<- estimation_time + system.time({
     thetahat   <- estimate(estimator, g)
     thetahatci <- estimate(ciestimator, g)
   })["elapsed"]
-  
+
   # inverse of scale transformation to range parameter
   thetahat[2, ] <- thetahat[2, ] / scale_factor
   thetahatci[2, ] <- thetahatci[2, ] / scale_factor
   thetahatci[5, ] <- thetahatci[5, ] / scale_factor
-  
+
   # Put estimates into a convenient data frame
   estimates <- rbind(thetahat, thetahatci)
   rownames(estimates) <- c("tau", "rho", "sigma", "tau_lower", "rho_lower", "sigma_lower", "tau_upper", "rho_upper", "sigma_upper")
-  
+
   return(estimates)
 }
 
@@ -421,11 +420,11 @@ estimates <- melt(estimates, varnames = c("parameter", "id"), value.name = "esti
 
 # Plot the point estimates
 plot_estimates <- function(baus, estimates, param, limits = c(NA, NA)) {
-  
+
   baus <- merge(baus, filter(estimates, parameter == param))
-  
+
   suppressMessages({
-  
+
     gg <- plot_spatial_or_ST(baus, column_names = "estimate", plot_over_world = T)[[1]]
     gg <- draw_world_custom(gg)
     gg <- gg +
@@ -435,9 +434,9 @@ plot_estimates <- function(baus, estimates, param, limits = c(NA, NA)) {
             panel.background = element_blank(),
             legend.position = "top",
             legend.key.width = unit(1, 'cm'))
-    
+
   })
-  
+
   gg
 }
 
@@ -447,9 +446,9 @@ tau_plot   <- plot_estimates(baus, mutate(estimates, estimate = pmin(estimate, 0
 
 # Plot the credible interval widths
 plot_ciwidth <- function(baus, estimates, param) {
-  
+
   baus <- merge(baus, filter(estimates, parameter == param))
-  
+
   gg <- plot_spatial_or_ST(baus, column_names = "estimate", plot_over_world = T)[[1]]
   gg <- draw_world_custom(gg)
   gg <- gg +
@@ -511,57 +510,72 @@ ggsave(
   path = img_path
 )
 
+# --------
 
-# ---- TODO ----
+# TODO parallel estimation to improve estimation times
 
-# TODO parallel estimation to improve estimation times. 
-# TODO This could run into memory problems because a large number of distance 
-#      matrices need to be computed (although could remedy this using 
-#      mini-batching). Just stick with non-parallel version for now.
+# NB just sticking with non-parallel version for now because it's a bit simpler
 estimate_parameters_parallel <- function(estimator, ciestimator, split_df_list) {
-  
+
+  preprocessing_time <<- preprocessing_time + system.time({
+
   # Convert data into correct form (n x m matrix, where n is the number of
-  # observations and m is the number of replicates, here equal to 1). 
+  # observations and m is the number of replicates, here equal to 1).
   # Also centre the data around zero.
   Z <- lapply(split_df_list, function(x) matrix(x$Z, nrow = 1))
   Z <- lapply(Z, function(z) z - mean(z)) # centre the data around zero
-  
-  # Spatial distance matrices
+
+  # Matrix of spatial locations, converted from (lon, lat) to (x, y, z)
   S <- lapply(split_df_list, function(x) {
-    s <- as.matrix(x[, c("lon", "lat")])
-    colnames(s) <- NULL
-    chord_length(s)
+    S <- as.matrix(x[, c("lon", "lat")])
+    colnames(S) <- NULL
+    S <- t(apply(S, 1, xyz_conversion))
+    S
   })
-  
-  # Scale the distances so that they are between 0 and sqrt(2)
-  scale_factor <- sapply(S, function(s) sqrt(2) / (max(s) - min(s)))
-  
-  S <- lapply(seq_along(S), function(i) {
-    s <- S[[i]]
-    (s-min(s)) * scale_factor[i]
+
+  # Compute the scale factor use to scale distances between [0, sqrt(2)]
+  max_dist <- as.numeric(sapply(S, function(S) max(dist(S[chull(S), ]))))
+  min_dist <- as.numeric(sapply(S, function(S) min(nndist(S))))
+  scale_factor <- sqrt(2) / (max_dist - min_dist)
+
+  # Hyperparameters for the adjacency matrix (i.e., the neighbourhood definition)
+  r0 <- 0.15                # fixed radius used during training on the unit square
+  r  <- r0 / scale_factor   # neighbourhood disc radius used here
+  k  <- 30L                 # maximum number of neighbours to consider
+
+  # Construct the graphs
+  g = lapply(seq_along(S), function(i) {
+    juliaLet('
+      # Compute the adjacency matrix
+      A = adjacencymatrix(S, r, k)
+
+      # scale the distances so that they are between [0, sqrt(2)]
+      v = A.nzval
+      v .-=  min_dist
+      v .*= scale_factor
+
+      # construct the graph
+      g = GNNGraph(A, ndata = Z)
+      g
+      ', S=S[[i]], r=r[i], k=k, Z=Z[[i]], min_dist=min_dist[i], scale_factor=scale_factor[i])
   })
-  
-  # Construct the graph data 
-  g <- lapply(seq_along(Z), function(i) {
-    juliaLet("
-      A = adjacencymatrix(S, 0.15)
-      GNNGraph(A; ndata = Z)
-           ", S = S[[i]], Z = Z[[i]])
-  })
-  
+
+  })["elapsed"]
+
   # Apply the estimators
+  estimation_time <<- estimation_time + system.time({
   thetahat   <- estimate(estimator, g)
   thetahatci <- estimate(ciestimator, g)
-  
+  })["elapsed"]
+
   # inverse of scale transformation to range parameter
   thetahat[2, ] <- thetahat[2, ] / scale_factor
   thetahatci[2, ] <- thetahatci[2, ] / scale_factor
   thetahatci[5, ] <- thetahatci[5, ] / scale_factor
-  
+
   # Put estimates into a convenient data frame
   estimates <- rbind(thetahat, thetahatci)
   rownames(estimates) <- c("tau", "rho", "sigma", "tau_lower", "rho_lower", "sigma_lower", "tau_upper", "rho_upper", "sigma_upper")
-  
+
   return(estimates)
 }
-

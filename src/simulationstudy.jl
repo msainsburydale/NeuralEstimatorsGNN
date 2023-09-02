@@ -89,29 +89,30 @@ Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_m$M"))
 
 # ---- Run-time assessment ----
 
+# Accurately assess the run-time for a single data set
 if isdefined(Main, :ML)
 
-	# Accurately assess the run-time for a single data set
+	# Simulate data
 	seed!(1)
 	S = rand(n, 2)
 	D = pairwise(Euclidean(), S, S, dims = 1)
-	#TODO why do I need to construct A and g? This is stored in the Parameters object. Remove (just do g = θ.graphs[1] below).
-	A = adjacencymatrix(D, ξ.δ, ξ.k)
-	g = GNNGraph(A)
 	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
-
 	θ = Parameters(1, ξ)
 	Z = simulate(θ, M; convert_to_graph = false)
 
+	# ML estimates (initialised to the prior mean)
 	θ₀ = mean.([ξ.Ω...])
-	ξ = (ξ..., S = S, D = D, θ₀ = θ₀)
+	ξ = (ξ..., θ₀ = θ₀)
 	tmap = @belapsed ML(Z, ξ)
 
+	# GNN estimates
+	g = θ.graphs[1]
 	Z = reshapedataGNN(Z, g)
 	Z = Z |> gpu
 	gnn  = gnn|> gpu
 	tgnn = @belapsed gnn(Z)
 
+	# Save the runtime
 	t = DataFrame(time = [tgnn, tmap], estimator = ["GNN", "ML"])
 	CSV.write(path * "/runtime.csv", t)
 
@@ -119,16 +120,20 @@ end
 
 # ---- Assess the estimators ----
 
+function assessestimators(θ, Z, ξ)
 
-#TODO why do I need to pass g? This is stored in the Parameters object
-function assessestimators(θ, Z, g, ξ)
+	# Convert the data to a graph
+	g = θ.graphs[1]
+	Z_graph = reshapedataGNN(Z, g)
 
+	# Assess the GNN
 	assessment = assess(
-		[gnn], θ, reshapedataGNN(Z, g);
+		[gnn], θ, Z_graph;
 		estimator_names = ["GNN"],
 		parameter_names = ξ.parameter_names
 	)
 
+	# Assess the ML estimator (if it is defined)
 	if isdefined(Main, :ML)
 		ξ = (ξ..., θ₀ = θ.θ)
 		assessment = merge(
@@ -142,29 +147,24 @@ end
 
 function assessestimators(ξ, set::String)
 
+	# Generate spatial locations and construct distance matrix
 	S = spatialconfigurations(n, set)
-
 	D = pairwise(Euclidean(), S, S, dims = 1)
-	#TODO why do I need to pass g? This is stored in the Parameters object. Remove (just do g = θ.graphs[1] below).
-	A = adjacencymatrix(D, ξ.δ, ξ.k)
-	g = GNNGraph(A)
 	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
 
 	# test set for estimating the risk function
-	seed!(1)
 	θ = Parameters(K_test, ξ)
 	Z = simulate(θ, M, convert_to_graph = false)
-	assessment = assessestimators(θ, Z, g, ξ)
+	assessment = assessestimators(θ, Z, ξ)
 	CSV.write(path * "/estimates_test_$set.csv", assessment.df)
 	CSV.write(path * "/runtime_test_$set.csv", assessment.runtime)
 
 	# small number of parameters for visualising the sampling distributions
 	K_scenarios = 5
-	seed!(1)
 	θ = Parameters(K_scenarios, ξ)
 	J = quick ? 10 : 100
 	Z = simulate(θ, M, J, convert_to_graph = false)
-	assessment = assessestimators(θ, Z, g, ξ)
+	assessment = assessestimators(θ, Z, ξ)
 	CSV.write(path * "/estimates_scenarios_$set.csv", assessment.df)
 	CSV.write(path * "/runtime_scenarios_$set.csv", assessment.runtime)
 

@@ -34,7 +34,6 @@ function simulate(parameters::Parameters, m::R; convert_to_graph::Bool = true) w
 
 	z = Folds.map(1:K) do k
 		Lₖ = chols[chol_pointer[k]][:, :]
-		Lₖ = convert(Matrix, Lₖ) # TODO shouldn't need to do this conversion. Think it's just a problem with the dispatching of simulateschlather()
 		mₖ = m[k]
 		zₖ = simulateschlather(Lₖ, mₖ)
 		zₖ = Float32.(zₖ)

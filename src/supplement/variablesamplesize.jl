@@ -86,8 +86,6 @@ Flux.loadparams!(gnn3,  loadbestweights(path * "/runs_GNN3"))
 
 # ---- Assess the estimators ----
 
-#TODO write this code to be more consistent with that in simulationstudy.jl (e.g., use convert_to_graph = false)
-
 function assessestimators(θ, Z, ξ)
 
 	println("	Running GNN estimators...")

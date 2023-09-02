@@ -105,7 +105,7 @@ suppressWarnings({
 
 # ---- Timing plot ----
 
-# TODO 
+# TODO timing plot
 
 df <- read.csv(paste0(int_path, "/runtime.csv"))
 
