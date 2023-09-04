@@ -54,6 +54,8 @@ suppressWarnings({
   )
 })
 
+figure_RMSE <- figure
+
 # Zoom in on the larger sample sizes.
 xmin1=900;  xmax1=1100
 ymin1=0.01; ymax1 = 0.055
@@ -105,12 +107,19 @@ suppressWarnings({
 
 # ---- Timing plot ----
 
-# TODO timing plot
-
 df <- read.csv(paste0(int_path, "/runtime.csv"))
 
-figure <- ggplot(data = df,
-                 aes(x = n, y = time, colour = estimator, group = estimator)) +
+average_nbes <- F
+if (average_nbes) {
+  df$estimator[df$estimator != "ML"] <- "NBE"
+  df <- df %>% group_by(estimator, n) %>% summarise(time = mean(time))
+  estimator_colours <- c(estimator_colours, "NBE" = estimator_colours[["GNN3"]])
+  estimator_labels  <- c(estimator_labels, "NBE" = "NBE")
+  estimator_order <- names(estimator_labels) 
+}
+
+figure_time <- ggplot(data = df,
+                      aes(x = n, y = time, colour = estimator, group = estimator)) +
   geom_point() +
   geom_line(alpha = 0.75) +
   labs(
@@ -118,6 +127,7 @@ figure <- ggplot(data = df,
     x = expression(n), 
     y = "Time (s)"
   ) +
+  scale_y_continuous(trans='log10') + 
   scale_x_continuous(breaks = breaks) +
   scale_estimator(df) +
   theme_bw() +
@@ -128,3 +138,23 @@ figure <- ggplot(data = df,
     strip.background = element_blank(),
     strip.text.x = element_blank()
   )
+
+ggsave(
+  figure_time,
+  file = "runtime.pdf",
+  width = 6.5, height = 4, path = img_path, device = "pdf"
+)
+
+figure_combined <- ggpubr::ggarrange(
+  figure_RMSE, 
+  figure_time, 
+  nrow = 1, 
+  common.legend = !average_nbes, 
+  legend = "top"
+)
+
+ggsave(
+  figure_combined,
+  file = "RMSE_runtime.pdf",
+  width = 9.5, height = 4.5, path = img_path, device = "pdf"
+)

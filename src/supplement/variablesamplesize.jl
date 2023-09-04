@@ -122,10 +122,15 @@ function assessestimators(n, ξ, K::Integer)
 
 	assessment = assessestimators(θ, Z, ξ)
 	assessment.df[:, :n] .= n
+	assessment.runtime[:, :n] .= n
 
 	return assessment
 end
 
+# Dummy run to compile code for more accurate timings
+assessment = [assessestimators(n, ξ, K_test) for n ∈ [30, 60]]
+
+# Proper 
 assessment = [assessestimators(n, ξ, K_test) for n ∈ [30, 60, 100, 200, 350, 500, 750, 1000, 1500, 2000]]
 assessment = merge(assessment...)
 CSV.write(path * "/estimates.csv", assessment.df)

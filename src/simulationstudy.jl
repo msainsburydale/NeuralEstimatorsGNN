@@ -60,7 +60,7 @@ n = ξ.n
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
-epochs = quick ? 10 : 1000
+epochs = quick ? 10 : 200
 
 # ---- Estimators ----
 
@@ -79,7 +79,7 @@ if !skip_training
 	@info "Sampling parameter vectors used for training..."
 	θ_train = Parameters(K_train, ξ, n, J = J)
 	@info "training the GNN..."
-	trainx(gnn, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
+	trainx(gnn, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3, stopping_epochs = 3)
 
 end
 

@@ -49,7 +49,7 @@ n = 30:2000
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
-epochs = quick ? 2 : 1000
+epochs = quick ? 2 : 200
 
 
 # ---- Training data ----
@@ -69,7 +69,7 @@ J = 3
 seed!(1)
 gnn = gnnarchitecture(p)
 @info "training the point estimator..."
-train(gnn, θ_train, θ_val, simulate, m = 1, savepath = path * "/runs_pointestimator", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
+train(gnn, θ_train, θ_val, simulate, m = 1, savepath = path * "/runs_pointestimator", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3, stopping_epochs = 3)
 
 # ---- Credible-interval estimator ----
 
