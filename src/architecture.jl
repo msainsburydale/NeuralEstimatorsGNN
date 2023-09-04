@@ -9,7 +9,8 @@ function gnnarchitecture(
 	d::Integer = 1,
 	nh::Integer = 128,
 	nlayers::Integer = 3, # number of propagation layers (in addition to the first layer)
-	readout::String = "mean"
+	readout::String = "mean",
+	final_activation = exp
 	)
 
 	@assert nlayers > 0
@@ -49,7 +50,7 @@ function gnnarchitecture(
 	ϕ = Chain(
 		Dense(no => nh, relu),
 		Dense(nh => nh, relu),
-		Dense(nh => p, exp)
+		Dense(nh => p, final_activation)
 	)
 
 	return GNN(propagation, readout, ϕ)

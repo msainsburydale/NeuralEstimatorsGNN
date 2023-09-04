@@ -307,7 +307,9 @@ estimator = juliaLet('
   ', p = p)
 ciestimator = juliaLet('
   arch = gnnarchitecture(p)
-  intervalestimator = IntervalEstimator(arch)
+  Q = gnnarchitecture(p)
+  Q̃ = gnnarchitecture(p; final_activation = identity) # identity activation very important (otherwise, the minimum width of the intervals will be 1)
+  intervalestimator = IntervalEstimator(Q, Q̃)
   ', p = p)
 
 # Load the optimal weights
