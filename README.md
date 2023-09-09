@@ -65,4 +65,4 @@ Note that the replication script is clearly presented and commented; hence, one 
 
 #### Minor reproducibility difficulties
 
-When training neural networks on the GPU, there is some some unavoidable non-determinism: see [here](https://discourse.julialang.org/t/flux-reproducibility-of-gpu-experiments/62092). This does not significantly affect the "story" of the final results, but there may be some slight differences each time the code is executed.
+When training neural networks on the GPU, there is some unavoidable non-determinism: see [here](https://discourse.julialang.org/t/flux-reproducibility-of-gpu-experiments/62092). This does not significantly affect the "story" of the final results, but there may be some slight differences each time the code is executed.

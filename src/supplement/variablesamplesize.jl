@@ -19,6 +19,7 @@ m=[1]
 M = maximum(m)
 using NeuralEstimators
 using NeuralEstimatorsGNN
+using BenchmarkTools
 using DataFrames
 using GraphNeuralNetworks
 using CSV
@@ -45,7 +46,7 @@ n = ξ.n
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
-epochs = quick ? 2 : 1000
+epochs = quick ? 2 : 200
 
 # ---- Estimators ----
 
@@ -130,8 +131,45 @@ end
 # Dummy run to compile code for more accurate timings
 assessment = [assessestimators(n, ξ, K_test) for n ∈ [30, 60]]
 
-# Proper 
+# full experiment
 assessment = [assessestimators(n, ξ, K_test) for n ∈ [30, 60, 100, 200, 350, 500, 750, 1000, 1500, 2000]]
 assessment = merge(assessment...)
 CSV.write(path * "/estimates.csv", assessment.df)
 CSV.write(path * "/runtime.csv", assessment.runtime)
+
+
+# ---- Accurately assess the run-time for a single data set ----
+
+gnn1  = gnn1 |> gpu
+gnn2  = gnn2 |> gpu
+gnn3  = gnn3 |> gpu
+
+seed!(1)
+times = []
+for n ∈ [32, 64, 128, 256, 512, 1024, 1500, 2048] # mostly use powers of 2
+
+	S = rand(n, 2)
+	D = pairwise(Euclidean(), S, S, dims = 1)
+	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
+	θ = Parameters(1, ξ)
+	Z = simulate(θ, M; convert_to_graph = false)
+
+	# ML estimates (initialised to the prior mean)
+	θ₀ = mean.([ξ.Ω...])
+	ξ = (ξ..., θ₀ = θ₀)
+	t_ml = @belapsed ML(Z, ξ)
+
+	# GNN estimates
+	g = θ.graphs[1]
+	Z = reshapedataGNN(Z, g)
+	Z = Z |> gpu
+	t_gnn1 = @belapsed gnn1(Z)
+	t_gnn2 = @belapsed gnn2(Z)
+	t_gnn3 = @belapsed gnn3(Z)
+
+	# Store the run times as a data frame
+	t = DataFrame(time = [t_gnn1, t_gnn2, t_gnn3, t_ml], estimator = ["GNN1", "GNN2", "GNN3", "ML"], n = n)
+	push!(times, t)
+end
+times = vcat(times...)
+CSV.write(path * "/runtime.csv", times)

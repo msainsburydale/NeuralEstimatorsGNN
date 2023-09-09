@@ -17,7 +17,7 @@ df <- read.csv(paste0(int_path, "/estimates.csv"))
 df <- df %>%
   mutate(loss = (estimate - truth)^2) %>%
   group_by(estimator, n) %>%
-  summarise(risk = sqrt(mean(loss))) 
+  summarise(risk = sqrt(mean(loss)))
 
 ## average risk plot
 breaks <- unique(df$n)
@@ -127,8 +127,8 @@ figure_time <- ggplot(data = df,
     x = expression(n), 
     y = "Time (s)"
   ) +
-  scale_y_continuous(trans='log10') + 
-  scale_x_continuous(breaks = breaks) +
+  # scale_y_continuous(trans='log2') +
+  # scale_x_continuous(breaks = breaks) +
   scale_estimator(df) +
   theme_bw() +
   theme(

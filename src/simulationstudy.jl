@@ -103,17 +103,17 @@ if isdefined(Main, :ML)
 	# ML estimates (initialised to the prior mean)
 	θ₀ = mean.([ξ.Ω...])
 	ξ = (ξ..., θ₀ = θ₀)
-	tmap = @belapsed ML(Z, ξ)
+	t_ml = @belapsed ML(Z, ξ)
 
 	# GNN estimates
 	g = θ.graphs[1]
 	Z = reshapedataGNN(Z, g)
 	Z = Z |> gpu
 	gnn  = gnn|> gpu
-	tgnn = @belapsed gnn(Z)
+	t_gnn = @belapsed gnn(Z)
 
 	# Save the runtime
-	t = DataFrame(time = [tgnn, tmap], estimator = ["GNN", "ML"])
+	t = DataFrame(time = [t_gnn, t_ml], estimator = ["GNN", "ML"])
 	CSV.write(path * "/runtime.csv", t)
 
 end
