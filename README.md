@@ -24,7 +24,7 @@ First, download this repository and navigate to its top-level directory within t
 Before installing the software dependencies, users may wish to setup a [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html) environment, so that the dependencies of this repository do not affect the user's current installation. To create a conda environment, run the following command in terminal:
 
 ```
-conda create -n NeuralEstimatorsGNN -c conda-forge julia=1.7.1 r-base nlopt
+conda create -n NeuralEstimatorsGNN -c conda-forge julia=1.7.3 r-base nlopt
 ```
 
 Then activate the conda environment with:
@@ -35,7 +35,7 @@ conda activate NeuralEstimatorsGNN
 
 The above conda environment installs Julia and R automatically. If you do not wish to use a conda environment, you will need to install Julia and R manually if they are not already on your system:  
 
-- Install [Julia 1.7.1](https://julialang.org/downloads/).
+- Install [Julia 1.7.3](https://julialang.org/downloads/).
 - Install [R >= 4.0.0](https://www.r-project.org/).
 
 Once Julia and R are setup, install the Julia and R package dependencies by running the following commands from the top-level of the repository:
