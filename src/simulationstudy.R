@@ -67,6 +67,8 @@ figures <- lapply(unique(df$k), function(K) {
     file = paste0("uniformlocations", K, ".pdf"),
     width = 9.3, height = 3, device = "pdf", path = img_path
   )
+  
+  figure
 })
 
 
@@ -215,6 +217,8 @@ figures <- lapply(unique(df$k), function(K) {
     file = paste0("samplingdistributions_joint", K, ".pdf"),
     width = 8, height = 4, device = "pdf", path = img_path
   )
+  
+  figure
 })
 
 
