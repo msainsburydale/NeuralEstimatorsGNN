@@ -12,6 +12,8 @@ suppressMessages({
   options(dplyr.summarise.inform = FALSE) 
 })
 
+if(!interactive()) pdf(NULL)
+
 
 # see: latex2exp_supported()
 estimator_labels <- c(

@@ -45,8 +45,8 @@ J = 3
 K_train = 10_000
 K_val   = K_train ÷ 10
 if quick
-	K_train = K_train ÷ 100
-	K_val   = K_val   ÷ 100
+	K_train = K_train ÷ 10
+	K_val   = K_val   ÷ 10
 end
 K_test = K_val
 
@@ -55,7 +55,7 @@ n = ξ.n
 
 # The number of epochs used during training: note that early stopping means that
 # we never really train for the full amount of epochs
-epochs = quick ? 2 : 200
+epochs = quick ? 20 : 200
 
 # ---- Estimator ----
 

@@ -53,7 +53,7 @@ Note that Linux systems have several system dependencies that may need to be ins
 conda install -c conda-forge r-devtools
 ```
 
-or by manually installing the system dependencies before installing `devtools` manually. in R: 
+or by manually installing the system dependencies before installing `devtools` manually in R: 
 
 ```
 sudo apt -y install libfontconfig1-dev libharfbuzz-dev libfribidi-dev
