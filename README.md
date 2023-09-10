@@ -38,7 +38,7 @@ The above conda environment installs Julia and R automatically. If you do not wi
 - Install [Julia 1.7.3](https://julialang.org/downloads/).
 - Install [R >= 4.0.0](https://www.r-project.org/).
 
-Once Julia and R are setup, install the Julia and R package dependencies by running the following commands from the top-level of the repository:
+Once Julia and R are setup, install the Julia and R package dependencies (given in `Project.toml` and `Manifest.toml`, and `dependencies.txt`, respectively) by running the following commands from the top-level of the repository:
 
 ```
 julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
@@ -47,7 +47,18 @@ julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
 Rscript dependencies_install.R
 ```
 
-Note that the Julia package dependencies are given in `Project.toml` and `Manifest.toml`, and the R package dependencies are given in `dependencies.txt`.
+Note that Linux systems have several system dependencies that may need to be installed before installing `devtools` (e.g., `fontconfig1`, `harfbuzz`, and `fribidi`). If you run into problems when installing `devtools`, try installing it manually with  `conda` using the command (other R packages can also be installed this way):
+
+```
+conda install -c conda-forge r-devtools
+```
+
+or by manually installing the system dependencies before installing `devtools` manually. in R: 
+
+```
+sudo apt -y install libfontconfig1-dev libharfbuzz-dev libfribidi-dev
+```
+
 
 
 ### Hardware requirements
@@ -58,7 +69,7 @@ The fast construction of neural Bayes estimators requires graphical processing u
 
 The replication script is `sh/all.sh`, invoked using `bash sh/all.sh` from the top level of this repository. For all studies, the replication script will automatically train the neural estimators, generate estimates from both the neural and likelihood-based estimators, and populate the `img` folder with the figures and results of the manuscript.
 
-The nature of our experiments means that the run time for reproducing the results of the manuscript can be substantial (1-2 days in total). When running the replication script, the user will be prompted with an option to quickly establish that the code is working by using a small number of parameter configurations and epochs. Our envisioned workflow is to establish that the code is working with this "quick" option, clear the populated folders by simply entering `bash sh/clear.sh`, and then run the code in full (possibly over the weekend).
+The nature of our experiments means that the run time for reproducing the results of the manuscript can be substantial (1-2 days in total). When running the replication script, the user will be prompted with an option to quickly establish that the code is working by using a small number of parameter configurations and epochs. Our envisioned workflow is to establish that the code is working with this "quick" option, clear the populated folders by simply entering `bash sh/clear.sh`, and then run the code in full (possibly over the weekend). **NB:** under this "quick" option, very few training samples and epochs are used when training the GNN-based estimator, and the results produced will therefore not be meaningful and should not be interpreted.  
 
 Note that the replication script is clearly presented and commented; hence, one may easily "comment out" sections to produce a subset of the results. (Comments in `.sh` files are made with `#`.) By default, results for the max-stable models are not produced, since the simulation of data sets with independent replicates can lead to memory problems on personal computers with limited memory resources; results for these models can be produced by un-commenting the appropriate command in `sh/simulationstudies.sh`. Note that the pairwise likelihood for the Brown-Resnick max-stable process is computed using `C` code, which must be compiled by running the command `bash sh/compile.sh`. 
 

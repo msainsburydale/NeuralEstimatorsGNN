@@ -128,14 +128,10 @@ function assessestimators(n, ξ, K::Integer)
 	return assessment
 end
 
-# Dummy run to compile code for more accurate timings
-assessment = [assessestimators(n, ξ, K_test) for n ∈ [30, 60]]
-
 # full experiment
 assessment = [assessestimators(n, ξ, K_test) for n ∈ [30, 60, 100, 200, 350, 500, 750, 1000, 1500, 2000]]
 assessment = merge(assessment...)
 CSV.write(path * "/estimates.csv", assessment.df)
-CSV.write(path * "/runtime.csv", assessment.runtime)
 
 
 # ---- Accurately assess the run-time for a single data set ----
@@ -144,11 +140,10 @@ gnn1  = gnn1 |> gpu
 gnn2  = gnn2 |> gpu
 gnn3  = gnn3 |> gpu
 
-seed!(1)
-times = []
-for n ∈ [32, 64, 128, 256, 512, 1024, 1500, 2048] # mostly use powers of 2
+function testruntime(n, ξ)
 
-	S = rand(n, 2)
+  # Simulate locations and data
+  S = rand(n, 2)
 	D = pairwise(Euclidean(), S, S, dims = 1)
 	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
 	θ = Parameters(1, ξ)
@@ -168,8 +163,15 @@ for n ∈ [32, 64, 128, 256, 512, 1024, 1500, 2048] # mostly use powers of 2
 	t_gnn3 = @belapsed gnn3(Z)
 
 	# Store the run times as a data frame
-	t = DataFrame(time = [t_gnn1, t_gnn2, t_gnn3, t_ml], estimator = ["GNN1", "GNN2", "GNN3", "ML"], n = n)
+	DataFrame(time = [t_gnn1, t_gnn2, t_gnn3, t_ml], estimator = ["GNN1", "GNN2", "GNN3", "ML"], n = n)
+end
+
+seed!(1)
+times = []
+for n ∈ [32, 64, 128, 256, 512, 1024, 1500, 2048] # mostly use powers of 2
+	t = testruntime(n, ξ)
 	push!(times, t)
 end
 times = vcat(times...)
+
 CSV.write(path * "/runtime.csv", times)

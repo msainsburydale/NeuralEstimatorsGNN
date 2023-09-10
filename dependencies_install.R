@@ -27,6 +27,11 @@ install_dependencies <- function(install_exact_versions) {
   x <- read.table("dependencies.txt", header = FALSE)
   pkg_versions <- setNames(as.character(x[, 2]), x[, 1])
   rm(x)
+  
+  ## If we do not wish to install the dependencies specific to the application study, remove them
+  if (!install_application_depends) {
+    pkg_versions <- pkg_versions[!(names(pkg_versions) %in%  c("FRK", "spdep", "spatstat"))]
+  }
 
   # ---- Non-CRAN packages ----
 
@@ -89,8 +94,12 @@ install_dependencies <- function(install_exact_versions) {
 install_depends <- user_decision("Do you want to automatically install package dependencies? (y/n)")
 
 if (install_depends == "y") {
+  
   install_exact_versions <- user_decision("Do you want to ensure that all package versions are as given in dependencies.txt (this option is only recommended for use if there is a problem with the latest version of the packages)? (y/n)")
   install_exact_versions <- install_exact_versions == "y" # Convert to Boolean
+  
+  install_application_depends <- user_decision("Some dependencies specific to the application study take a long time to install (e.g., 'INLA', 'spdep', 'spatstat'): do you want to install these packages? (y/n)")
+  install_application_depends <- install_application_depends == "y" # Convert to Boolean
   
   CRANMIRROR <- "https://cran.csiro.au"
   
@@ -100,7 +109,6 @@ if (install_depends == "y") {
     install.packages("devtools", repos = CRANMIRROR, dependencies = TRUE)
   }
   if (!("devtools" %in% rownames(installed.packages()))) stop("\nThe package 'devtools' failed to install, please install it manually. \n Note that on Linux systems there are several system dependencies that may need to be installed before installing devtools (e.g., fontconfig1, harfbuzz, and fribidi). Try using the following command before installing devtools: \n sudo apt -y install libfontconfig1-dev libharfbuzz-dev libfribidi-dev\n")
-  
   
 
   if (install_exact_versions) {

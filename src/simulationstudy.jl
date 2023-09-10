@@ -50,8 +50,8 @@ if !isdir(path) mkpath(path) end
 K_train = 10_000
 K_val   = K_train ÷ 10
 if quick
-	K_train = K_train ÷ 100
-	K_val   = K_val   ÷ 100
+	K_train = K_train ÷ 10
+	K_val   = K_val   ÷ 10
 end
 K_test = K_val
 
@@ -59,8 +59,8 @@ p = ξ.p
 n = ξ.n
 
 # The number of epochs used during training: note that early stopping means that
-# we never really train for the full amount of epochs
-epochs = quick ? 10 : 200
+# we never don't usually train for the full amount of epochs
+epochs = quick ? 20 : 200
 
 # ---- Estimators ----
 
