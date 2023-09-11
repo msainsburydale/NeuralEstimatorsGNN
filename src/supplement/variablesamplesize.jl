@@ -152,15 +152,15 @@ function testruntime(n, ξ)
 	# ML estimates (initialised to the prior mean)
 	θ₀ = mean.([ξ.Ω...])
 	ξ = (ξ..., θ₀ = θ₀)
-	t_ml = @belapsed ML(Z, ξ)
+	t_ml = @belapsed ML($Z, $ξ)
 
 	# GNN estimates
 	g = θ.graphs[1]
 	Z = reshapedataGNN(Z, g)
 	Z = Z |> gpu
-	t_gnn1 = @belapsed gnn1(Z)
-	t_gnn2 = @belapsed gnn2(Z)
-	t_gnn3 = @belapsed gnn3(Z)
+	t_gnn1 = @belapsed gnn1($Z)
+	t_gnn2 = @belapsed gnn2($Z)
+	t_gnn3 = @belapsed gnn3($Z)
 
 	# Store the run times as a data frame
 	DataFrame(time = [t_gnn1, t_gnn2, t_gnn3, t_ml], estimator = ["GNN1", "GNN2", "GNN3", "ML"], n = n)
