@@ -1,3 +1,10 @@
+library("optparse")
+option_list = list(
+  make_option(c("-q", "--quick"), type = "logical", default = FALSE, action = "store_true")
+)
+opt_parser  <- OptionParser(option_list=option_list)
+quick       <- parse_args(opt_parser)$quick
+
 suppressMessages({
   library("NeuralEstimators")
   library("JuliaConnectoR")
@@ -196,8 +203,7 @@ suppressWarnings({
 # ---- Hexagon cell pre-processing ----
 
 ## Bin the data into hexagons
-# set.seed(1); spdf <- df[sample(1:nrow(df), 100000), ] # thin the data set for faster prototyping
-spdf <- df
+spdf <- if (quick) df[sample(1:nrow(df), 50000), ] else df
 coordinates(spdf) = ~ lon + lat
 suppressWarnings({
   slot(spdf, 'proj4string') <- CRS('+proj=longlat +ellps=sphere')
@@ -397,6 +403,8 @@ estimates <- sapply(clustered_split_df[1:3], function(dat) {
 
 estimation_time <- preprocessing_time <- 0
 
+cat("\nConstructing the adjacency matrices and estimating... \n")
+
 ## non-parallel version
 estimates <- sapply(clustered_split_df, function(dat) {
   estimate_parameters(estimator, ciestimator, dat)
@@ -514,7 +522,7 @@ ggsave(
 
 # --------
 
-# TODO parallel estimation to improve estimation times
+# TODO parallel estimation to improve estimation times even further
 
 # NB just sticking with non-parallel version for now because it's a bit simpler
 estimate_parameters_parallel <- function(estimator, ciestimator, split_df_list) {

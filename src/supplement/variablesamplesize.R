@@ -66,6 +66,12 @@ window1 <- figure +
   coord_cartesian(xlim = c(xmin1, xmax1), ylim = c(ymin1, ymax1)) + 
   theme(aspect.ratio = .5)
 
+#NB the position of the windows are fixed, and so in this case, one of the 
+#  windows does not contain the curves for any of the estimators. Could this 
+#  potentially still be the case when running the non-fast option? Would it 
+#  make sense to centre the window around the value at (n=30) for the Bayes 
+#  estimator, rather than having it fixed? Yes, it would...
+
 # Zoom in on the smaller sample sizes.
 xmin=15;  xmax=45
 ymin=0.105; ymax = 0.135

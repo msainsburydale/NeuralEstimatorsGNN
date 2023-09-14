@@ -10,7 +10,8 @@ function gnnarchitecture(
 	nh::Integer = 128,
 	nlayers::Integer = 3, # number of propagation layers (in addition to the first layer)
 	readout::String = "mean",
-	final_activation = exp
+	final_activation = exp,
+	aggr = mean
 	)
 
 	@assert nlayers > 0
@@ -18,13 +19,18 @@ function gnnarchitecture(
 	# Propagation module
 	propagation = if propagation == "GraphConv"
 		 GNNChain(
-			GraphConv(d  => nh, relu, aggr = mean),
-			[GraphConv(nh => nh, relu, aggr = mean) for _ in 1:nlayers]...
+			GraphConv(d  => nh, relu, aggr = aggr),
+			[GraphConv(nh => nh, relu, aggr = aggr) for _ in 1:nlayers]...
 		)
 	elseif propagation == "WeightedGraphConv"
 		GNNChain(
-			WeightedGraphConv(d  => nh, relu, aggr = mean),
-			[WeightedGraphConv(nh => nh, relu, aggr = mean) for _ in 1:nlayers]...
+			WeightedGraphConv(d  => nh, relu, aggr = aggr),
+			[WeightedGraphConv(nh => nh, relu, aggr = aggr) for _ in 1:nlayers]...
+		)
+	elseif propagation == "WeightedGINConv"
+		GNNChain(
+			WeightedGINConv(d  => nh, relu, aggr = aggr),
+			[WeightedGINConv(nh => nh, relu, aggr = aggr) for _ in 1:nlayers]...
 		)
 	else
 		error("propagation module not recognised")

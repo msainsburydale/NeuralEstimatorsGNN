@@ -16,4 +16,4 @@ else
 fi
 
 julia --threads=auto --project=. src/application/main.jl $quick
-Rscript src/application/main.R   --model=$model
+Rscript src/application/main.R   --model=$model $quick
