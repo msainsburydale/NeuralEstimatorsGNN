@@ -13,8 +13,6 @@ export spatialconfigurations
 export Parameters
 export reshapedataGNN, reshapedataGNNcompact
 
-
-
 # ---- Utility functions ----
 
 """

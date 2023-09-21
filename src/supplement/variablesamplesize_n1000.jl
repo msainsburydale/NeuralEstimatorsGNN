@@ -32,7 +32,7 @@ path = "intermediates/supplement/variablesamplesize_n1000/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
-K_train = 30_000
+K_train = 10_000
 K_val   = K_train ÷ 10
 if quick
 	K_train = K_train ÷ 10

@@ -1,7 +1,22 @@
 using NeuralEstimators
-using GraphNeuralNetworks
+using Distributions
 using Flux
+using GraphNeuralNetworks
 using Statistics: mean
+
+function gnnarchitecture(ξ; args...)
+
+	# Extract prior support:
+	Ω = ξ.Ω
+	p = length(Ω)
+	a = [minimum.(values(Ω))...]
+	b = [maximum.(values(Ω))...]
+
+	# Final activation function compresses output to prior support:
+	final_activation = Compress(a, b)
+
+	return architecture(p; final_activation = final_activation, args...)
+end
 
 function gnnarchitecture(
 	p::Integer;

@@ -25,7 +25,7 @@ include(joinpath(pwd(), "src/architecture.jl"))
 Ω = (
 	τ = Uniform(0.1, 1.0),
 	ρ = Uniform(0.05, 0.6),
-	σ = Uniform(0.1, 2.0)
+	σ = Uniform(0.1, 3.0)
 )
 parameter_names = String.(collect(keys(Ω)))
 p = length(Ω)
@@ -73,11 +73,14 @@ train(gnn, θ_train, θ_val, simulate, m = 1, savepath = path * "/runs_pointesti
 
 # ---- Credible-interval estimator ----
 
-Q = gnnarchitecture(p)
-Q̃ = gnnarchitecture(p; final_activation = identity) # identity activation very important (otherwise, the minimum width of the intervals will be 1)
-Flux.loadparams!(Q, loadbestweights(path * "/runs_pointestimator")) # pretrain with point estimator
-Flux.loadparams!(Q̃, loadbestweights(path * "/runs_pointestimator")) # pretrain with point estimator
-intervalestimator = IntervalEstimator(Q, Q̃)
+U = gnnarchitecture(p; final_activation = identity)
+V = deepcopy(U)
+Flux.loadparams!(U, loadbestweights(path * "/runs_pointestimator")) # pretrain with point estimator
+Flux.loadparams!(V, loadbestweights(path * "/runs_pointestimator")) # pretrain with point estimator
+Ω = ξ.Ω
+a = [minimum.(values(Ω))...]
+b = [maximum.(values(Ω))...]
+intervalestimator = IntervalEstimatorCompactPrior(U, V, a, b)
 
 α = 0.05f0
 q = [α/2, 1-α/2] # quantiles

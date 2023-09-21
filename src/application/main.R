@@ -306,16 +306,24 @@ ggsave(ggarrange(gg, gghist), filename = "clusteringsamplesizes.png", device = "
 # Start Julia with the project of the current directory:
 Sys.setenv("JULIACONNECTOR_JULIAOPTS" = "--project=. --threads=auto")
 
-# Initialise the estimators
-estimator = juliaLet('
+# Load the architecture and prior information (which is incorporated in the architecture)
+juliaEval('
   include(joinpath(pwd(), "src/architecture.jl"))
-  estimator = gnnarchitecture(p)
-  ', p = p)
+  Ω = (
+	  τ = Uniform(0.1, 1.0),
+	  ρ = Uniform(0.05, 0.6),
+	  σ = Uniform(0.1, 3.0)
+  )
+  a = [minimum.(values(Ω))...]
+  b = [maximum.(values(Ω))...]
+  ')
+
+# Initialise the estimators
+estimator   = juliaLet('estimator = gnnarchitecture(p)', p = p)
 ciestimator = juliaLet('
-  arch = gnnarchitecture(p)
-  Q = gnnarchitecture(p)
-  Q̃ = gnnarchitecture(p; final_activation = identity) # identity activation very important (otherwise, the minimum width of the intervals will be 1)
-  intervalestimator = IntervalEstimator(Q, Q̃)
+  U = gnnarchitecture(p; final_activation = identity)
+  V = deepcopy(U)
+  intervalestimator = IntervalEstimatorCompactPrior(U, V, a, b))
   ', p = p)
 
 # Load the optimal weights
