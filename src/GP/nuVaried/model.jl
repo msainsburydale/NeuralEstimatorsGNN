@@ -5,7 +5,5 @@ using Distributions: Uniform
 	ν = Uniform(0.5, 1.5)
 )
 
-# To reduce code repetition, I have used a file for both ν fixed and ν unknown.
-# Here, we simply source that file. Note that we still include a file within
-# each subfolder for consistency with the assumed structure of the repo.
+# To reduce code repetition, use a single file for all GP models
 include(joinpath(pwd(), "src/GP/model.jl"))

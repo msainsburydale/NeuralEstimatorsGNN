@@ -306,14 +306,11 @@ ggsave(ggarrange(gg, gghist), filename = "clusteringsamplesizes.png", device = "
 # Start Julia with the project of the current directory:
 Sys.setenv("JULIACONNECTOR_JULIAOPTS" = "--project=. --threads=auto")
 
-# Load the architecture and prior information (which is incorporated in the architecture)
+# Load the architecture and prior information (which will be incorporated in the architecture)
 juliaEval('
   include(joinpath(pwd(), "src/architecture.jl"))
-  Ω = (
-	  τ = Uniform(0.1, 1.0),
-	  ρ = Uniform(0.05, 0.6),
-	  σ = Uniform(0.1, 3.0)
-  )
+  model="GP/nuFixedSigmaVaried"
+  include(joinpath(pwd(), "src/$model/model.jl"))
   a = [minimum.(values(Ω))...]
   b = [maximum.(values(Ω))...]
   ')

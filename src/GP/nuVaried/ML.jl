@@ -1,2 +1,2 @@
-# To reduce code repetition, use a single file for both ν fixed and ν unknown
+# To reduce code repetition, use a single file for all GP models
 include(joinpath(pwd(), "src/GP/ML.jl"))

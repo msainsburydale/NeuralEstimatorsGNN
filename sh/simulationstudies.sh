@@ -15,7 +15,7 @@ else
     exit 1
 fi
 
-for model in GP/nuFixed # Schlather BrownResnick 
+for model in GP/nuFixed GP/nuFixedSigmaVaried # Schlather BrownResnick
 do
 
     echo ""
@@ -26,7 +26,7 @@ do
         bash sh/compile.sh
     fi
 
-    if [[ $model == "GP/nuFixed"  ]]; then
+    if [[ $model == "GP/nuFixed"  ] || [ $model == "GP/nuFixedSigmaVaried" ]]; then
         m="[1]"
     elif [[ $model == "SPDE" ]]; then
         m="[1]"
