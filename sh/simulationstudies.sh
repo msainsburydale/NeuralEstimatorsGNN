@@ -26,7 +26,7 @@ do
         bash sh/compile.sh
     fi
 
-    if [[ $model == "GP/nuFixed"  ] || [ $model == "GP/nuFixedSigmaVaried" ]]; then
+    if [[ $model == "GP/nuFixed" || $model == "GP/nuFixedSigmaVaried" ]]; then
         m="[1]"
     elif [[ $model == "SPDE" ]]; then
         m="[1]"

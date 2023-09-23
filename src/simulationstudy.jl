@@ -25,7 +25,7 @@ m = let expr = Meta.parse(parsed_args["m"])
     Int.(expr.args)
 end
 
-# model="GP/nuFixed"
+# model="GP/nuFixedSigmaVaried"
 # m=[1]
 # skip_training = true
 # quick=true
@@ -161,6 +161,7 @@ function assessestimators(ξ, set::String)
 
 	# small number of parameters for visualising the sampling distributions
 	K_scenarios = 5
+	seed!(1) # Important that these Parameter scenarios are the same for all locations when constructing the plots. 
 	θ = Parameters(K_scenarios, ξ)
 	J = quick ? 10 : 100
 	Z = simulate(θ, M, J, convert_to_graph = false)
@@ -181,7 +182,7 @@ function assessestimators(ξ, set::String)
 	df = DataFrame(Z = z, k = k, s1 = s1, s2 = s2)
 	CSV.write(path * "/Z_$set.csv", df)
 
-	return 0
+	return assessment
 end
 
 
