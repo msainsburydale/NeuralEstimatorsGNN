@@ -61,17 +61,19 @@ epochs = quick ? 20 : 200
 
 seed!(1)
 pointestimator = gnnarchitecture(p)
-Q = gnnarchitecture(p)
-Q̃ = gnnarchitecture(p; final_activation = identity) # identity activation very important (otherwise, the minimum width of the intervals will be 1)
+U = gnnarchitecture(p; final_activation = identity)
+V = deepcopy(U)
 
 # pretrain with point estimator
 if isfile(path * "/runs_GNN_m$M")
 	Flux.loadparams!(pointestimator, loadbestweights(path * "/runs_GNN_m$M"))
-	Flux.loadparams!(Q, loadbestweights(path * "/runs_GNN_m$M"))
-	Flux.loadparams!(Q̃, loadbestweights(path * "/runs_GNN_m$M"))
+	Flux.loadparams!(U, loadbestweights(path * "/runs_GNN_m$M"))
+	Flux.loadparams!(V, loadbestweights(path * "/runs_GNN_m$M"))
 end
-
-intervalestimator = IntervalEstimator(Q, Q̃)
+Ω = ξ.Ω
+a = [minimum.(values(Ω))...]
+b = [maximum.(values(Ω))...]
+intervalestimator = IntervalEstimatorCompactPrior(U, V, a, b)
 
 α = 0.05f0
 q = [α/2, 1-α/2] # quantiles

@@ -179,7 +179,8 @@ figures <- lapply(unique(df$k), function(K) {
   ggsave(
     figure,
     file = paste0("samplingdistributions_marginal", K, ".pdf"),
-    width = 8.5, height = 4.6, device = "pdf", path = img_path
+    device = "pdf", path = img_path,
+    width = 8.5, height = 4.6 + max(0, (p-2)) * 1.5
   )
   
   # ---- Joint sampling distributions ----
