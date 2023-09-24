@@ -312,7 +312,7 @@ juliaEval('
   model="GP/nuFixedSigmaVaried"
   include(joinpath(pwd(), "src/$model/model.jl"))
   a = [minimum.(values(Ω))...]
-  b = [maximum.(values(Ω))...]
+  b = [maximum.(values(Ω))...];
   ')
 
 # Initialise the estimators
@@ -320,7 +320,7 @@ estimator   = juliaLet('estimator = gnnarchitecture(p)', p = p)
 ciestimator = juliaLet('
   U = gnnarchitecture(p; final_activation = identity)
   V = deepcopy(U)
-  intervalestimator = IntervalEstimatorCompactPrior(U, V, a, b))
+  intervalestimator = IntervalEstimatorCompactPrior(U, V, a, b)
   ', p = p)
 
 # Load the optimal weights
