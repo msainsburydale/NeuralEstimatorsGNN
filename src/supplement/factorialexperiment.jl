@@ -28,7 +28,7 @@ include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/$model/ML.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
-path = "intermediates/supplement/variablesamplesize_n1000/$model"
+path = "intermediates/supplement/factorialexperiment/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
