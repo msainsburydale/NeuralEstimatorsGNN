@@ -21,12 +21,12 @@ end
 function gnnarchitecture(
 	p::Integer;
 	propagation::String = "WeightedGraphConv",
-	d::Integer = 1,
-	nh::Integer = 128,
+	d::Integer = 1, 	  # dimension of the response variable (univariate by default)
+	nh::Integer = 128,    # number of channels in each propagation layer
 	nlayers::Integer = 3, # number of propagation layers (in addition to the first layer)
+	aggr = mean,          # node aggregation function
 	readout::String = "mean",
-	final_activation = exp,
-	aggr = mean
+	final_activation = exp
 	)
 
 	@assert nlayers > 0
