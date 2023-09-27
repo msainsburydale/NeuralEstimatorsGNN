@@ -66,8 +66,7 @@ V = gnnarchitecture(p; final_activation = identity)
 Ω = ξ.Ω
 a = [minimum.(values(Ω))...]
 b = [maximum.(values(Ω))...]
-#intervalestimator = IntervalEstimatorCompactPrior(U, V, a, b)
-intervalestimator = IntervalEstimatorCompactPrior(U, V)
+intervalestimator = IntervalEstimatorCompactPrior(U, V, a, b)
 
 α = 0.05f0
 q = [α/2, 1-α/2] # quantiles
