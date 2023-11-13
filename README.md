@@ -1,8 +1,8 @@
 # Source code for "Neural Bayes Estimators for Irregular Spatial Data using Graph Neural Networks"
 
-This repository contains code for reproducing the results in "Neural Bayes Estimators for Irregular Spatial Data using Graph Neural Networks" [(Sainsbury-Dale et al., 2023+)](TODO).
+This repository contains code for reproducing the results in "Neural Bayes Estimators for Irregular Spatial Data using Graph Neural Networks" [(Sainsbury-Dale et al., 2023+)](https://arxiv.org/abs/2310.02600).
 
-The methodology described in the manuscript has been incorporated into the Julia package [NeuralEstimators.jl](https://github.com/msainsburydale/NeuralEstimators.jl). In particular, see the example given [here](https://msainsburydale.github.io/NeuralEstimators.jl/dev/workflow/examples/#Irregular-spatial-data). The code in this repository is therefore made available primarily for reproducibility purposes, and we encourage readers seeking to implement GNN-based neural Bayes estimators to explore the package and its documentation. Users are also welcome to contact the package maintainer if you have any questions!   
+The methodology described in the manuscript has been incorporated into the Julia package [NeuralEstimators.jl](https://github.com/msainsburydale/NeuralEstimators.jl). In particular, see the example given [here](https://msainsburydale.github.io/NeuralEstimators.jl/dev/workflow/examples/#Irregular-spatial-data). The code in this repository is therefore made available primarily for reproducibility purposes, and we encourage readers seeking to implement GNN-based neural Bayes estimators to explore the package and its documentation. Users are also welcome to contact the package maintainer if there are any questions. 
 
 ## Repository structure
 
@@ -21,7 +21,7 @@ First, download this repository and navigate to its top-level directory within t
 
 ### Software dependencies
 
-Before installing the software dependencies, users may wish to setup a [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html) environment, so that the dependencies of this repository do not affect the user's current installation. To create a conda environment, run the following command in terminal:
+Before installing the software dependencies, users may wish to set up a [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html) environment, so that the dependencies of this repository do not affect the user's current installation. To create a conda environment, run the following command in terminal:
 
 ```
 conda create -n NeuralEstimatorsGNN -c conda-forge julia=1.7.3 r-base nlopt
@@ -53,7 +53,7 @@ Note that Linux systems have several system dependencies that may need to be ins
 conda install -c conda-forge r-devtools
 ```
 
-or by manually installing the system dependencies before installing `devtools` manually in R: 
+or by manually installing the system dependencies before installing `devtools` manually in R:
 
 ```
 sudo apt -y install libfontconfig1-dev libharfbuzz-dev libfribidi-dev
@@ -71,7 +71,7 @@ The replication script is `sh/all.sh`, invoked using `bash sh/all.sh` from the t
 
 The nature of our experiments means that the run time for reproducing the results of the manuscript can be substantial (1-2 days in total). When running the replication script, the user will be prompted with an option to quickly establish that the code is working by using a small number of parameter configurations and epochs. Our envisioned workflow is to establish that the code is working with this "quick" option, clear the populated folders by simply entering `bash sh/clear.sh`, and then run the code in full (possibly over the weekend). **NB:** under this "quick" option, very few training samples and epochs are used when training the GNN-based estimator, and the results produced will therefore not be meaningful and should not be interpreted.  
 
-Note that the replication script is clearly presented and commented; hence, one may easily "comment out" sections to produce a subset of the results. (Comments in `.sh` files are made with `#`.) By default, results for the max-stable models are not produced, since the simulation of data sets with independent replicates can lead to memory problems on personal computers with limited memory resources; results for these models can be produced by un-commenting the appropriate command in `sh/simulationstudies.sh`. Note that the pairwise likelihood for the Brown-Resnick max-stable process is computed using `C` code, which must be compiled by running the command `bash sh/compile.sh`. 
+Note that the replication script is clearly presented and commented; hence, one may easily "comment out" sections to produce a subset of the results. (Comments in `.sh` files are made with `#`.) By default, results for the max-stable models are not produced, since the simulation of data sets with independent replicates can lead to memory problems on personal computers with limited memory resources; results for these models can be produced by un-commenting the appropriate command in `sh/simulationstudies.sh`. Note that the pairwise likelihood for the Brown-Resnick max-stable process is computed using `C` code, which must be compiled by running the command `bash sh/compile.sh`.
 
 
 #### Minor reproducibility difficulties
