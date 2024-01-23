@@ -1,6 +1,6 @@
-# -------------------------------------------------------------------
-# ---- Experiment: GNNs in the presence of variable sample sizes ----
-# -------------------------------------------------------------------
+# -----------------------------------------------------
+# ---- Experiment: GNNs with variable sample sizes ----
+# -----------------------------------------------------
 
 using ArgParse
 arg_table = ArgParseSettings()
@@ -11,12 +11,10 @@ arg_table = ArgParseSettings()
 
 end
 parsed_args = parse_args(arg_table)
-quick           = parsed_args["quick"]
+quick       = parsed_args["quick"]
 
-model="GP/nuFixed"
-m=[1]
-
-M = maximum(m)
+model= joinpath("GP", "nuFixed")
+m=1
 using NeuralEstimators
 using NeuralEstimatorsGNN
 using BenchmarkTools
@@ -28,12 +26,12 @@ include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/$model/ML.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
-path = "intermediates/supplement/variablesamplesize/$model"
+path = "intermediates/supplement/variablesamplesize"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
 K_train = 10_000
-K_val   = K_train ÷ 10
+K_val   = K_train ÷ 5
 if quick
 	K_train = K_train ÷ 100
 	K_val   = K_val   ÷ 100
@@ -45,7 +43,7 @@ p = ξ.p
 n = ξ.n
 
 # The number of epochs used during training: note that early stopping means that
-# we never really train for the full amount of epochs
+# we never train for the full amount of epochs
 epochs = quick ? 2 : 200
 
 # ---- Estimators ----
@@ -63,21 +61,21 @@ large_n = 1000
 
 # GNN estimator trained with a fixed small n
 seed!(1)
-θ_val   = Parameters(K_val,   ξ, small_n, J = J)
-θ_train = Parameters(K_train, ξ, small_n, J = J)
-train(gnn1, θ_train, θ_val, simulate, m = M, savepath = path * "/runs_GNN1", epochs = epochs, epochs_per_Z_refresh = 3)
+θ_val   = Parameters(K_val,   ξ, small_n, J = J, cluster_process = false)
+θ_train = Parameters(K_train, ξ, small_n, J = J, cluster_process = false)
+train(gnn1, θ_train, θ_val, simulate, m = m, savepath = path * "/runs_GNN1", epochs = epochs, epochs_per_Z_refresh = 3)
 
 # GNN estimator trained with a fixed large n
 seed!(1)
-θ_val   = Parameters(K_val,   ξ, large_n, J = J)
-θ_train = Parameters(K_train, ξ, large_n, J = J)
-train(gnn2, θ_train, θ_val, simulate, m = M, savepath = path * "/runs_GNN2", epochs = epochs, epochs_per_Z_refresh = 3)
+θ_val   = Parameters(K_val,   ξ, large_n, J = J, cluster_process = false)
+θ_train = Parameters(K_train, ξ, large_n, J = J, cluster_process = false)
+train(gnn2, θ_train, θ_val, simulate, m = m, savepath = path * "/runs_GNN2", epochs = epochs, epochs_per_Z_refresh = 3)
 
 # GNN estimator trained with a range of n
 seed!(1)
-θ_val   = Parameters(K_val,   ξ, small_n:large_n, J = J)
-θ_train = Parameters(K_train, ξ, small_n:large_n, J = J)
-train(gnn3, θ_train, θ_val, simulate, m = M, savepath = path * "/runs_GNN3", epochs = epochs, epochs_per_Z_refresh = 3)
+θ_val   = Parameters(K_val,   ξ, small_n:large_n, J = J, cluster_process = false)
+θ_train = Parameters(K_train, ξ, small_n:large_n, J = J, cluster_process = false)
+train(gnn3, θ_train, θ_val, simulate, m = m, savepath = path * "/runs_GNN3", epochs = epochs, epochs_per_Z_refresh = 3)
 
 # ---- Load the trained estimators ----
 
@@ -115,7 +113,7 @@ function assessestimators(n, ξ, K::Integer)
 	# test set for estimating the risk function
 	seed!(1)
 	θ = Parameters(K, ξ, n)
-	Z = simulate(θ, M)
+	Z = simulate(θ, m)
 	# ML estimator requires the locations and distance matrix:
 	S = θ.locations
 	D = pairwise.(Ref(Euclidean()), S, S, dims = 1)
@@ -141,12 +139,12 @@ gnn3  = gnn3 |> gpu
 
 function testruntime(n, ξ)
 
-  # Simulate locations and data
-  S = rand(n, 2)
+    # Simulate locations and data
+    S = rand(n, 2)
 	D = pairwise(Euclidean(), S, S, dims = 1)
 	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
 	θ = Parameters(1, ξ)
-	Z = simulate(θ, M; convert_to_graph = false)
+	Z = simulate(θ, m; convert_to_graph = false)
 
 	# ML estimates (initialised to the prior mean)
 	θ₀ = mean.([ξ.Ω...])

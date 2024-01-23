@@ -131,14 +131,14 @@ figure_time <- ggplot(data = df,
   labs(
     colour = "", 
     x = expression(n), 
-    y = "Time (s)"
+    y = "Inference time (s)"
   ) +
   # scale_y_continuous(trans='log2') +
   # scale_x_continuous(breaks = breaks) +
   scale_estimator(df) +
   theme_bw() +
   theme(
-    legend.text=element_text(size = 14),
+    legend.text=element_text(size = 12),
     legend.text.align = 0,
     panel.grid = element_blank(),
     strip.background = element_blank(),
@@ -156,11 +156,11 @@ figure_combined <- ggpubr::ggarrange(
   figure_time, 
   nrow = 1, 
   common.legend = !average_nbes, 
-  legend = "top"
+  legend = "right"
 )
 
 ggsave(
   figure_combined,
   file = "RMSE_runtime.pdf",
-  width = 9.5, height = 4.5, path = img_path, device = "pdf"
+  width = 9.5, height =3.7, path = img_path, device = "pdf"
 )

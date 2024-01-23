@@ -153,7 +153,7 @@ suppressMessages({
           panel.background = element_blank())
 })
 
-
+Zplot_norect <- Zplot
 Zplot <- Zplot +
   annotate("rect", xmin = BM_box[1, "lon"], xmax = BM_box[2, "lon"], ymin = BM_box[1, "lat"], ymax = BM_box[2, "lat"], fill=NA, color="red", linewidth=1) +
   annotate("rect", xmin = Ocean_box[1, "lon"], xmax = Ocean_box[2, "lon"], ymin = Ocean_box[1, "lat"], ymax = Ocean_box[2, "lat"], fill=NA, color="red", linewidth=1)
@@ -209,6 +209,19 @@ suppressWarnings({
   slot(spdf, 'proj4string') <- CRS('+proj=longlat +ellps=sphere')
 })
 baus <- auto_BAUs(manifold = sphere(), type = "hex", isea3h_res = 5, data = spdf)
+
+## Plot the hexagons
+gg <- plot_spatial_or_ST(baus, column_names = "lat", plot_over_world = T, alpha = 0, colour = "black", size = 0.1)[[1]]
+gg <- draw_world_custom(gg)
+gg <- gg +
+  theme(axis.title = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        legend.position = "none")
+ggsave(gg, filename = "discretegrid.pdf", device = "pdf", width = 8.5, height = 3.8, path = img_path)
+ggsave(gg, filename = "discretegrid.png", device = "png", width = 8.5, height = 3.8, path = img_path)
+ggsave(ggarrange(Zplot_norect, gg, widths = c(1.1, 1)), filename = "data_discretegrid.png", device = "png", width = 8.5, height = 3.8, path = img_path)
+
 
 # relabel the BAUs to be from 1:N (by default, there are some missing numbers
 # which can cause problems)
@@ -320,7 +333,7 @@ estimator   = juliaLet('estimator = gnnarchitecture(p)', p = p)
 ciestimator = juliaLet('
   U = gnnarchitecture(p; final_activation = identity)
   V = deepcopy(U)
-  intervalestimator = IntervalEstimatorCompactPrior(U, V, a, b)
+  intervalestimator = IntervalEstimator(U, V, a, b)
   ', p = p)
 
 # Load the optimal weights

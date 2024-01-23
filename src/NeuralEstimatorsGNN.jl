@@ -10,7 +10,7 @@ using Distances
 
 export addsingleton
 export spatialconfigurations
-export Parameters
+export Parameters, modifyneighbourhood
 export reshapedataGNN, reshapedataGNNcompact
 
 # ---- Utility functions ----
@@ -79,6 +79,7 @@ end
 
 # ---- Parameters definitions and constructors ----
 
+#TODO update first line of this string
 """
 	Parameters(θ::Matrix, chols, chol_pointer::Vector{Integer})
 
@@ -108,29 +109,33 @@ in the prior Ω and single values for each should instead be stored in
 """
 struct Parameters{T, I} <: ParameterConfigurations
 	θ::Matrix{T}
-	locations
+	locations # TODO rename this S
 	graphs
 	chols
 	chol_pointer::Vector{I}
 	loc_pointer::Vector{I}
 end
 
-
-# Method that automatically constructs spatial locations from a Matern cluster process
-function Parameters(K::Integer, ξ, n; J::Integer = 1)
+# Method that automatically constructs spatial locations from a Matern cluster
+# process, or uniformly sampled.
+function Parameters(K::Integer, ξ, n; J::Integer = 1, cluster_process::Bool = true)
 
 	if typeof(n) <: Integer
 		n = range(n, n)
 	end
 
 	# Simulate spatial locations from a cluster process over the unit square
-	λ_prior = Uniform(10, 100) # λ_prior = Uniform(ceil(n/20), ceil(n/3))
-	S = map(1:K) do k
-		nₖ = rand(n)
-		λₖ = rand(λ_prior)
-		μₖ = nₖ / λₖ
-		Sₖ = maternclusterprocess(λ = λₖ, μ = μₖ)
-		Sₖ
+	if cluster_process
+		λ_prior = Uniform(10, 100) # λ_prior = Uniform(ceil(n/20), ceil(n/3))
+		S = map(1:K) do k
+			nₖ = rand(n)
+			λₖ = rand(λ_prior)
+			μₖ = nₖ / λₖ
+			Sₖ = maternclusterprocess(λ = λₖ, μ = μₖ)
+			Sₖ
+		end
+	else
+		S = [rand(n, 2) for k ∈ 1:K]
 	end
 
 	# Compute distance matrices and construct the graphs
@@ -140,11 +145,21 @@ function Parameters(K::Integer, ξ, n; J::Integer = 1)
 	Parameters(K, (ξ..., S = S, D = D); J = J)
 end
 
-# Method that assumes the spatial locations and distance matrices are stored in ξ
+# Method that assumes the spatial locations, S, and distance matrices, D, are
+# stored in ξ. #TODO also requires the definition of the neighbour matrix in ξ.
 function Parameters(K::Integer, ξ; J::Integer = 1)
 
+	# TODO assert that either ξ or ξ.Ω contains an element called σ (could also use a default value)
+	# TODO assert that either ξ or ξ.Ω contains an element called ν (could also use a default value)
+	# TODO @assert ξ contains elements D, S, and neighbourhood
+	# TODO assert that ξ contains δ or k
 	D = ξ.D
 	S = ξ.S
+
+	#TODO If I can improve the algorithm for adjacencymatrix(S), that is, the
+	# adjacency matrix constructor for spatial locations rather than a distance
+	# matrix, then it would be better to do everything here in terms of S and
+	# remove D completely.
 
 	if !(typeof(D) <: AbstractVector) D = [D] end
 	if !(typeof(S) <: AbstractVector) S = [S] end
@@ -154,7 +169,15 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	@assert length(S) == length(D)
 	loc_pointer = length(S) == 1 ? repeat([1], K*J) : repeat(1:K, inner = J)
 
-	A = adjacencymatrix.(D, ξ.δ, ξ.k)
+	if ξ.neighbourhood == "fixedradius"
+		A = adjacencymatrix.(D, ξ.δ)
+	elseif ξ.neighbourhood == "knearest"
+		A = adjacencymatrix.(D, ξ.k)
+	elseif ξ.neighbourhood == "combined"
+		A = adjacencymatrix.(D, ξ.δ, ξ.k)
+	else
+		error("ξ.neighbourhood = $(ξ.neighbourhood) not a valid choice for the neighbourhood definition; please use either 'fixedradius', 'knearest', or 'combined'.")
+	end
 	graphs = GNNGraph.(A)
 
 	# Sample parameters not associated with the Gaussian process
@@ -200,6 +223,41 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	Parameters(θ, S, graphs, chols, chol_pointer, loc_pointer)
 end
 
+# """
+# Modifies the definition of the node neighbourhood.
+# """
+# function modifyneighbourhood(θ::Parameters, neighbourhood::String; radius = nothing, k = nothing)
+# 	@assert neighbourhood ∈ ["fixedradius", "knearest", "combined"] "neighbourhood = $(neighbourhood) not a valid choice for the neighbourhood definition; please use either 'fixedradius', 'knearest', or 'combined'."
+#
+# 	S = θ.locations
+# 	if !(typeof(S) <: AbstractVector) S = [S] end
+#
+# 	if neighbourhood == "fixedradius"
+# 		@assert !isnothing(radius)
+# 		A = adjacencymatrix.(S, radius)
+# 	elseif ξ.neighbourhood == "knearest"
+# 		@assert !isnothing(k)
+# 		A = adjacencymatrix.(S, k)
+# 	elseif neighbourhood == "combined"
+# 		@assert !isnothing(radius) && !isnothing(k)
+# 		A = adjacencymatrix.(S, radius, k)
+# 	end
+# 	graphs = GNNGraph.(A)
+# 	return graphs
+# end
+
+
+# Same as above but with same API as adjacencymatrix()
+function modifyneighbourhood(θ::Parameters, args...)
+
+	S = θ.locations
+	if !(typeof(S) <: AbstractVector) S = [S] end
+
+	A = adjacencymatrix.(S, args...)
+	graphs = GNNGraph.(A)
+
+	Parameters(θ, S, graphs, θ.chols, θ.chol_pointer, θ.loc_pointer)
+end
 
 
 # ---- Reshaping data to the correct form for a GNN ----

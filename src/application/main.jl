@@ -70,7 +70,7 @@ Flux.loadparams!(V, loadbestweights(path * "/runs_pointestimator")) # pretrain w
 Ω = ξ.Ω
 a = [minimum.(values(Ω))...]
 b = [maximum.(values(Ω))...]
-intervalestimator = IntervalEstimatorCompactPrior(U, V, a, b)
+intervalestimator = IntervalEstimator(U, V, a, b)
 
 α = 0.05f0
 q = [α/2, 1-α/2] # quantiles
