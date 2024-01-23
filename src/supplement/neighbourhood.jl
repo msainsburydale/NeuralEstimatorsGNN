@@ -65,8 +65,8 @@ gnn3 = deepcopy(gnn1)
 
 # Sample parameter vectors and simulate data
 seed!(1)
-θ_val   = Parameters(K_val,   ξ, n, J = 5)
-θ_train = Parameters(K_train, ξ, n, J = 5)
+θ_val   = Parameters(K_val,   ξ, n, J = 5, cluster_process = false)
+θ_train = Parameters(K_train, ξ, n, J = 5, cluster_process = false)
 Z_train = simulate(θ_train, m)
 Z_val   = simulate(θ_val, m)
 
@@ -98,7 +98,7 @@ function assessestimators(n, ξ, K::Integer)
 
 	# test parameter vectors for estimating the risk function
 	seed!(1)
-	θ = Parameters(K, ξ, n)
+	θ = Parameters(K, ξ, n, cluster_process = false)
 
 	# Estimator trained with a fixed radius
 	θ̃ = modifyneighbourhood(θ, r)
@@ -154,7 +154,7 @@ function testruntime(n, ξ)
     S = rand(n, 2)
 	D = pairwise(Euclidean(), S, S, dims = 1)
 	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
-	θ = Parameters(1, ξ)
+	θ = Parameters(1, ξ, cluster_process = false)
 	Z = simulate(θ, m; convert_to_graph = false)
 
 	# Fixed radius
