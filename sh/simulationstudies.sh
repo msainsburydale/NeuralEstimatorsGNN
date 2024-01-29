@@ -17,7 +17,7 @@ else
     exit 1
 fi
 
-for model in GP/nuFixed GP/nuFixedSigmaVaried # Schlather BrownResnick
+for model in GP/nuSigmaFixed GP/nuFixed # Schlather BrownResnick
 do
 
     echo ""

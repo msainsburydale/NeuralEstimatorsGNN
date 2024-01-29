@@ -10,21 +10,21 @@ set.seed(1)
 
 # vary the parameters
 n <- 250
-kappa <- c(10, 25, 50, 90)
-mu <- round(n / kappa, 2)
+lambda <- c(10, 25, 50, 90)
+mu <- round(n / lambda, 2)
 r <- c(0.1, 0.2, 0.3)
 
-# Now simulate spatial point process for every combination of (kappa, mu) and r
-l <- lapply(1:length(kappa), function(i) {
+# Now simulate spatial point process for every combination of (lambda, mu) and r
+l <- lapply(1:length(lambda), function(i) {
   lapply(1:length(r), function(j) {
-    pts <- rMatClust(kappa = kappa[i], r = r[j], mu = mu[i])
-    data.frame(x=pts$x, y = pts$y, kappa = kappa[i], r = r[j], mu = mu[i])
+    pts <- rMatClust(kappa = lambda[i], r = r[j], mu = mu[i])
+    data.frame(x=pts$x, y = pts$y, lambda = lambda[i], r = r[j], mu = mu[i])
   })
 })
 l <- unlist(l,recursive=F)
 df <- do.call("rbind", l)
 
-df$facet_var <- paste0("$\\lambda$ = ", df$kappa, ", $\\mu$ = ", df$mu)
+df$facet_var <- paste0("$\\lambda$ = ", df$lambda, ", $\\mu$ = ", df$mu)
 df$facet_var <- as.factor(df$facet_var)
 levels(df$facet_var) <- sapply(levels(df$facet_var), TeX)
 
