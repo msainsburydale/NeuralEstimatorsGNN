@@ -19,7 +19,7 @@ using Folds
 	σ = 1.0, # marginal variance to use if σ is not included in Ω
 	δ = 0.15, # cutoff distance used to define the neighbourhood of each node
 	k = 30, # maximum number of neighbours to consider when constructing the neighbourhood
-	neighbourhood = "combined", # neighbourhood definition
+	neighbourhood = "fixedradius", # neighbourhood definition
 	invtransform = exp # inverse of variance-stabilising transformation
 )
 

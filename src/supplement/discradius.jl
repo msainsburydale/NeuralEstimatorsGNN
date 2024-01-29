@@ -28,7 +28,7 @@ include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/$model/ML.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
-path = "intermediates/supplement/factorialexperiment"
+path = "intermediates/supplement/discradius"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
@@ -47,31 +47,31 @@ p = ξ.p
 # we never really train for the full amount of epochs
 epochs = quick ? 2 : 200
 
-# Sample parameters used during training
-seed!(1)
 J = 3
-n = 1000
-θ_val   = Parameters(K_val,   ξ, n, J = J)
-θ_train = Parameters(K_train, ξ, n, J = J)
+n = 250
 
-# Parameter vector and data to assess inference time for a single data set
-θ_single = Parameters(1, ξ, n, J = 1)
-Z = simulate(θ_single, M)
-Z = Z |> gpu
-
-for nlayers ∈ [1, 2, 3, 4, 5] # number of propagation layers (in addition to the first layer) #TODO why do we need the parenthetic comment?
-	@info "Training GNN with $(nlayers) propagation layers"
-	for nh ∈ [4, 8, 16, 32, 64, 128, 256] # number of channels in each propagation layer
-		@info "Training GNN with $(nh) channels in each propagation layer"
+for radius ∈ [0.05, 0.1, 0.15, 0.2, 0.25, 0.3] # number of channels in each propagation layer
+  
+  @info "Training GNN with disc radius = $(radius)"
+  seed!(1)
+  global ξ = merge(ξ, (δ = radius, ))
+  θ_val   = Parameters(K_val,   ξ, n, J = J)
+  θ_train = Parameters(K_train, ξ, n, J = J)
+  θ_single = Parameters(1, ξ, n, J = 1)
+  Z_single = simulate(θ_single, M) |> gpu
+  
+  for nlayers ∈ [1, 2, 3, 4, 5] # number of propagation layers (in addition to the first layer) #TODO why do we need the parenthetic comment?
+	  @info "Training GNN with $(nlayers) propagation layers"
+		
 		seed!(1)
-		gnn = gnnarchitecture(p, nlayers = nlayers, nh = nh)
-		savepath = joinpath(path, "runs_GNN_depth$(nlayers)_width$(nh)")
+		gnn = gnnarchitecture(p, nlayers = nlayers)
+		savepath = joinpath(path, "runs_GNN_depth$(nlayers)_radius$(radius)")
 		train(gnn, θ_train, θ_val, simulate, m = M, savepath = savepath, epochs = epochs, epochs_per_Z_refresh = 3)
 		
 		# Accurately assess the inference time for a single data set
 		Flux.loadparams!(gnn,  loadbestweights(savepath))
 	  gnn  = gnn|> gpu
-	  t = @belapsed $gnn($Z)
+	  t = @belapsed $gnn($Z_single)
 	  t = DataFrame(time = [t])
 	  CSV.write(joinpath(savepath, "inference_time.csv"), t)
 	end

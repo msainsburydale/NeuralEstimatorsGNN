@@ -17,16 +17,17 @@ if(!interactive()) pdf(NULL)
 
 # see: latex2exp_supported()
 estimator_labels <- c(
+  # Main text experiments: 
+  "GNN" = "GNN",
+  "ML" = "ML",
+  # Variable sample size experiment:
   "GNN1" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30})$"),
   "GNN2" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{1000})$"),
   "GNN3" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30;1000})$"),
-  "GNN3 radius" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30;300})$ : Fixed cut-off distance"),
-  "GNN3 fixednum" = TeX("$\\hat{\\theta}(\\cdot; \\, \\gamma^{*}_{30;300})$ : $k$-nearest neighbours"),
-  "GNN" = "GNN",
-  "ML" = "ML",
-  "GNN_S1" = TeX("GNN$_{S}$"),
-  # "GNN_S2" = TeX("GNN$_{S'}$"),
-  "GNN_S3" = TeX("GNN$_{S''}$")
+  # Neighbourhood experiment: 
+  "fixedradius" = "Disc of fixed radius",
+  "knearest" = "k-nearest neighbours",
+  "combined" = "Random-k neighbours\nwithin disc of fixed radius"
 )
 
 estimators <- names(estimator_labels)
@@ -46,19 +47,17 @@ scale_estimator <- function(df, scale = "colour", values = estimator_colours, ..
 
 # for more colours, see: http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf
 estimator_colours <- c(
+  # Main text experiments: 
   "ML" = "gold",
   "GNN" = "chartreuse4",
-  "DNN" = "red",
   # Variable sample size experiment:
   "GNN1" = "red",
   "GNN2" = "dodgerblue4",
   "GNN3" = "#440154FF",
-  "GNN3 radius" = "#440154FF",
-  "GNN3 fixednum" = "chartreuse4",
-  # Graph structure experiment:
-  "GNN_S1" = "dodgerblue4",
-  # "GNN_S2" = "chartreuse4",
-  "GNN_S3" = "#440154FF"
+  # Neighbourhood experiment: 
+  "fixedradius" = "gold",
+  "knearest" = "dodgerblue4",
+  "combined" = "chartreuse4"
 )
 
 parameter_labels <- c(
@@ -120,3 +119,12 @@ splitfacet <- function(x){
 
 
 risklabel <- expression(r[Omega](hat(theta)("·")))
+
+# TODO add this throughout so that we can use png if needed
+ggsv <- function(filename, plot, ...) {
+  for (device in c("pdf", "png")) {
+    # for (device in c("pdf")) {
+    ggsave(plot, file = paste0(filename, ".", device), device = device, ...)
+  }
+}
+

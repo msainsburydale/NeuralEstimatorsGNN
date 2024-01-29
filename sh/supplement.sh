@@ -17,16 +17,20 @@ else
     exit 1
 fi
 
-echo ""
-echo "##### Starting supplementary experiment S1: variable number of spatial locations #####"
-echo ""
-julia --threads=auto --project=. src/supplement/variablesamplesize.jl $quick
-Rscript src/supplement/variablesamplesize.R
+# echo ""
+# echo "##### Starting supplementary experiment S1: variable number of spatial locations #####"
+# echo ""
+# julia --threads=auto --project=. src/supplement/variablesamplesize.jl $quick
+# Rscript src/supplement/variablesamplesize.R
+# 
+# echo ""
+# echo "##### Starting supplementary experiment S2: neighbourhood selection #####"
+# echo ""
+# julia --threads=auto --project=. src/supplement/neighbourhood.jl $quick
+# Rscript src/supplement/neighbourhood.R
 
-
 echo ""
-echo "##### Starting supplementary experiment S2: neighbourhood selection #####"
+echo "##### Starting supplementary experiment S2: disc radius sensitivity #####"
 echo ""
-julia --threads=auto --project=. src/supplement/neighbourhood.jl $quick
-julia --threads=auto --project=. src/supplement/neighbourhood.jl $quick
-Rscript src/supplement/neighbourhood.R 
+julia --threads=auto --project=. src/supplement/discradius.jl $quick
+Rscript src/supplement/discradius.R

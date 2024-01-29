@@ -135,7 +135,7 @@ function Parameters(K::Integer, ξ, n; J::Integer = 1, cluster_process::Bool = t
 			Sₖ
 		end
 	else
-		S = [rand(n, 2) for k ∈ 1:K]
+		S = [rand(rand(n), 2) for k ∈ 1:K]
 	end
 
 	# Compute distance matrices and construct the graphs
@@ -223,30 +223,6 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	Parameters(θ, S, graphs, chols, chol_pointer, loc_pointer)
 end
 
-# """
-# Modifies the definition of the node neighbourhood.
-# """
-# function modifyneighbourhood(θ::Parameters, neighbourhood::String; radius = nothing, k = nothing)
-# 	@assert neighbourhood ∈ ["fixedradius", "knearest", "combined"] "neighbourhood = $(neighbourhood) not a valid choice for the neighbourhood definition; please use either 'fixedradius', 'knearest', or 'combined'."
-#
-# 	S = θ.locations
-# 	if !(typeof(S) <: AbstractVector) S = [S] end
-#
-# 	if neighbourhood == "fixedradius"
-# 		@assert !isnothing(radius)
-# 		A = adjacencymatrix.(S, radius)
-# 	elseif ξ.neighbourhood == "knearest"
-# 		@assert !isnothing(k)
-# 		A = adjacencymatrix.(S, k)
-# 	elseif neighbourhood == "combined"
-# 		@assert !isnothing(radius) && !isnothing(k)
-# 		A = adjacencymatrix.(S, radius, k)
-# 	end
-# 	graphs = GNNGraph.(A)
-# 	return graphs
-# end
-
-
 # Same as above but with same API as adjacencymatrix()
 function modifyneighbourhood(θ::Parameters, args...)
 
@@ -256,7 +232,7 @@ function modifyneighbourhood(θ::Parameters, args...)
 	A = adjacencymatrix.(S, args...)
 	graphs = GNNGraph.(A)
 
-	Parameters(θ, S, graphs, θ.chols, θ.chol_pointer, θ.loc_pointer)
+	Parameters(θ.θ, S, graphs, θ.chols, θ.chol_pointer, θ.loc_pointer)
 end
 
 

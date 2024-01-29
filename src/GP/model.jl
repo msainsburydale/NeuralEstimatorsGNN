@@ -14,7 +14,7 @@ using Folds
 	σ = 1.0,  # marginal standard deviation to use if σ is not included in Ω
 	δ = 0.15, # cutoff distance used to define the neighbourhood of each node # TODO in the paper, I used δ for the disc radius of the cluster process, not the radius in the GNN. It might be useful to introduce some notation for this quantity.
 	k = 30,   # maximum number of neighbours to consider when constructing the neighbourhood
-	neighbourhood = "combined", # neighbourhood definition
+	neighbourhood = "fixedradius", # neighbourhood definition
 	invtransform = identity # inverse of variance-stabilising transformation
 )
 

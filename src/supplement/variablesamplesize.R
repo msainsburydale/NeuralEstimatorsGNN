@@ -1,37 +1,30 @@
-model       <- "GP/nuFixed"
-int_path <- paste("intermediates/supplement/variablesamplesize", model, sep = "/")
-img_path <- paste("img/supplement/variablesamplesize", model, sep = "/")
+int_path <- file.path("intermediates", "supplement", "variablesamplesize")
+img_path <- file.path("img", "supplement", "variablesamplesize")
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 
-source("src/plotting.R")
+source(file.path("src", "plotting.R"))
 
-df <- read.csv(paste0(int_path, "/estimates.csv"))
+df <- read.csv(file.path(int_path, "estimates.csv"))
 
-## Bayes risk with respect to absolute error
-# df <- df %>%
-#   mutate(loss = abs(estimate - truth)) %>%
-#   group_by(estimator, n) %>%
-#   summarise(risk = mean(loss), sd = sd(loss)/sqrt(length(loss)))
+## RMSE plot
 
-## RMSE
 df <- df %>%
   mutate(loss = (estimate - truth)^2) %>%
   group_by(estimator, n) %>%
-  summarise(risk = sqrt(mean(loss)))
+  summarise(rmse = sqrt(mean(loss)))
 
-## average risk plot
+
 breaks <- unique(df$n)
 breaks <- breaks[breaks != 60]
 breaks <- breaks[breaks != 100]
 
 figure <- ggplot(data = df,
-                 aes(x = n, y = risk, colour = estimator, group = estimator)) +
+                 aes(x = n, y = rmse, colour = estimator, group = estimator)) +
   geom_point() +
   geom_line(alpha = 0.75) +
   labs(
     colour = "", 
     x = expression(n), 
-    # y = expression(r[Omega](hat(theta)("·")))
     y = "RMSE"
   ) +
   scale_x_continuous(breaks = breaks) +
@@ -44,15 +37,7 @@ figure <- ggplot(data = df,
     panel.grid = element_blank(),
     strip.background = element_blank(),
     strip.text.x = element_blank()
-  )
-
-suppressWarnings({
-  ggsave(
-    figure,
-    file = "risk_vs_n.pdf",
-    width = 8, height = 4, path = img_path, device = "pdf"
-  )
-})
+  ) 
 
 figure_RMSE <- figure
 
@@ -105,7 +90,7 @@ suppressWarnings({
 suppressWarnings({
   ggsave(
     figure,
-    file = "risk_vs_n_window.pdf",
+    file = "rmse_vs_n_window.pdf",
     width = 9.5, height = 4.5, path = img_path, device = "pdf"
   )
 })
@@ -113,7 +98,7 @@ suppressWarnings({
 
 # ---- Timing plot ----
 
-df <- read.csv(paste0(int_path, "/runtime.csv"))
+df <- read.csv(file.path(int_path, "runtime.csv"))
 
 average_nbes <- F
 if (average_nbes) {
@@ -144,12 +129,6 @@ figure_time <- ggplot(data = df,
     strip.background = element_blank(),
     strip.text.x = element_blank()
   )
-
-ggsave(
-  figure_time,
-  file = "runtime.pdf",
-  width = 6.5, height = 4, path = img_path, device = "pdf"
-)
 
 figure_combined <- ggpubr::ggarrange(
   figure_RMSE, 

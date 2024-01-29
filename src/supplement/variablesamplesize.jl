@@ -31,7 +31,7 @@ if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
 K_train = 10_000
-K_val   = K_train ÷ 5
+K_val   = K_train ÷ 10
 if quick
 	K_train = K_train ÷ 100
 	K_val   = K_val   ÷ 100
@@ -59,23 +59,23 @@ J = 3
 small_n = 30
 large_n = 1000
 
-# GNN estimator trained with a fixed small n
+@info "Training the GNN estimator with n = $(small_n)"
 seed!(1)
 θ_val   = Parameters(K_val,   ξ, small_n, J = J, cluster_process = false)
 θ_train = Parameters(K_train, ξ, small_n, J = J, cluster_process = false)
-train(gnn1, θ_train, θ_val, simulate, m = m, savepath = path * "/runs_GNN1", epochs = epochs, epochs_per_Z_refresh = 3)
+train(gnn1, θ_train, θ_val, simulate, m = m, savepath = path * "/runs_GNN1", epochs = epochs, epochs_per_Z_refresh = 3, stopping_epochs = 5)
 
-# GNN estimator trained with a fixed large n
+@info "Training the GNN estimator with n = $(large_n)"
 seed!(1)
 θ_val   = Parameters(K_val,   ξ, large_n, J = J, cluster_process = false)
 θ_train = Parameters(K_train, ξ, large_n, J = J, cluster_process = false)
-train(gnn2, θ_train, θ_val, simulate, m = m, savepath = path * "/runs_GNN2", epochs = epochs, epochs_per_Z_refresh = 3)
+train(gnn2, θ_train, θ_val, simulate, m = m, savepath = path * "/runs_GNN2", epochs = epochs, epochs_per_Z_refresh = 3, stopping_epochs = 5)
 
-# GNN estimator trained with a range of n
+@info "Training the GNN estimator with n ∈ $(small_n:large_n)"
 seed!(1)
 θ_val   = Parameters(K_val,   ξ, small_n:large_n, J = J, cluster_process = false)
 θ_train = Parameters(K_train, ξ, small_n:large_n, J = J, cluster_process = false)
-train(gnn3, θ_train, θ_val, simulate, m = m, savepath = path * "/runs_GNN3", epochs = epochs, epochs_per_Z_refresh = 3)
+train(gnn3, θ_train, θ_val, simulate, m = m, savepath = path * "/runs_GNN3", epochs = epochs, epochs_per_Z_refresh = 3, stopping_epochs = 5)
 
 # ---- Load the trained estimators ----
 
