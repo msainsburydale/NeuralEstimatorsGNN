@@ -72,11 +72,7 @@ traintime_plot <- traintime_plot + theme(axis.title.y = element_blank())
 inferencetime_plot <- inferencetime_plot + theme(axis.title.y = element_blank()) # + theme(axis.title.x = element_blank()) 
 figure <- egg::ggarrange(risk_plot, traintime_plot, inferencetime_plot, nrow = 1)
 
-ggsave(
-  figure,
-  file = "radius_vs_depth.pdf",
-  width = 9.5, height = 3.7, path = img_path, device = "pdf"
-)
+ggsv(figure,file = "radius_vs_depth", width = 9.5, height = 3.7, path = img_path)
 
 # ---- Sensitivity analysis of the radius with respect to n ----
 
@@ -129,8 +125,4 @@ figure_time <- ggplot(data = df,
 
 figure <- egg::ggarrange(figure_rmse + theme(legend.position = "none"), figure_time, nrow = 1)
 
-ggsave(
-  figure,
-  file = "rmse_runtime_vs_n.pdf",
-  width = 12, height = 4, path = img_path, device = "pdf"
-)
+ggsv(figure, file = "rmse_runtime_vs_n", width = 12, height = 4, path = img_path)

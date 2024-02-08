@@ -63,8 +63,4 @@ figure_time <- ggplot(data = df,
 # figure <- egg::ggarrange(figure_rmse + theme(legend.position = "none"), figure_time, nrow = 1, widths = c(1.5, 1))
 figure <- egg::ggarrange(figure_rmse + theme(legend.position = "none"), figure_time, nrow = 1)
 
-ggsave(
-  figure,
-  file = "rmse_runtime_vs_n.pdf",
-  width = 12, height = 4, path = img_path, device = "pdf"
-)
+ggsv(figure, file = "rmse_runtime_vs_n", width = 12, height = 4, path = img_path)

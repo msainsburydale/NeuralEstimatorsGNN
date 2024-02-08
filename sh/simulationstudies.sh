@@ -37,14 +37,14 @@ do
     fi
 
     echo ""
-    echo "##### Assessing point estimation #####"
+    echo "##### Constructing and assessing point estimators #####"
     echo ""
-    # julia --threads=auto --project=. src/simulationstudy.jl --model=$model $quick --m=$m #--skip_training
+    julia --threads=auto --project=. src/simulationstudy.jl --model=$model $quick --m=$m #--skip_training
 
     echo ""
-    echo "##### Assessing uncertainty quantification #####"
+    echo "##### Constructing and quantile estimators #####"
     echo ""
-    julia --threads=auto --project=. src/simulationstudy-credibleinterval.jl --model=$model $quick --m=$m --skip_training
+    julia --threads=auto --project=. src/simulationstudy-credibleinterval.jl --model=$model $quick --m=$m # --skip_training
 
     Rscript src/simulationstudy.R --model=$model
 done

@@ -64,11 +64,7 @@ if (p == 2) {
     
     figure <- ggpubr::ggarrange(plotlist = c(list(gg1, gg2), gg3), nrow = 1, ncol = 4, align = "hv")
     
-    ggsave(
-      figure,
-      file = paste0("uniformlocations", K, ".pdf"),
-      width = 9.3, height = 3, device = "pdf", path = img_path
-    )
+    ggsv(figure, file = paste0("uniformlocations", K), width = 9.3, height = 3, path = img_path)
     
     figure
   }) 
@@ -176,12 +172,8 @@ figures <- lapply(unique(df$k), function(K) {
   figure2  <- ggpubr::ggarrange(data_legend, box_legend, ncol = 1, heights = c(1.2, 2.2))
   figure   <- ggpubr::ggarrange(figure1, figure2, widths = c(1, 0.15))
   
-  ggsave(
-    figure,
-    file = paste0("samplingdistributions_marginal", K, ".pdf"),
-    device = "pdf", path = img_path,
-    width = 8.5, height = 4.6 + max(0, (p-2)) * 1.5
-  )
+  ggsv(figure, file = paste0("samplingdistributions_marginal", K), path = img_path, 
+       width = 8.5, height = 4.6 + max(0, (p-2)) * 1.5)
   
   # ---- Joint sampling distributions ----
   
@@ -215,11 +207,8 @@ figures <- lapply(unique(df$k), function(K) {
     figure2  <- ggpubr::ggarrange(data_legend, joint_legend, ncol = 1, heights = c(1, 1))
     figure   <- ggpubr::ggarrange(figure1, figure2, widths = c(1, 0.15))
     
-    ggsave(
-      figure,
-      file = paste0("samplingdistributions_joint", K, ".pdf"),
-      width = 8, height = 4, device = "pdf", path = img_path
-    )
+    ggsv(figure, file = paste0("samplingdistributions_joint", K),
+      width = 8, height = 4, path = img_path)
   }
   
   figure

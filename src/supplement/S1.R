@@ -2,8 +2,6 @@ img_path <- file.path("img", "supplement")
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 source(file.path("src", "plotting.R"))
 
-text_size <- 14
-
 # ---- Variable sample sizes ----
 
 int_path <- file.path("intermediates", "supplement", "variablesamplesize")
@@ -30,6 +28,47 @@ figure1 <- ggplot(data = df, aes(x = n, y = rmse, colour = estimator, group = es
   theme(legend.text.align = 0, legend.position = "top", panel.grid = element_blank()) 
 
 
+# Zoom in on the larger sample sizes
+figure <- figure1
+xlim1 <- c(900, 1100)
+ylim1 <- c(0.01, 0.055)
+window1 <- figure +
+  theme(axis.title.y = element_blank()) +
+  scale_y_continuous(position = "right") +
+  coord_cartesian(xlim = xlim1, ylim = ylim1) + 
+  theme(aspect.ratio = .5)
+
+# Zoom in on the smaller sample sizes
+GNN1_RMSE <- df$rmse[df$estimator == "GNN1" & df$n == 30]
+xlim <- c(15, 45)
+ylim <- GNN1_RMSE + c(-0.15, 0.15)*GNN1_RMSE
+window2 <- figure +
+  theme(axis.title.y = element_blank()) +
+  scale_y_continuous(position = "right") +
+  coord_cartesian(xlim = xlim, ylim = ylim) + 
+  theme(aspect.ratio = 2)
+
+# Add some padding to the windows
+window1 <- window1 + theme(plot.margin = unit(c(10, 10, 20, 10), "points"))
+window2 <- window2 + theme(plot.margin = unit(c(60, 5, 5, 5), "points"))
+
+# Add a gray box to the main figure indicating the windows
+figure <- figure +
+  geom_rect(aes(xmin=xlim1[1], xmax=xlim1[2], ymin=ylim1[1], ymax=ylim1[2]),
+            linewidth = 0.3, colour = "grey50", fill = "transparent") +
+  geom_rect(aes(xmin=xlim[1], xmax=xlim[2], ymin=ylim[1], ymax=ylim[2]),
+            linewidth = 0.3, colour = "grey50", fill = "transparent")
+
+figure <- ggpubr::ggarrange(
+  figure,
+  ggpubr::ggarrange(window2, window1, ncol = 1, legend = "none"),
+  legend = "top", 
+  nrow = 1
+)
+
+ggsv("variable_sample_size", figure, path = img_path, width = 9.5, height = 4.5)
+
+
 # ---- Simulation efficiency ----
 
 int_path <- file.path("intermediates", "supplement", "simulationefficiency")
@@ -47,35 +86,21 @@ figure2 <- ggplot(data = df, aes(x = K, y = rmse, colour = estimator, group = es
   geom_line(alpha = 0.75) +
   labs(x = "Number of simulated data sets", 
        y = TeX("RMSE under $\\bf{S} = \\bf{S}_0$"), 
-       # colour = expression(paste("Prior for ", bold(S)))
-       # colour = expression(paste("Prior for ", bold(S), "\n during training"))
-       colour = ""
-       )+
+       colour = "")+
   scale_estimator(df) +
   guides(colour = guide_legend(byrow = TRUE)) +
   theme_bw(base_size = text_size) +
-  theme(legend.text.align = 0, panel.grid = element_blank(), legend.spacing.y = unit(2, "lines"))
-
-ggsave(
-  figure2,
-  file = "simulation_efficiency.pdf",
-  width = 7.2, height = 3.8, path = img_path, device = "pdf"
-)
-
-figure2 <- figure2 + labs(colour = "") + theme(legend.position = "top")
-
-
+  theme(legend.text.align = 0, 
+        panel.grid = element_blank(), 
+        legend.spacing.y = unit(2, "lines"), 
+        legend.position = "top")
 
 
 # ---- Combine and save ----
 
 figure <- egg::ggarrange(figure1, figure2, nrow = 1)
 
-ggsave(
-  figure,
-  file = "prior_for_S.pdf",
-  width = 8.2, height = 4.1, path = img_path, device = "pdf"
-)
+ggsv(figure, file = "prior_for_S", width = 8.2, height = 4.1, path = img_path)
 
 
 

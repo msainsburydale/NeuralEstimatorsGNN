@@ -41,7 +41,7 @@ figure <- ggplot(df %>% filter(r == 'r * " =  0.1"')) +
   coord_fixed() + 
   theme_bw()
 
-ggsave(figure, file = "spatialpatterns.pdf", width = 7.3, height = 2.4, path = "img", device = "pdf")
+ggsv(figure, file = "spatialpatterns", width = 7.3, height = 2.4, path = "img")
 
 
 # # histogram of spatial distances
@@ -57,4 +57,4 @@ ggsave(figure, file = "spatialpatterns.pdf", width = 7.3, height = 2.4, path = "
 #   labs() + 
 #   theme_bw()
 # 
-# ggsave(figure, file = "spatialpatternsdistances.pdf", width = 7.3, height = 2.7, path = "img", device = "pdf")
+# ggsv(figure, file = "spatialpatternsdistances", width = 7.3, height = 2.7, path = "img")

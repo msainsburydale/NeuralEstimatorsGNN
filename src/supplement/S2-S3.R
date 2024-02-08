@@ -150,11 +150,7 @@ time1 <- time1 + theme(axis.title.y = element_blank(), axis.title.x = element_bl
 time2 <- time2 + theme(axis.title.y = element_blank(), legend.position = "none") 
 figure <- egg::ggarrange(risk1, traintime1, time1, risk2, traintime2, time2, nrow = 2)
 
-ggsave(
-  figure,
-  file = "radius_and_width_vs_depth.pdf",
-  width = 9.5, height = 6.7, path = img_path, device = "pdf"
-)
+ggsv(figure, file = "radius_and_width_vs_depth", width = 9.5, height = 6.7, path = img_path)
 
 
 # ---- Sensitivity analysis of the radius with respect to n ----
@@ -261,14 +257,6 @@ time2 <- ggplot(data = df,
   )
 
 rmse2 <- rmse2 + theme(legend.position = "none")
-
-rmse1 <- rmse1 #+ theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
-time1 <- time1 #+ theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank())
-
 figure <- egg::ggarrange(rmse1, time1, rmse2, time2, nrow = 2)
 
-ggsave(
-  figure,
-  file = "neighbourhood_radius_vs_n.pdf",
-  width = 10.9, height = 6.6, path = img_path, device = "pdf"
-)
+ggsv(figure, file = "neighbourhood_radius_vs_n", width = 10.9, height = 6.6, path = img_path)

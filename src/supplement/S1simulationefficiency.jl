@@ -29,19 +29,18 @@ if !isdir(path) mkpath(path) end
 
 # ---- Sample parameters ----
 
-# In this experiment, we are assessing the simulation efficiency of the 
-# estimators. To do this, we will train and assess a series of estimators 
-# using an increasing number of data sets, up to a maximum of K. 
+# In this experiment, we are assessing the simulation efficiency of the
+# estimators. To do this, we will train and assess a series of estimators
+# using an increasing number of data sets, up to a maximum of K.
 K = 50_000
 if quick
 	K = K ÷ 25
 end
 K_seq = 1000:1000:K
 
-#TODO maybe use a smaller architecture with n = 128; or use n = 128
 seed!(1)
-n = 128
-S = rand(n, 2) # fixed set of locations 
+n = 256
+S = rand(n, 2) # fixed set of locations
 D = pairwise(Euclidean(), S, dims = 1)
 ξ = merge(ξ, (S = S, D = D))
 
@@ -74,7 +73,7 @@ seed!(1); θ₃_train = Parameters(K, ξ, n, cluster_process = true);  θ₃_val
 
 ## Code keeping Z fixed
 function subsetandsimulate(θ_train, θ_val, indices, m)
-  θ_t = subsetparameters(θ_train, indices) 
+  θ_t = subsetparameters(θ_train, indices)
   θ_v = subsetparameters(θ_val, indices)
   seed!(1)
   Z_t = simulate(θ_t, m)
@@ -111,7 +110,7 @@ for k ∈ K_seq
   assessment = assess(
   		[gnn1, gnn2, gnn3], θ_test, Z_test;
   		estimator_names = ["Sfixed", "Srandom_uniform", "Srandom_cluster"],
-  		parameter_names = ξ.parameter_names, 
+  		parameter_names = ξ.parameter_names,
   		verbose = false
 	 )
   assessment.df[:, :K] .= k
@@ -119,10 +118,7 @@ for k ∈ K_seq
 end
 assessment = merge(assessments...)
 
-#TODO this is 800 Mb: maybe better to comppute the risk and rmse here.  
+#NB this is 800 Mb: maybe better to compute the risk and rmse here.
 CSV.write(joinpath(path, "assessment.csv"), assessment.df)
-
-#TODO We could also compute the RMSE and the risk of the ML estimator here. 
-
 
 @info "Finished!"

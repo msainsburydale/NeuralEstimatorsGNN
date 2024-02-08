@@ -72,8 +72,4 @@ traintime_plot <- traintime_plot + theme(axis.title.y = element_blank())
 inferencetime_plot <- inferencetime_plot + theme(axis.title.y = element_blank(), axis.title.x = element_blank()) 
 figure <- egg::ggarrange(risk_plot, traintime_plot, inferencetime_plot, nrow = 1)
 
-ggsave(
-  figure,
-  file = "depth_vs_width.pdf",
-  width = 9.5, height = 3.7, path = img_path, device = "pdf"
-)
+ggsv(figure, file = "depth_vs_width", width = 9.5, height = 3.7, path = img_path)

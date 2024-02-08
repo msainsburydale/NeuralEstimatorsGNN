@@ -79,10 +79,7 @@ end
 
 # ---- Parameters definitions and constructors ----
 
-#TODO update first line of this string
 """
-	Parameters(θ::Matrix, chols, chol_pointer::Vector{Integer})
-
 Type for storing parameter configurations, with fields storing the matrix of
 parameters (`θ`), the Cholesky factors associated with these parameters (`chols`),
 and a pointer (`chol_pointer`) where `chol_pointer[i]` gives the Cholesky factor
@@ -109,7 +106,7 @@ in the prior Ω and single values for each should instead be stored in
 """
 struct Parameters{T, I} <: ParameterConfigurations
 	θ::Matrix{T}
-	locations # TODO rename this S
+	locations
 	graphs
 	chols
 	chol_pointer::Vector{I}
@@ -146,20 +143,19 @@ function Parameters(K::Integer, ξ, n; J::Integer = 1, cluster_process::Bool = t
 end
 
 # Method that assumes the spatial locations, S, and distance matrices, D, are
-# stored in ξ. #TODO also requires the definition of the neighbour matrix in ξ.
+# stored in ξ
 function Parameters(K::Integer, ξ; J::Integer = 1)
 
-	# TODO assert that either ξ or ξ.Ω contains an element called σ (could also use a default value)
-	# TODO assert that either ξ or ξ.Ω contains an element called ν (could also use a default value)
-	# TODO @assert ξ contains elements D, S, and neighbourhood
-	# TODO assert that ξ contains δ or k
+	@assert :Ω ∈ keys(ξ)
+	@assert :D ∈ keys(ξ)
+	@assert :S ∈ keys(ξ)
+	@assert :neighbourhood ∈ keys(ξ)
+	@assert :δ ∈ keys(ξ) || :k ∈ keys(ξ)
+	@assert :σ ∈ union(keys(ξ), keys(ξ.Ω))
+	@assert :ν ∈ union(keys(ξ), keys(ξ.Ω))
+
 	D = ξ.D
 	S = ξ.S
-
-	#TODO If I can improve the algorithm for adjacencymatrix(S), that is, the
-	# adjacency matrix constructor for spatial locations rather than a distance
-	# matrix, then it would be better to do everything here in terms of S and
-	# remove D completely.
 
 	if !(typeof(D) <: AbstractVector) D = [D] end
 	if !(typeof(S) <: AbstractVector) S = [S] end

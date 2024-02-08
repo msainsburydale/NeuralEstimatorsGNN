@@ -97,12 +97,12 @@ rhoci_plot   <- plot_ciwidth(cells, estimates, "rho_ciwidth") + labs(fill = expr
 sigmaci_plot <- plot_ciwidth(cells, estimates, "sigma_ciwidth") + labs(fill = expression(atop(hat(sigma) ~ "credible-", "interval width")))
 tauci_plot   <- plot_ciwidth(cells, mutate(estimates, estimate = pmin(estimate, 0.5)), "tau_ciwidth") + labs(fill = expression(atop(hat(tau) ~ "credible-", "interval width")))
 
-ggsave(
+ggsv(
   ggpubr::ggarrange(
     rho_plot, sigma_plot, tau_plot,
     rhoci_plot, sigmaci_plot, tauci_plot,
     align = "hv", nrow = 2, ncol = p),
-  filename = "estimates.pdf", device = "pdf", width = 14, height = 6,
+  filename = "estimates", width = 14, height = 6,
   path = img_path
 )
 
@@ -129,14 +129,6 @@ tau_lower <- plot_estimates(cells, estimates_tau, "tau_lower", limits) + labs(ti
 tau_upper <- plot_estimates(cells, estimates_tau, "tau_upper", limits) + labs(title = expression(hat(tau) *": upper bound"), fill = "")
 tau_ci <- ggpubr::ggarrange(tau_lower, tau_upper, align = "hv", nrow = 1, legend = "right", common.legend = T)
 
-ggsave(
-  ggpubr::ggarrange(rho_ci, sigma_ci, tau_ci, ncol = 1),
-  filename = "intervals.png", device = "png", width = 8, height = 7,
-  path = img_path
-)
+figure <- ggpubr::ggarrange(rho_ci, sigma_ci, tau_ci, ncol = 1)
 
-ggsave(
-  ggpubr::ggarrange(rho_ci, sigma_ci, tau_ci, ncol = 1),
-  filename = "intervals.pdf", device = "pdf", width = 8, height = 7,
-  path = img_path
-)
+ggsv(figure, filename = "intervals", width = 8, height = 7, path = img_path)

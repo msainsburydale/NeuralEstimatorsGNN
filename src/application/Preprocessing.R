@@ -5,6 +5,8 @@ option_list = list(
 opt_parser  <- OptionParser(option_list=option_list)
 quick       <- parse_args(opt_parser)$quick
 
+options(warn = -1)
+
 suppressMessages({
   library("NeuralEstimators")
   library("JuliaConnectoR")
@@ -73,11 +75,7 @@ Zplot <- Zplot +
   annotate("rect", xmin = BM_box[1, "lon"], xmax = BM_box[2, "lon"], ymin = BM_box[1, "lat"], ymax = BM_box[2, "lat"], fill=NA, color="red", linewidth=1) +
   annotate("rect", xmin = Ocean_box[1, "lon"], xmax = Ocean_box[2, "lon"], ymin = Ocean_box[1, "lat"], ymax = Ocean_box[2, "lat"], fill=NA, color="red", linewidth=1)
 
-ggsave(
-  Zplot,
-  filename = "data.png", device = "png", width = 6, height = 2.8,
-  path = img_path
-)
+ggsv(Zplot, filename = "data", device = "png", width = 6, height = 2.8, path = img_path)
 
 map_layer <- geom_map(
   data = map_data("world"),
@@ -106,13 +104,9 @@ Ocean <- ggplot() +
   coord_fixed(expand = FALSE) +
   geom_point(data = df, aes(lon, lat, colour =  pmin(pmax(Z, -8), 8)), pch = 46)
 
-suppressWarnings({
-  ggsave(
-    ggarrange(Zplot, BMconfluence, Ocean, common.legend = T, nrow = 1, ncol = 3, legend = "right"),
-    filename = "data_highlights.png", device = "png", width = 9, height = 2.5,
-    path = img_path
-  )
-})
+Zplot_insets <- ggarrange(Zplot, BMconfluence, Ocean, common.legend = T, nrow = 1, ncol = 3, legend = "right")
+
+ggsv(Zplot_insets, filename = "data_highlights", width = 9, height = 2.5, path = img_path)
 
 
 # ---- Hexagon cell pre-processing ----
@@ -129,9 +123,8 @@ cells <- auto_BAUs(manifold = sphere(), type = "hex", isea3h_res = 5, data = spd
 gg <- plot_spatial_or_ST(cells, column_names = "lat", plot_over_world = T, alpha = 0, colour = "black", size = 0.1)[[1]]
 gg <- draw_world_custom(gg)
 gg <- gg + theme(axis.title = element_blank(), panel.border = element_blank(), panel.background = element_blank(), legend.position = "none")
-ggsave(gg, filename = "discretegrid.pdf", device = "pdf", width = 8.5, height = 3.8, path = img_path)
-ggsave(gg, filename = "discretegrid.png", device = "png", width = 8.5, height = 3.8, path = img_path)
-ggsave(ggarrange(Zplot_norect, gg, widths = c(1.1, 1)), filename = "data_discretegrid.png", device = "png", width = 8.5, height = 3.8, path = img_path)
+ggsv(gg, filename = "discretegrid", width = 8.5, height = 3.8, path = img_path)
+ggsv(ggarrange(Zplot_norect, gg, widths = c(1.1, 1)), filename = "data_discretegrid", width = 8.5, height = 3.8, path = img_path)
 
 # Relabel the cells from 1:length(cells)
 for (i in 1:length(cells)) {
@@ -217,8 +210,7 @@ bau_subset <- rbind(bau_subset1, bau_subset2)
 gg <- plot_spatial_or_ST(bau_subset, "central_hexagon", plot_over_world = T)[[1]]
 gg <- draw_world_custom(gg)
 gg <- gg + theme(legend.position = "none", axis.title = element_blank(), panel.border = element_blank(), panel.background = element_blank())
-ggsave(gg, filename = "clustering.pdf", device = "pdf", width = 6.8, height = 3.8, path = img_path)
-ggsave(gg, filename = "clustering.png", device = "png", width = 6.8, height = 3.8, path = img_path)
+ggsv(gg, filename = "clustering", width = 6.8, height = 3.8, path = img_path)
 
 # Now create a list of hexagon clusters, each associated with a central hexagon.
 # We just need to store the coordinates and data as a data frame.
@@ -256,12 +248,10 @@ gghist <- ggplot() +
   geom_histogram(aes(x = n), bins = 20, fill = "gray", colour= "black") +
   labs(x = expression("Number of observed locations,"~italic(n)), y = "Frequency") +
   theme_bw()
-ggsave(gghist, filename = "samplesizes.pdf", device = "pdf", width = 6.8, height = 3.8, path = img_path)
-ggsave(gghist, filename = "samplesizes.png", device = "png", width = 6.8, height = 3.8, path = img_path)
+ggsv(gghist, filename = "samplesizes", width = 6.8, height = 3.8, path = img_path)
 
 # Combined figure of cells and sample sizes
-ggsave(ggarrange(gg, gghist, nrow = 1), filename = "clusteringsamplesizes.pdf", device = "pdf", width = 9, height = 3, path = img_path)
-ggsave(ggarrange(gg, gghist, nrow = 1), filename = "clusteringsamplesizes.png", device = "png", width = 9, height = 3, path = img_path)
+ggsv(ggarrange(gg, gghist, nrow = 1), filename = "clusteringsamplesizes", width = 9, height = 3, path = img_path)
 
 ## Convert from longitude-latitude to Cartesian coordinates
 convert_to_cartesian <- function(lonlat, R = 6371) {

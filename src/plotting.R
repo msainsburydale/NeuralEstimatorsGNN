@@ -14,6 +14,7 @@ suppressMessages({
 
 if(!interactive()) pdf(NULL)
 
+text_size <- 14
 
 # see: latex2exp_supported()
 estimator_labels <- c(
@@ -85,7 +86,6 @@ estimator_linetypes <- c(
 
 
 parameter_labels <- c(
-  # "τ"  = expression(hat(tau)),
   "τ"  = expression(hat(sigma)[epsilon]),
   "σ"  = expression(hat(sigma)),
   "ρ"  = expression(hat(rho)),
@@ -145,10 +145,9 @@ splitfacet <- function(x){
 
 risklabel <- expression(r[Omega](hat(theta)("·")))
 
-# TODO add this throughout so that we can use png if needed
+
 ggsv <- function(filename, plot, ...) {
   for (device in c("pdf", "png")) {
-    # for (device in c("pdf")) {
     ggsave(plot, file = paste0(filename, ".", device), device = device, ...)
   }
 }

@@ -48,7 +48,7 @@ p = ξ.p
 # information to choose k in a way that makes for a relatively fair comparison.
 n = 250  # sample size
 r = 0.15 # disc radius
-# k = ceil(Int, n*π*r^2) 
+# k = ceil(Int, n*π*r^2)
 k = 10
 k₂ = 30
 
@@ -67,7 +67,6 @@ gnn3b = deepcopy(gnn1)
 
 # ---- Training ----
 
-#TODO could also try with n = 30:300, say
 cluster_process = true
 
 # Sample parameter vectors and simulate data
@@ -125,7 +124,7 @@ function assessestimators(n, ξ, K::Integer)
 	assessment = assess(
 		[gnn1], θ̃, Z;
 		estimator_names = ["fixedradius"],
-		parameter_names = ξ.parameter_names, 
+		parameter_names = ξ.parameter_names,
 		verbose = false
 	)
 
@@ -135,16 +134,16 @@ function assessestimators(n, ξ, K::Integer)
 	assessment = merge(assessment, assess(
 		[gnn2], θ̃, Z;
 		estimator_names = ["knearest"],
-		parameter_names = ξ.parameter_names, 
+		parameter_names = ξ.parameter_names,
 		verbose = false
 	))
-	
+
 	θ̃ = modifyneighbourhood(θ, k₂)
 	seed!(1); Z = simulate(θ̃, m)
 	assessment = merge(assessment, assess(
 		[gnn2b], θ̃, Z;
 		estimator_names = ["knearestb"],
-		parameter_names = ξ.parameter_names, 
+		parameter_names = ξ.parameter_names,
 		verbose = false
 	))
 
@@ -154,16 +153,16 @@ function assessestimators(n, ξ, K::Integer)
 	assessment = merge(assessment, assess(
 		[gnn3], θ̃, Z;
 		estimator_names = ["combined"],
-		parameter_names = ξ.parameter_names, 
+		parameter_names = ξ.parameter_names,
 		verbose = false
 	))
-	
+
 		θ̃ = modifyneighbourhood(θ, r, k₂)
 	seed!(1); Z = simulate(θ̃, m)
 	assessment = merge(assessment, assess(
 		[gnn3b], θ̃, Z;
 		estimator_names = ["combinedb"],
-		parameter_names = ξ.parameter_names, 
+		parameter_names = ξ.parameter_names,
 		verbose = false
 	))
 
@@ -197,15 +196,15 @@ function testruntime(n, ξ)
   	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
   	θ = Parameters(1, ξ)
   	Z = simulate(θ, m; convert_to_graph = false)
-  	
+
   	seed!(1)
   	θ = Parameters(1, ξ, n, cluster_process = cluster_process)
-  
+
   	# Fixed radius
   	θ̃ = modifyneighbourhood(θ, r)
 	  Z = simulate(θ̃, m)|> gpu
   	t_gnn1 = @belapsed gnn1($Z)
-  
+
   	# k-nearest neighbours
     θ̃ = modifyneighbourhood(θ, k)
 	  Z = simulate(θ̃, m)|> gpu
@@ -213,7 +212,7 @@ function testruntime(n, ξ)
   	θ̃ = modifyneighbourhood(θ, k₂)
 	  Z = simulate(θ̃, m)|> gpu
   	t_gnn2b = @belapsed gnn2($Z)
-  
+
   	# combined
     θ̃ = modifyneighbourhood(θ, r, k)
 	  Z = simulate(θ̃, m)|> gpu
@@ -221,10 +220,10 @@ function testruntime(n, ξ)
   	θ̃ = modifyneighbourhood(θ, r, k₂)
 	  Z = simulate(θ̃, m)|> gpu
   	t_gnn3b = @belapsed gnn3($Z)
-  
+
   	# Store the run times as a data frame
-  	DataFrame(time = [t_gnn1, t_gnn2, t_gnn2b, t_gnn3, t_gnn3b], 
-  	          estimator = ["fixedradius", "knearest", "knearestb", "combined", "combinedb"], 
+  	DataFrame(time = [t_gnn1, t_gnn2, t_gnn2b, t_gnn3, t_gnn3b],
+  	          estimator = ["fixedradius", "knearest", "knearestb", "combined", "combinedb"],
   	          n = n)
   end
 
