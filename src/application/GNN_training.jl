@@ -8,7 +8,7 @@ end
 parsed_args = parse_args(arg_table)
 
 quick = parsed_args["quick"]
-model="GP/nuFixedSigmaVaried"
+model = joinpath("GP", "nuFixed")
 m=[1]
 
 M = maximum(m)

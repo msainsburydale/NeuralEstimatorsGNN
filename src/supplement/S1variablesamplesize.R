@@ -5,6 +5,7 @@ dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 source(file.path("src", "plotting.R"))
 
 df <- read.csv(file.path(int_path, "estimates.csv"))
+df <- filter(df, estimator != "ML")
 
 ## RMSE plot
 
@@ -18,26 +19,14 @@ breaks <- unique(df$n)
 breaks <- breaks[breaks != 60]
 breaks <- breaks[breaks != 100]
 
-figure <- ggplot(data = df,
-                 aes(x = n, y = rmse, colour = estimator, group = estimator)) +
+figure <- ggplot(data = df, aes(x = n, y = rmse, colour = estimator, group = estimator)) +
   geom_point() +
   geom_line(alpha = 0.75) +
-  labs(
-    colour = "", 
-    x = expression(n), 
-    y = "RMSE"
-  ) +
+  labs(colour = "", y = TeX("RMSE under $\\bf{S} \\sim $UBPP(n)")) +
   scale_x_continuous(breaks = breaks) +
   scale_estimator(df) +
-  theme_bw() +
-  # coord_cartesian(ylim=c(0, 0.35)) + 
-  theme(
-    legend.text=element_text(size = 14),
-    legend.text.align = 0,
-    panel.grid = element_blank(),
-    strip.background = element_blank(),
-    strip.text.x = element_blank()
-  ) 
+  theme_bw(base_size = text_size) +
+  theme(legend.text.align = 0, panel.grid = element_blank()) 
 
 figure_RMSE <- figure
 
@@ -51,7 +40,7 @@ window1 <- figure +
   coord_cartesian(xlim = c(xmin1, xmax1), ylim = c(ymin1, ymax1)) + 
   theme(aspect.ratio = .5)
 
-#NB the position of the windows are fixed, and so in this case, one of the 
+#TODO the position of the windows are fixed, and so in this case, one of the 
 #  windows does not contain the curves for any of the estimators. Could this 
 #  potentially still be the case when running the non-fast option? Would it 
 #  make sense to centre the window around the value at (n=30) for the Bayes 

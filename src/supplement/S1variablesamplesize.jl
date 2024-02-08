@@ -13,7 +13,7 @@ end
 parsed_args = parse_args(arg_table)
 quick       = parsed_args["quick"]
 
-model= joinpath("GP", "nuFixed")
+model= joinpath("GP", "nuSigmaFixed")
 m=1
 using NeuralEstimators
 using NeuralEstimatorsGNN

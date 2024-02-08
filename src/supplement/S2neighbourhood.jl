@@ -15,7 +15,7 @@ end
 parsed_args = parse_args(arg_table)
 quick       = parsed_args["quick"]
 
-model = joinpath("GP", "nuFixed")
+model = joinpath("GP", "nuSigmaFixed")
 m = 1
 using NeuralEstimators
 using NeuralEstimatorsGNN
@@ -48,7 +48,9 @@ p = ξ.p
 # information to choose k in a way that makes for a relatively fair comparison.
 n = 250  # sample size
 r = 0.15 # disc radius
-k = ceil(Int, n*π*r^2) ÷ 2 # divide by two to emphasise the difference between k-nearest neighbours and the combined approach
+# k = ceil(Int, n*π*r^2) 
+k = 10
+k₂ = 30
 
 # Number of epochs used during training: Early stopping means that we never train
 # for the full amount of epochs
@@ -60,10 +62,11 @@ seed!(1)
 gnn1 = gnnarchitecture(p; propagation = "WeightedGraphConv")
 gnn2 = deepcopy(gnn1)
 gnn3 = deepcopy(gnn1)
+gnn2b = deepcopy(gnn1)
+gnn3b = deepcopy(gnn1)
 
 # ---- Training ----
 
-#TODO Perhaps try with a cluster process
 #TODO could also try with n = 30:300, say
 cluster_process = true
 
@@ -77,23 +80,35 @@ Z_val   = simulate(θ_val, m)
 @info "Training with the neighbourhood of a given node defined as a disc of fixed radius"
 θ̃_val   = modifyneighbourhood(θ_val, r)
 θ̃_train = modifyneighbourhood(θ_train, r)
-train(gnn1, θ̃_train, θ̃_val, Z_train, Z_val, savepath = joinpath(path, "fixedradius"), epochs = epochs, stopping_epochs = 5)
+train(gnn1, θ̃_train, θ̃_val, Z_train, Z_val, savepath = joinpath(path, "fixedradius"), epochs = epochs)
 
-@info "Training with the neighbourhood of a given node defined as its k-nearest neighbours"
+@info "Training with the neighbourhood of a given node defined as its k-nearest neighbours with k=$k"
 θ̃_val   = modifyneighbourhood(θ_val, k)
 θ̃_train = modifyneighbourhood(θ_train, k)
-train(gnn2, θ̃_train, θ̃_val, Z_train, Z_val, savepath = joinpath(path, "knearest"), epochs = epochs, stopping_epochs = 5)
+train(gnn2, θ̃_train, θ̃_val, Z_train, Z_val, savepath = joinpath(path, "knearest"), epochs = epochs)
 
-@info "Training with the neighbourhood of a given node a random set of k neighbours selected within a disc of fixed spatial radius"
+@info "Training with the neighbourhood of a given node defined as its k-nearest neighbours with k=$(k₂)"
+θ̃_val   = modifyneighbourhood(θ_val, k₂)
+θ̃_train = modifyneighbourhood(θ_train, k₂)
+train(gnn2b, θ̃_train, θ̃_val, Z_train, Z_val, savepath = joinpath(path, "knearestb"), epochs = epochs)
+
+@info "Training with the neighbourhood of a given node a random set of k=$k neighbours selected within a disc of fixed spatial radius"
 θ̃_val   = modifyneighbourhood(θ_val, r, k)
 θ̃_train = modifyneighbourhood(θ_train, r, k)
-train(gnn3, θ̃_train, θ̃_val, Z_train, Z_val, savepath = joinpath(path, "combined"), epochs = epochs, stopping_epochs = 5)
+train(gnn3, θ̃_train, θ̃_val, Z_train, Z_val, savepath = joinpath(path, "combined"), epochs = epochs)
+
+@info "Training with the neighbourhood of a given node a random set of k=$(k₂) neighbours selected within a disc of fixed spatial radius"
+θ̃_val   = modifyneighbourhood(θ_val, r, k₂)
+θ̃_train = modifyneighbourhood(θ_train, r, k₂)
+train(gnn3b, θ̃_train, θ̃_val, Z_train, Z_val, savepath = joinpath(path, "combinedb"), epochs = epochs)
 
 # ---- Load the trained estimators ----
 
 Flux.loadparams!(gnn1,  loadbestweights(joinpath(path, "fixedradius")))
 Flux.loadparams!(gnn2,  loadbestweights(joinpath(path, "knearest")))
+Flux.loadparams!(gnn2b,  loadbestweights(joinpath(path, "knearestb")))
 Flux.loadparams!(gnn3,  loadbestweights(joinpath(path, "combined")))
+Flux.loadparams!(gnn3b,  loadbestweights(joinpath(path, "combinedb")))
 
 # ---- Assess the estimators ----
 
@@ -114,12 +129,21 @@ function assessestimators(n, ξ, K::Integer)
 		verbose = false
 	)
 
-	# Estimator trained with k-nearest neighbours for fixed k
+	# Estimators trained with k-nearest neighbours for fixed k
 	θ̃ = modifyneighbourhood(θ, k)
 	seed!(1); Z = simulate(θ̃, m)
 	assessment = merge(assessment, assess(
 		[gnn2], θ̃, Z;
 		estimator_names = ["knearest"],
+		parameter_names = ξ.parameter_names, 
+		verbose = false
+	))
+	
+	θ̃ = modifyneighbourhood(θ, k₂)
+	seed!(1); Z = simulate(θ̃, m)
+	assessment = merge(assessment, assess(
+		[gnn2b], θ̃, Z;
+		estimator_names = ["knearestb"],
 		parameter_names = ξ.parameter_names, 
 		verbose = false
 	))
@@ -133,6 +157,15 @@ function assessestimators(n, ξ, K::Integer)
 		parameter_names = ξ.parameter_names, 
 		verbose = false
 	))
+	
+		θ̃ = modifyneighbourhood(θ, r, k₂)
+	seed!(1); Z = simulate(θ̃, m)
+	assessment = merge(assessment, assess(
+		[gnn3b], θ̃, Z;
+		estimator_names = ["combinedb"],
+		parameter_names = ξ.parameter_names, 
+		verbose = false
+	))
 
 	# Add sample size information
 	assessment.df[:, :n] .= n
@@ -141,7 +174,6 @@ function assessestimators(n, ξ, K::Integer)
 end
 
 test_n = [30, 60, 100, 200, 300, 500, 750, 1000]
-assessestimators(test_n[1], ξ, K_test) # compile code to ensure accurate timings
 assessment = [assessestimators(n, ξ, K_test) for n ∈ test_n]
 assessment = merge(assessment...)
 CSV.write(joinpath(path, "estimates.csv"), assessment.df)
@@ -178,16 +210,25 @@ function testruntime(n, ξ)
     θ̃ = modifyneighbourhood(θ, k)
 	  Z = simulate(θ̃, m)|> gpu
   	t_gnn2 = @belapsed gnn2($Z)
+  	θ̃ = modifyneighbourhood(θ, k₂)
+	  Z = simulate(θ̃, m)|> gpu
+  	t_gnn2b = @belapsed gnn2($Z)
   
   	# combined
     θ̃ = modifyneighbourhood(θ, r, k)
 	  Z = simulate(θ̃, m)|> gpu
   	t_gnn3 = @belapsed gnn3($Z)
+  	θ̃ = modifyneighbourhood(θ, r, k₂)
+	  Z = simulate(θ̃, m)|> gpu
+  	t_gnn3b = @belapsed gnn3($Z)
   
   	# Store the run times as a data frame
-  	DataFrame(time = [t_gnn1, t_gnn2, t_gnn3], estimator = ["fixedradius", "knearest", "combined"], n = n)
+  	DataFrame(time = [t_gnn1, t_gnn2, t_gnn2b, t_gnn3, t_gnn3b], 
+  	          estimator = ["fixedradius", "knearest", "knearestb", "combined", "combinedb"], 
+  	          n = n)
   end
 
+test_n = [32, 64, 128, 256, 512, 1024]
 seed!(1)
 times = []
 for n ∈ test_n

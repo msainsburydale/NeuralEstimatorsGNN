@@ -15,42 +15,39 @@ function gnnarchitecture(ξ; args...)
 	# Final activation function compresses output to prior support:
 	final_activation = Compress(a, b)
 
-	return architecture(p; final_activation = final_activation, args...)
+	return gnnarchitecture(p; final_activation = final_activation, args...)
 end
 
 function gnnarchitecture(
 	p::Integer;
 	propagation::String = "WeightedGraphConv",
-	d::Integer = 1, 	  # dimension of the response variable (univariate by default)
+	d::Integer = 1, 	    # dimension of the response variable (univariate by default)
 	nh::Integer = 128,    # number of channels in each propagation layer
-	nlayers::Integer = 3, # number of propagation layers (in addition to the first layer)
+	nlayers::Integer = 4, # number of propagation layers 
 	aggr = mean,          # node aggregation function
 	readout::String = "mean",
 	final_activation = exp
 	)
 
-	@assert nlayers > 0
-
+	@assert nlayers >= 1
+	
 	# Propagation module
-	propagation = if propagation == "GraphConv"
-		 GNNChain(
-			GraphConv(d  => nh, relu, aggr = aggr),
-			[GraphConv(nh => nh, relu, aggr = aggr) for _ in 1:nlayers]...
-		)
+  prop = if propagation == "GraphConv"
+		 GraphConv
 	elseif propagation == "WeightedGraphConv"
-		GNNChain(
-			WeightedGraphConv(d  => nh, relu, aggr = aggr),
-			[WeightedGraphConv(nh => nh, relu, aggr = aggr) for _ in 1:nlayers]...
-		)
+		WeightedGraphConv
 	elseif propagation == "WeightedGINConv"
-		GNNChain(
-			WeightedGINConv(d  => nh, relu, aggr = aggr),
-			[WeightedGINConv(nh => nh, relu, aggr = aggr) for _ in 1:nlayers]...
-		)
+		WeightedGINConv
 	else
 		error("propagation module not recognised")
 	end
-
+	propagation_layers = []
+	push!(propagation_layers, prop(d  => nh, relu, aggr = aggr))
+	if nlayers >= 2
+	  push!(propagation_layers, [GraphConv(nh => nh, relu, aggr = aggr) for _ in 2:nlayers]...)
+	end
+	propagation = GNNChain(propagation_layers...)
+	
 	# Readout module
 	readout = if readout == "mean"
 		no = nh
@@ -58,8 +55,6 @@ function gnnarchitecture(
 	elseif readout == "universal"
 		nt = 64  # dimension of the summary vector for each node
 		no = 128  # dimension of the final summary vector for each graph
-		# ψ = Chain(Dense(nh, nt), Dense(nt, nt))
-		# ϕ = Chain(Dense(nt, no), Dense(no, no))
 		ψ = Dense(nh, nt)
 		ϕ = Dense(nt, no)
 		UniversalPool(ψ, ϕ)

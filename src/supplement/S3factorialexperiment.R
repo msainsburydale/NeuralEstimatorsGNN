@@ -7,7 +7,7 @@ source(file.path("src", "plotting.R"))
 # Load the loss function per epoch files:
 all_dirs  <- list.dirs(path = int_path, recursive = TRUE)
 runs_dirs <- all_dirs[which(grepl("runs_", all_dirs))]
-depth <- 1:5
+depth <- 1:6
 width <- 2^(2:8)
 risk_list <- expand.grid(depth, width) %>% 
   apply(1, function(study) {
@@ -36,37 +36,32 @@ nrow(df) == length(depth) * length(width)
 df$width <- as.ordered(df$width)
 df$depth <- as.ordered(df$depth)
 
-# TODO would be really good if we could compute the posterior median for this 
-# model, so that we could compute and display the excess risk, rather than 
-# simply the risk. 
-
 widthlabel <- "Propagation channels (width)"
 depthlabel <- "Propagation layers (depth)"
 
 risk_plot <- ggplot(df) +
-  geom_tile(aes(x = width, y = depth, fill = validation)) + 
+  geom_tile(aes(x = depth, y = width, fill = validation)) + 
   scale_fill_viridis_c(option = "magma") + 
   theme_bw() +
-  labs(fill = "Bayes risk", x = widthlabel, y = depthlabel) + 
+  labs(fill = "Bayes risk", x = depthlabel, y = widthlabel) + 
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) + 
   theme(legend.position = "top")
 
 traintime_plot <- ggplot(df) +
-  geom_tile(aes(x = width, y = depth, fill = training_time)) + 
+  geom_tile(aes(x = depth, y = width, fill = training_time)) + 
   scale_fill_viridis_c(option = "magma") + 
   theme_bw() +
-  labs(fill = "Training time (hrs)", x = widthlabel, y = depthlabel) + 
+  labs(fill = "Training time (hrs)", x = depthlabel, y = widthlabel) + 
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) + 
   theme(legend.position = "top")
 
-
 inferencetime_plot <- ggplot(df) +
-  geom_tile(aes(x = width, y = depth, fill = inference_time)) + 
+  geom_tile(aes(x = depth, y = width, fill = inference_time)) + 
   scale_fill_viridis_c(option = "magma", breaks = c(0.002, 0.004)) + 
   theme_bw() +
-  labs(fill = "Inference time (s)", x = widthlabel, y = depthlabel) + 
+  labs(fill = "Inference time (s)", x = depthlabel, y = widthlabel) + 
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) + 
   theme(legend.position = "top") 

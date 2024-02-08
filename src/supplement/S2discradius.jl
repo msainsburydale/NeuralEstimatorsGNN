@@ -13,7 +13,7 @@ end
 parsed_args = parse_args(arg_table)
 quick           = parsed_args["quick"]
 
-model="GP/nuFixed"
+model = joinpath("GP", "nuSigmaFixed")
 m=[1]
 
 M = maximum(m)
@@ -50,7 +50,7 @@ epochs = quick ? 2 : 200
 J = 3
 n = 250
 
-for radius ∈ [0.05, 0.1, 0.15, 0.2, 0.25, 0.3] # number of channels in each propagation layer
+for radius ∈ [0.05, 0.1, 0.15, 0.2, 0.25, 0.3] 
   
   @info "Training GNN with disc radius = $(radius)"
   seed!(1)
@@ -60,7 +60,7 @@ for radius ∈ [0.05, 0.1, 0.15, 0.2, 0.25, 0.3] # number of channels in each pr
   θ_single = Parameters(1, ξ, n, J = 1)
   Z_single = simulate(θ_single, M) |> gpu
   
-  for nlayers ∈ [1, 2, 3, 4, 5] # number of propagation layers (in addition to the first layer) #TODO why do we need the parenthetic comment?
+  for nlayers ∈ [1, 2, 3, 4, 5, 6] # number of propagation layers 
 	  @info "Training GNN with $(nlayers) propagation layers"
 		
 		seed!(1)
@@ -76,3 +76,48 @@ for radius ∈ [0.05, 0.1, 0.15, 0.2, 0.25, 0.3] # number of channels in each pr
 	  CSV.write(joinpath(savepath, "inference_time.csv"), t)
 	end
 end
+
+
+# ---- Sensitivity analysis of the radius with respect to n ----
+
+assessments = []
+for n ∈ [30, 60, 100, 200, 300, 500, 750, 1000]
+  @info "Assessing the estimators with sample size n = $n"
+  seed!(1)
+  θ_test   = Parameters(K_test, ξ, n, J = J)
+  θ_single = Parameters(1, ξ, n, J = 1)
+  for radius ∈ [0.05, 0.1, 0.15, 0.2, 0.25, 0.3] 
+    
+    @info "Assessing the estimator with radius = $radius"
+  
+    nlayers = 4
+    gnn = gnnarchitecture(p, nlayers = nlayers)
+  	loadpath = joinpath(path, "runs_GNN_depth$(nlayers)_radius$(radius)")
+  	Flux.loadparams!(gnn,  loadbestweights(loadpath))
+  
+    θ_test   = modifyneighbourhood(θ_test, radius)
+    θ_single = modifyneighbourhood(θ_single, radius)
+
+  	# Assess the estimator's accuracy 
+  	seed!(1)
+  	Z_test = simulate(θ_test, M)
+  	assessment = assess(
+  		[gnn], θ_test, Z_test;
+  		estimator_names = ["gnn"],
+  		parameter_names = ξ.parameter_names, 
+  		verbose = false
+  	)
+  	assessment.df[:, :radius] .= radius
+  	assessment.df[:, :n] .= n
+  	
+  	# Accurately assess the inference time for a single data set
+    gnn = gnn |> gpu
+    Z_single = simulate(θ_single, M) |> gpu
+    t = @belapsed $gnn($Z_single)
+    assessment.df[:, :inference_time] .= t
+    
+    push!(assessments, assessment)
+  end
+end
+assessment = merge(assessments...)
+CSV.write(joinpath(path, "radius_vs_n.csv"), assessment.df)

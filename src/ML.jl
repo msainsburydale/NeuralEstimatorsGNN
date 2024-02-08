@@ -17,7 +17,7 @@ function ML(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVector
 	# prior support, here we provide the logit-transformed values.
 	Ω = ξ.Ω
 	Ω = [Ω...] # convert to array since broadcasting over dictionaries and NamedTuples is reserved
-	# "Widen" the prior support so we don't get so many estimates on the boundary
+	# "Widen" the prior support to reduce estimates on the boundary
 	Ω = map(Ω) do x
 		[minimum(x)/3, maximum(x)*3]
 	end

@@ -61,12 +61,13 @@ epochs = quick ? 20 : 200
 
 seed!(1)
 pointestimator = gnnarchitecture(p)
-U = gnnarchitecture(p; final_activation = identity)
-V = gnnarchitecture(p; final_activation = identity)
+U = gnnarchitecture(p; final_activation = identity) |> PointEstimator # TODO I think in the latest version of NeuralEstimators, U doesn't need to be wrapped as a PointEstimator
+V = gnnarchitecture(p; final_activation = identity) |> PointEstimator # TODO I think in the latest version of NeuralEstimators, U doesn't need to be wrapped as a PointEstimator
 Ω = ξ.Ω
 a = [minimum.(values(Ω))...]
 b = [maximum.(values(Ω))...]
-intervalestimator = IntervalEstimator(U, V, a, b)
+c = Compress(a, b)
+intervalestimator = IntervalEstimator(U, V, c)
 
 α = 0.05f0
 q = [α/2, 1-α/2] # quantiles

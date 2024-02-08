@@ -25,11 +25,6 @@ m = let expr = Meta.parse(parsed_args["m"])
     Int.(expr.args)
 end
 
-# model="GP/nuFixedSigmaVaried"
-# m=[1]
-# skip_training = true
-# quick=true
-
 M = maximum(m)
 using NeuralEstimators
 using NeuralEstimatorsGNN
@@ -85,7 +80,7 @@ end
 
 # ---- Load the trained estimator ----
 
-Flux.loadparams!(gnn,  loadbestweights(path * "/runs_GNN_m$M"))
+Flux.loadparams!(gnn,  loadbestweights(joinpath(path, "runs_GNN_m$M")))
 
 # ---- Run-time assessment ----
 

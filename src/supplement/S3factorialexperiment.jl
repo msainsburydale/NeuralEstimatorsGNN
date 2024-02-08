@@ -13,7 +13,7 @@ end
 parsed_args = parse_args(arg_table)
 quick           = parsed_args["quick"]
 
-model="GP/nuFixed"
+model = joinpath("GP", "nuSigmaFixed")
 m=[1]
 
 M = maximum(m)
@@ -59,7 +59,7 @@ n = 1000
 Z = simulate(θ_single, M)
 Z = Z |> gpu
 
-for nlayers ∈ [1, 2, 3, 4, 5] # number of propagation layers (in addition to the first layer) #TODO why do we need the parenthetic comment?
+for nlayers ∈ [1, 2, 3, 4, 5, 6] # number of propagation layers 
 	@info "Training GNN with $(nlayers) propagation layers"
 	for nh ∈ [4, 8, 16, 32, 64, 128, 256] # number of channels in each propagation layer
 		@info "Training GNN with $(nh) channels in each propagation layer"

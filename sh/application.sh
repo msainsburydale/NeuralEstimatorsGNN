@@ -17,5 +17,8 @@ else
     exit 1
 fi
 
-julia --threads=auto --project=. src/application/main.jl $quick
-Rscript src/application/main.R  $quick
+Rscript src/application/Preprocessing.R  $quick
+julia --threads=auto --project=. src/application/GNN_training.jl $quick
+Rscript src/application/GNN_estimates.R # TODO better to do this in Julia... but need an efficient algorithm for the adjacency matrix
+julia --threads=auto --project=. src/application/ML_estimates.jl  
+Rscript src/application/Results.R

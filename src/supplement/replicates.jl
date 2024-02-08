@@ -2,7 +2,7 @@
 # ---- Handling independent replicates ----
 # -----------------------------------------
 
-model="GP/nuFixed"
+model = joinpath("GP", "nuSigmaFixed")
 K = 100
 m=[1, 30, 90]
 
