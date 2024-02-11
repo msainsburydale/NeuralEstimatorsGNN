@@ -18,11 +18,12 @@ export reshapedataGNN, reshapedataGNNcompact
 # ---- adjacencymatrix ----
 
 import NeuralEstimators: adjacencymatrix
+export adjacencymatrix
 
+using Distances
 using InvertedIndices
 using NearestNeighbors
 using StatsBase: sample
-using BenchmarkTools
 using SparseArrays
 
 function adjacencymatrix(M::Mat, k::Integer; maxmin::Bool = false, moralise::Bool = false) where Mat <: AbstractMatrix{T} where T
@@ -437,6 +438,16 @@ function modifyneighbourhood(θ::Parameters, args...)
 	if !(typeof(S) <: AbstractVector) S = [S] end
 
 	A = adjacencymatrix.(S, args...)
+	graphs = GNNGraph.(A)
+
+	Parameters(θ.θ, S, graphs, θ.chols, θ.chol_pointer, θ.loc_pointer)
+end
+function modifyneighbourhood(θ::Parameters, k::Integer; maxmin = false, moralise = false)
+
+	S = θ.locations
+	if !(typeof(S) <: AbstractVector) S = [S] end
+
+	A = adjacencymatrix.(S, k; maxmin = maxmin, moralise = maxmin)
 	graphs = GNNGraph.(A)
 
 	Parameters(θ.θ, S, graphs, θ.chols, θ.chol_pointer, θ.loc_pointer)
