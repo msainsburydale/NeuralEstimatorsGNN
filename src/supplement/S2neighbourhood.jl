@@ -3,6 +3,7 @@
 #  - a disc of fixed spatial radius
 #  - k-nearest neighbours for fixed k
 #  - a random set of k neighbours selected within a disc of fixed spatial radius
+#  - maxmin ordering (both immoral and moral versions)
 # ------------------------------------------------------------------------------
 
 using ArgParse
@@ -62,8 +63,11 @@ seed!(1)
 gnn1 = gnnarchitecture(p; propagation = "WeightedGraphConv")
 gnn2 = deepcopy(gnn1)
 gnn3 = deepcopy(gnn1)
+gnn4 = deepcopy(gnn1)
+gnn5 = deepcopy(gnn1)
 gnn2b = deepcopy(gnn1)
 gnn3b = deepcopy(gnn1)
+
 
 # ---- Training ----
 
@@ -101,13 +105,25 @@ train(gnn3, θ̃_train, θ̃_val, Z_train, Z_val, savepath = joinpath(path, "com
 θ̃_train = modifyneighbourhood(θ_train, r, k₂)
 train(gnn3b, θ̃_train, θ̃_val, Z_train, Z_val, savepath = joinpath(path, "combinedb"), epochs = epochs)
 
+@info "Training with immoral maxmin ordering with k=$k neighbours"
+θ̃_val   = modifyneighbourhood(θ_val, k,   maxmin = true, moralise = false)
+θ̃_train = modifyneighbourhood(θ_train, k, maxmin = true, moralise = false)
+train(gnn4, θ̃_train, θ̃_val, Z_train, Z_val, savepath = joinpath(path, "maxmin_immoral"), epochs = epochs)
+
+@info "Training with moral maxmin ordering with k=$k neighbours"
+θ̃_val   = modifyneighbourhood(θ_val, k,   maxmin = true, moralise = true)
+θ̃_train = modifyneighbourhood(θ_train, k, maxmin = true, moralise = true)
+train(gnn5, θ̃_train, θ̃_val, Z_train, Z_val, savepath = joinpath(path, "maxmin_moral"), epochs = epochs)
+
 # ---- Load the trained estimators ----
 
 Flux.loadparams!(gnn1,  loadbestweights(joinpath(path, "fixedradius")))
 Flux.loadparams!(gnn2,  loadbestweights(joinpath(path, "knearest")))
-Flux.loadparams!(gnn2b,  loadbestweights(joinpath(path, "knearestb")))
+Flux.loadparams!(gnn2b, loadbestweights(joinpath(path, "knearestb")))
 Flux.loadparams!(gnn3,  loadbestweights(joinpath(path, "combined")))
-Flux.loadparams!(gnn3b,  loadbestweights(joinpath(path, "combinedb")))
+Flux.loadparams!(gnn3b, loadbestweights(joinpath(path, "combinedb")))
+Flux.loadparams!(gnn4,  loadbestweights(joinpath(path, "maxmin_immoral")))
+Flux.loadparams!(gnn5,  loadbestweights(joinpath(path, "maxmin_moral")))
 
 # ---- Assess the estimators ----
 
@@ -137,7 +153,6 @@ function assessestimators(n, ξ, K::Integer)
 		parameter_names = ξ.parameter_names,
 		verbose = false
 	))
-
 	θ̃ = modifyneighbourhood(θ, k₂)
 	seed!(1); Z = simulate(θ̃, m)
 	assessment = merge(assessment, assess(
@@ -156,12 +171,29 @@ function assessestimators(n, ξ, K::Integer)
 		parameter_names = ξ.parameter_names,
 		verbose = false
 	))
-
-		θ̃ = modifyneighbourhood(θ, r, k₂)
+	θ̃ = modifyneighbourhood(θ, r, k₂)
 	seed!(1); Z = simulate(θ̃, m)
 	assessment = merge(assessment, assess(
 		[gnn3b], θ̃, Z;
 		estimator_names = ["combinedb"],
+		parameter_names = ξ.parameter_names,
+		verbose = false
+	))
+
+	# Estimators trained with maxmin ordering
+	θ̃ = modifyneighbourhood(θ, k, maxmin = true, moralise = false)
+	seed!(1); Z = simulate(θ̃, m)
+	assessment = merge(assessment, assess(
+		[gnn4], θ̃, Z;
+		estimator_names = ["maxmin_immoral"],
+		parameter_names = ξ.parameter_names,
+		verbose = false
+	))
+	θ̃ = modifyneighbourhood(θ, k, maxmin = true, moralise = true)
+	seed!(1); Z = simulate(θ̃, m)
+	assessment = merge(assessment, assess(
+		[gnn5], θ̃, Z;
+		estimator_names = ["maxmin_moral"],
 		parameter_names = ξ.parameter_names,
 		verbose = false
 	))
@@ -183,9 +215,8 @@ CSV.write(joinpath(path, "runtime.csv"), assessment.runtime)
 
 @info "Assessing the run-time for a single data set for each estimator and each sample size n ∈ $(test_n)..."
 
-gnn1  = gnn1 |> gpu
-gnn2  = gnn2 |> gpu
-gnn3  = gnn3 |> gpu
+# just use one gnn since the architectures are exactly the same
+gnn  = gnn1 |> gpu 
 
 function testruntime(n, ξ)
 
@@ -202,28 +233,36 @@ function testruntime(n, ξ)
 
   	# Fixed radius
   	θ̃ = modifyneighbourhood(θ, r)
-	  Z = simulate(θ̃, m)|> gpu
-  	t_gnn1 = @belapsed gnn1($Z)
+	Z = simulate(θ̃, m)|> gpu
+  	t_gnn1 = @belapsed gnn($Z)
 
   	# k-nearest neighbours
     θ̃ = modifyneighbourhood(θ, k)
-	  Z = simulate(θ̃, m)|> gpu
-  	t_gnn2 = @belapsed gnn2($Z)
+	Z = simulate(θ̃, m)|> gpu
+  	t_gnn2 = @belapsed gnn($Z)
   	θ̃ = modifyneighbourhood(θ, k₂)
-	  Z = simulate(θ̃, m)|> gpu
-  	t_gnn2b = @belapsed gnn2($Z)
+	Z = simulate(θ̃, m)|> gpu
+  	t_gnn2b = @belapsed gnn($Z)
 
   	# combined
     θ̃ = modifyneighbourhood(θ, r, k)
-	  Z = simulate(θ̃, m)|> gpu
-  	t_gnn3 = @belapsed gnn3($Z)
+	Z = simulate(θ̃, m)|> gpu
+  	t_gnn3 = @belapsed gnn($Z)
   	θ̃ = modifyneighbourhood(θ, r, k₂)
-	  Z = simulate(θ̃, m)|> gpu
-  	t_gnn3b = @belapsed gnn3($Z)
+	Z = simulate(θ̃, m)|> gpu
+  	t_gnn3b = @belapsed gnn($Z)
+
+	# maxmin
+	θ̃ = modifyneighbourhood(θ, k, maxmin = true, moralise = false)
+	Z = simulate(θ̃, m)|> gpu
+	t_gnn4 = @belapsed gnn($Z)
+	θ̃ = modifyneighbourhood(θ, k, maxmin = true, moralise = true)
+	Z = simulate(θ̃, m)|> gpu
+	t_gnn5 = @belapsed gnn($Z)
 
   	# Store the run times as a data frame
-  	DataFrame(time = [t_gnn1, t_gnn2, t_gnn2b, t_gnn3, t_gnn3b],
-  	          estimator = ["fixedradius", "knearest", "knearestb", "combined", "combinedb"],
+  	DataFrame(time = [t_gnn1, t_gnn2, t_gnn2b, t_gnn3, t_gnn3b, t_gnn4, t_gnn5],
+  	          estimator = ["fixedradius", "knearest", "knearestb", "combined", "combinedb", "maxmin_immoral", "maxmin_moral"],
   	          n = n)
   end
 
