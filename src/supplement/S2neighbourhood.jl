@@ -72,47 +72,47 @@ gnn5 = deepcopy(gnn1)
 # ---- Training ----
 
 cluster_process = true
+epochs_per_Z_refresh = 3
 
 # Sample parameter vectors
 seed!(1)
 θ_val   = Parameters(K_val,   ξ, n, J = 5, cluster_process = cluster_process)
 θ_train = Parameters(K_train, ξ, n, J = 5, cluster_process = cluster_process)
 
-@info "Training with the neighbourhood of a given node defined as a disc of fixed radius"
-θ̃_val   = modifyneighbourhood(θ_val, r)
-θ̃_train = modifyneighbourhood(θ_train, r)
-train(gnn1, θ̃_train, θ̃_val, simulate, savepath = joinpath(path, "fixedradius"), epochs = epochs, epochs_per_Z_refresh = 3)
-
-@info "Training with the neighbourhood of a given node defined as its k-nearest neighbours with k=$k"
-θ̃_val   = modifyneighbourhood(θ_val, k)
-θ̃_train = modifyneighbourhood(θ_train, k)
-train(gnn2, θ̃_train, θ̃_val, simulate, savepath = joinpath(path, "knearest"), epochs = epochs, epochs_per_Z_refresh = 3)
-
-@info "Training with the neighbourhood of a given node defined as its k-nearest neighbours with k=$(k₂)"
-θ̃_val   = modifyneighbourhood(θ_val, k₂)
-θ̃_train = modifyneighbourhood(θ_train, k₂)
-train(gnn2b, θ̃_train, θ̃_val, simulate, savepath = joinpath(path, "knearestb"), epochs = epochs, epochs_per_Z_refresh = 3)
-
-@info "Training with the neighbourhood of a given node a random set of k=$k neighbours selected within a disc of fixed spatial radius"
-θ̃_val   = modifyneighbourhood(θ_val, r, k)
-θ̃_train = modifyneighbourhood(θ_train, r, k)
-train(gnn3, θ̃_train, θ̃_val, simulate, savepath = joinpath(path, "combined"), epochs = epochs, epochs_per_Z_refresh = 3)
-
-@info "Training with the neighbourhood of a given node a random set of k=$(k₂) neighbours selected within a disc of fixed spatial radius"
-θ̃_val   = modifyneighbourhood(θ_val, r, k₂)
-θ̃_train = modifyneighbourhood(θ_train, r, k₂)
-train(gnn3b, θ̃_train, θ̃_val, simulate, savepath = joinpath(path, "combinedb"), epochs = epochs, epochs_per_Z_refresh = 3)
-
 @info "Training with immoral maxmin ordering with k=$k neighbours"
 θ̃_val   = modifyneighbourhood(θ_val, k;   maxmin = true, moralise = false)
 θ̃_train = modifyneighbourhood(θ_train, k; maxmin = true, moralise = false)
-train(gnn4, θ̃_train, θ̃_val, simulate, savepath = joinpath(path, "maxmin_immoral"), epochs = epochs, epochs_per_Z_refresh = 3)
+train(gnn4, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "maxmin_immoral"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
 
 @info "Training with moral maxmin ordering with k=$k neighbours"
 θ̃_val   = modifyneighbourhood(θ_val, k;   maxmin = true, moralise = true)
 θ̃_train = modifyneighbourhood(θ_train, k; maxmin = true, moralise = true)
-train(gnn5, θ̃_train, θ̃_val, simulate, savepath = joinpath(path, "maxmin_moral"), epochs = epochs, epochs_per_Z_refresh = 3)
+train(gnn5, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "maxmin_moral"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
 
+@info "Training with the neighbourhood of a given node defined as a disc of fixed radius"
+θ̃_val   = modifyneighbourhood(θ_val, r)
+θ̃_train = modifyneighbourhood(θ_train, r)
+train(gnn1, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "fixedradius"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
+
+@info "Training with the neighbourhood of a given node defined as its k-nearest neighbours with k=$k"
+θ̃_val   = modifyneighbourhood(θ_val, k)
+θ̃_train = modifyneighbourhood(θ_train, k)
+train(gnn2, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "knearest"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
+
+@info "Training with the neighbourhood of a given node defined as its k-nearest neighbours with k=$(k₂)"
+θ̃_val   = modifyneighbourhood(θ_val, k₂)
+θ̃_train = modifyneighbourhood(θ_train, k₂)
+train(gnn2b, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "knearestb"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
+
+@info "Training with the neighbourhood of a given node a random set of k=$k neighbours selected within a disc of fixed spatial radius"
+θ̃_val   = modifyneighbourhood(θ_val, r, k)
+θ̃_train = modifyneighbourhood(θ_train, r, k)
+train(gnn3, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "combined"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
+
+@info "Training with the neighbourhood of a given node a random set of k=$(k₂) neighbours selected within a disc of fixed spatial radius"
+θ̃_val   = modifyneighbourhood(θ_val, r, k₂)
+θ̃_train = modifyneighbourhood(θ_train, r, k₂)
+train(gnn3b, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "combinedb"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
 
 
 # ---- Load the trained estimators ----
@@ -216,7 +216,7 @@ CSV.write(joinpath(path, "runtime.csv"), assessment.runtime)
 @info "Assessing the run-time for a single data set for each estimator and each sample size n ∈ $(test_n)..."
 
 # just use one gnn since the architectures are exactly the same
-gnn  = gnn1 |> gpu 
+gnn  = gnn1 |> gpu
 
 function testruntime(n, ξ)
 
