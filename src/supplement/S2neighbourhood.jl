@@ -57,6 +57,370 @@ k₂ = 30
 epochs = quick ? 2 : 1000
 
 
+# ---- adjacencymatrix ----
+
+import NeuralEstimators: adjacencymatrix
+export adjacencymatrix
+
+using Distances
+using InvertedIndices
+using NearestNeighbors
+using StatsBase: sample
+using SparseArrays
+
+function adjacencymatrix(M::Mat, r::F, k::Integer) where Mat <: AbstractMatrix{T} where {T, F <: AbstractFloat}
+
+	@assert k > 0
+	@assert r > 0
+
+	I = Int64[]
+	J = Int64[]
+	V = Float64[]
+	n = size(M, 1)
+	m = size(M, 2)
+
+	for i ∈ 1:n
+		sᵢ = M[i, :]
+		kᵢ = 0
+		iter = shuffle(collect(1:n)) # shuffle to prevent weighting observations based on their ordering in M
+
+		for j ∈ iter
+
+			if m == n # square matrix, so assume M is a distance matrix
+				dᵢⱼ = M[i, j]
+			else
+				sⱼ  = M[j, :]
+				dᵢⱼ = norm(sᵢ - sⱼ)
+			end
+
+			if dᵢⱼ <= r
+				push!(I, i)
+				push!(J, j)
+				push!(V, dᵢⱼ)
+				kᵢ += 1
+			end
+			if kᵢ == k break end
+		end
+
+	end
+
+	A = sparse(I,J,V,n,n)
+
+
+	return A
+end
+adjacencymatrix(M::Mat, k::Integer, r::F) where Mat <: AbstractMatrix{T} where {T, F <: AbstractFloat} = adjacencymatrix(M, r, k)
+
+function adjacencymatrix(M::Mat, k::Integer; maxmin::Bool = false, moralise::Bool = false) where Mat <: AbstractMatrix{T} where T
+
+	@assert k > 0
+
+	I = Int64[]
+	J = Int64[]
+	V = Float64[]
+	n = size(M, 1)
+	m = size(M, 2)
+
+	if m == n # square matrix, so assume M is a distance matrix
+		D = M
+	else      # otherwise, M is a matrix of spatial locations
+		S = M
+	end
+
+	if k >= n # more neighbours than observations: return a dense adjacency matrix
+		if m != n
+			D = pairwise(Euclidean(), S')
+		end
+		A = sparse(D)
+	elseif !maxmin
+		k += 1 # each location neighbours itself, so increase k by 1
+		for i ∈ 1:n
+
+			if m == n
+				d = D[i, :]
+			else
+				# Compute distances between sᵢ and all other locations
+				d = colwise(Euclidean(), S', S[i, :])
+			end
+
+			# Find the neighbours of s
+			j, v = findneighbours(d, k)
+
+			push!(I, repeat([i], inner = k)...)
+			push!(J, j...)
+			push!(V, v...)
+		end
+		A = sparse(I,J,V,n,n)
+	else
+		@assert m != n "`adjacencymatrix` with maxmin-ordering requires a matrix of spatial locations, not a distance matrix"
+		ord     = ordermaxmin(S)          # calculate ordering
+		Sord    = S[ord, :]               # re-order locations
+		NNarray = findorderednn(Sord, k)  # find k nearest neighbours/"parents"
+		R = builddag(NNarray)             # build DAG
+		A = moralise ?  R' * R : R        # moralise
+
+		# Add distances to A
+		# NB This is inefficient, especially for large n; only optimise
+		#    if we find that this approach works well
+		D = pairwise(Euclidean(), Sord')
+		I, J, V = findnz(A)
+		indices = collect(zip(I,J))
+		indices = CartesianIndex.(indices)
+		A.nzval .= D[indices]
+
+		# "unorder" back to the original ordering
+		# Sanity check: Sord[sortperm(ord), :] == S
+		# Sanity check: D[sortperm(ord), sortperm(ord)] == pairwise(Euclidean(), S')
+		A = A[sortperm(ord), sortperm(ord)]
+	end
+
+	return A
+end
+
+function adjacencymatrix(M::Mat, r::F) where Mat <: AbstractMatrix{T} where {T, F <: AbstractFloat}
+
+	@assert r > 0
+
+	n = size(M, 1)
+	m = size(M, 2)
+
+	if m == n # square matrix, so assume M is a distance matrix, D:
+
+		D = M
+		# bit-matrix specifying which locations are d-neighbours
+		A = D .< r
+
+		# replace non-zero elements of A with the corresponding distance in D
+		indices = copy(A)
+		A = convert(Matrix{T}, A)
+		A[indices] = D[indices]
+
+		# convert to sparse matrix
+		A = sparse(A)
+	else
+
+		S = M
+
+		I = Int64[]
+		J = Int64[]
+		V = Float64[]
+		for i ∈ 1:n
+
+			#  We don't need to compute all distances, we can
+			#  immediately throw away some values if the difference between
+			#  any of their marginal coordinates is greater than r. Just
+			#  computing the distances seems faster though.
+			# a₁ = sᵢ[1] - r
+			# b₁ = sᵢ[1] + r
+			# a₂ = sᵢ[2] - r
+			# b₂ = sᵢ[2] + r
+			# a₁ .< S[:, 1] .< b₁
+			# a₂ .< S[:, 2] .< b₂
+
+			# Compute distances between s and all other locations
+			s = S[i, :]
+			d = colwise(Euclidean(), S', s)
+
+			# Find the r-neighbours of s
+			j = d .< r
+			j = findall(j)
+			push!(I, repeat([i], inner = length(j))...)
+			push!(J, j...)
+			push!(V, d[j]...)
+
+			# Alternative using NearestNeighbors (https://github.com/KristofferC/NearestNeighbors.jl)
+			# Didn't find this to be much faster, so sticking with my
+			# implementation so that I don't need to add a package dependency.
+			# tree = BallTree(S') # this is done once only, outside of the loop
+			# j = inrange(tree, sᵢ, r, true)
+			# S_subset = S[:, j]
+			# d = colwise(Euclidean(), S_subset, sᵢ)
+			# push!(I, repeat([i], inner = length(j))...)
+			# push!(J, j...)
+			# push!(V, d...)
+		end
+		A = sparse(I,J,V,n,n)
+	end
+
+	return A
+end
+
+function findneighbours(d, k::Integer)
+	V = partialsort(d, 1:k)
+	J = [findfirst(v .== d) for v ∈ V]
+    return J, V
+end
+
+function getknn(S, s, k; args...)
+  tree = KDTree(S; args...)
+  nn_index, nn_dist = knn(tree, s, k, true)
+  nn_index = hcat(nn_index...) |> permutedims # nn_index = stackarrays(nn_index, merge = false)'
+  nn_dist  = hcat(nn_dist...)  |> permutedims # nn_dist  = stackarrays(nn_dist, merge = false)'
+  nn_index, nn_dist
+end
+
+function ordermaxmin_fast(S)
+
+  # get number of locs
+  n = size(S, 1)
+  k = isqrt(n)
+  # k is number of neighbors to search over
+  # get the past and future nearest neighbors
+  NNall = getknn(S', S', k)[1]
+  # pick a random ordering
+  index_in_position = [sample(1:n, n, replace = false)..., repeat([missing],1*n)...]
+  position_of_index = sortperm(index_in_position[1:n])
+  # loop over the first n/4 locations
+  # move an index to the end if it is a
+  # near neighbor of a previous location
+  curlen = n
+  nmoved = 0
+  for j ∈ 2:2n
+	nneigh = round(min(k, n /(j-nmoved+1)))
+    nneigh = Int(nneigh)
+    neighbors = NNall[index_in_position[j], 1:nneigh]
+    if minimum(skipmissing(position_of_index[neighbors])) < j
+      nmoved += 1
+      curlen += 1
+      position_of_index[ index_in_position[j] ] = curlen
+      rassign(index_in_position, curlen, index_in_position[j])
+      index_in_position[j] = missing
+  	end
+  end
+  ord = collect(skipmissing(index_in_position))
+
+  return ord
+end
+
+rowMins(X) = vec(mapslices(minimum, X, dims = 2))
+colMeans(X) = vec(mapslices(mean, X, dims = 1))
+function ordermaxmin_slow(S)
+	n = size(S, 1)
+	D = pairwise(Euclidean(), S')
+	## Vecchia sequence based on max-min ordering: start with most central location
+  	vecchia_seq = [argmin(D[argmin(colMeans(D)), :])]
+  	for j in 2:n
+    	vecchia_seq_new = (1:n)[Not(vecchia_seq)][argmax(rowMins(D[Not(vecchia_seq), vecchia_seq, :]))]
+		rassign(vecchia_seq, j, vecchia_seq_new)
+	end
+  return vecchia_seq
+end
+
+ordermaxmin(S) = size(S, 1) > 200 ? ordermaxmin_fast(S) : ordermaxmin_slow(S)
+
+
+function rassign(v::AbstractVector, index::Integer, x)
+	@assert index > 0
+	if index <= length(v)
+		v[index] = x
+	elseif index == length(v)+1
+		push!(v, x)
+	else
+		v = [v..., fill(missing, index - length(v) - 1)..., x]
+	end
+	return v
+end
+
+function findorderednnbrute(S, k::Integer)
+  # find the k+1 nearest neighbors to S[j,] in S[1:j,]
+  # by convention, this includes S[j,], which is distance 0
+  n = size(S, 1)
+  k = min(k,n-1)
+  NNarray = Matrix{Union{Integer, Missing}}(missing, n, k+1)
+  for j ∈ 1:n
+	d = colwise(Euclidean(), S[1:j, :]', S[j, :])
+    NNarray[j, 1:min(k+1,j)] = sortperm(d)[1:min(k+1,j)]
+  end
+  return NNarray
+end
+
+function findorderednn(S, k::Integer)
+
+  # number of locations
+  n = size(S, 1)
+  k = min(k,n-1)
+  mult = 2
+
+  # to store the nearest neighbor indices
+  NNarray = Matrix{Union{Integer, Missing}}(missing, n, k+1)
+
+  # find neighbours of first mult*k+1 locations by brute force
+  maxval = min( mult*k + 1, n )
+  NNarray[1:maxval, :] = findorderednnbrute(S[1:maxval, :],k)
+
+  query_inds = min( maxval+1, n):n
+  data_inds = 1:n
+  ksearch = k
+  while length(query_inds) > 0
+    ksearch = min(maximum(query_inds), 2ksearch)
+    data_inds = 1:min(maximum(query_inds), n)
+	NN = getknn(S[data_inds, :]', S[query_inds, :]', ksearch)[1]
+
+    less_than_l = hcat([NN[l, :] .<= query_inds[l] for l ∈ 1:size(NN, 1)]...) |> permutedims
+	sum_less_than_l = vec(mapslices(sum, less_than_l, dims = 2))
+    ind_less_than_l = findall(sum_less_than_l .>= k+1)
+	NN_k = hcat([NN[l,:][less_than_l[l,:]][1:(k+1)] for l ∈ ind_less_than_l]...) |> permutedims
+    NNarray[query_inds[ind_less_than_l], :] = NN_k
+
+    query_inds = query_inds[Not(ind_less_than_l)]
+  end
+
+  return NNarray
+end
+
+function builddag(NNarray)
+  n, k = size(NNarray)
+  I = [1]
+  J = [1]
+  V = Float64[1.0]
+  for j in 2:n
+    i = NNarray[j, :]
+    i = collect(skipmissing(i))
+    push!(J, repeat([j], length(i))...)
+    push!(I, i...)
+	push!(V, repeat([1], length(i))...)
+  end
+  R = sparse(I,J,V,n,n)
+  return R
+end
+
+# n=100
+# S = rand(n, 2)
+# k=5
+# ord = ordermaxmin(S)              # calculate maxmin ordering
+# Sord = S[ord, :];                 # reorder locations
+# NNarray = findorderednn(Sord, k)  # find k nearest neighbours/"parents"
+# R = builddag(NNarray)             # build the DAG
+# Q = R' * R                        # moralise
+
+import NeuralEstimatorsGNN: modifyneighbourhood
+function modifyneighbourhood(θ::Parameters, k::Integer; kwargs...)
+
+	S = θ.locations
+	if !(typeof(S) <: AbstractVector) S = [S] end
+
+	A = adjacencymatrix.(S, k; kwargs...)
+	graphs = GNNGraph.(A)
+
+	Parameters(θ.θ, S, graphs, θ.chols, θ.chol_pointer, θ.loc_pointer)
+end
+
+
+# ---- Testing with small sample sizes ----
+
+# using NeuralEstimatorsGNN: ordermaxmin, getknn, rassign
+# 
+# n = 20
+# seed!(3)
+# θ = Parameters(1, ξ, n, cluster_process = cluster_process)
+# 
+# seed!(3)
+# modifyneighbourhood(θ, k; maxmin = true, moralise = false)
+# S = θ.locations[1]
+# 
+# seed!(3)
+# ordermaxmin(S)
+
 # ---- initialise the estimators ----
 
 seed!(1)
@@ -67,7 +431,6 @@ gnn3 = deepcopy(gnn1)
 gnn3b = deepcopy(gnn1)
 gnn4 = deepcopy(gnn1)
 gnn5 = deepcopy(gnn1)
-
 
 # ---- Training ----
 
@@ -84,10 +447,10 @@ seed!(1)
 θ̃_train = modifyneighbourhood(θ_train, k; maxmin = true, moralise = false)
 train(gnn4, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "maxmin_immoral"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
 
-@info "Training with moral maxmin ordering with k=$k neighbours"
-θ̃_val   = modifyneighbourhood(θ_val, k;   maxmin = true, moralise = true)
-θ̃_train = modifyneighbourhood(θ_train, k; maxmin = true, moralise = true)
-train(gnn5, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "maxmin_moral"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
+#@info "Training with moral maxmin ordering with k=$k neighbours"
+#θ̃_val   = modifyneighbourhood(θ_val, k;   maxmin = true, moralise = true)
+#θ̃_train = modifyneighbourhood(θ_train, k; maxmin = true, moralise = true)
+#train(gnn5, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "maxmin_moral"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
 
 @info "Training with the neighbourhood of a given node defined as a disc of fixed radius"
 θ̃_val   = modifyneighbourhood(θ_val, r)
@@ -204,7 +567,7 @@ function assessestimators(n, ξ, K::Integer)
 	return assessment
 end
 
-test_n = [30, 60, 100, 200, 300, 500, 750, 1000]
+test_n = [30, 60, 100, 200, 300, 500, 750, 1000] 
 assessment = [assessestimators(n, ξ, K_test) for n ∈ test_n]
 assessment = merge(assessment...)
 CSV.write(joinpath(path, "estimates.csv"), assessment.df)
@@ -266,7 +629,7 @@ function testruntime(n, ξ)
   	          n = n)
   end
 
-test_n = [32, 64, 128, 256, 512, 1024]
+test_n = [32, 64, 128, 256, 512, 1024] 
 seed!(1)
 times = []
 for n ∈ test_n
