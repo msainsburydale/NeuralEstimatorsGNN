@@ -62,6 +62,7 @@ epochs = quick ? 2 : 1000
 import NeuralEstimators: adjacencymatrix
 export adjacencymatrix
 
+using Random: shuffle
 using Distances
 using InvertedIndices
 using NearestNeighbors
@@ -443,29 +444,29 @@ seed!(1)
 θ_train = Parameters(K_train, ξ, n, J = 5, cluster_process = cluster_process)
 
 @info "Training with immoral maxmin ordering with k=$k neighbours"
-θ̃_val   = modifyneighbourhood(θ_val, k;   maxmin = true, moralise = false)
-θ̃_train = modifyneighbourhood(θ_train, k; maxmin = true, moralise = false)
-train(gnn4, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "maxmin_immoral"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
+#θ̃_val   = modifyneighbourhood(θ_val, k;   maxmin = true, moralise = false)
+#θ̃_train = modifyneighbourhood(θ_train, k; maxmin = true, moralise = false)
+#train(gnn4, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "maxmin_immoral"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
 
-#@info "Training with moral maxmin ordering with k=$k neighbours"
+@info "Training with moral maxmin ordering with k=$k neighbours"
 #θ̃_val   = modifyneighbourhood(θ_val, k;   maxmin = true, moralise = true)
 #θ̃_train = modifyneighbourhood(θ_train, k; maxmin = true, moralise = true)
 #train(gnn5, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "maxmin_moral"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
 
 @info "Training with the neighbourhood of a given node defined as a disc of fixed radius"
-θ̃_val   = modifyneighbourhood(θ_val, r)
-θ̃_train = modifyneighbourhood(θ_train, r)
-train(gnn1, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "fixedradius"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
+#θ̃_val   = modifyneighbourhood(θ_val, r)
+#θ̃_train = modifyneighbourhood(θ_train, r)
+#train(gnn1, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "fixedradius"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
 
 @info "Training with the neighbourhood of a given node defined as its k-nearest neighbours with k=$k"
-θ̃_val   = modifyneighbourhood(θ_val, k)
-θ̃_train = modifyneighbourhood(θ_train, k)
-train(gnn2, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "knearest"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
+#θ̃_val   = modifyneighbourhood(θ_val, k)
+#θ̃_train = modifyneighbourhood(θ_train, k)
+#train(gnn2, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "knearest"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
 
 @info "Training with the neighbourhood of a given node defined as its k-nearest neighbours with k=$(k₂)"
-θ̃_val   = modifyneighbourhood(θ_val, k₂)
-θ̃_train = modifyneighbourhood(θ_train, k₂)
-train(gnn2b, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "knearestb"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
+#θ̃_val   = modifyneighbourhood(θ_val, k₂)
+#θ̃_train = modifyneighbourhood(θ_train, k₂)
+#train(gnn2b, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "knearestb"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh)
 
 @info "Training with the neighbourhood of a given node a random set of k=$k neighbours selected within a disc of fixed spatial radius"
 θ̃_val   = modifyneighbourhood(θ_val, r, k)
