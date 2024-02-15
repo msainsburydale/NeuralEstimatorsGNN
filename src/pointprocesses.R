@@ -5,6 +5,7 @@ library("latex2exp")
 library("dplyr")  
 options(dplyr.summarise.inform = FALSE) # Suppress summarise info
 })
+source("src/plotting.R")
 
 set.seed(1)
 
