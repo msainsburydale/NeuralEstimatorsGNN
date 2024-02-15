@@ -27,10 +27,12 @@ estimator_labels <- c(
   "GNN3" = TeX("$n \\sim U(30, 1000)$"),
   # Neighbourhood experiment: 
   "fixedradius" = "Disc of fixed radius",
-  "knearest" = "k=10 nearest neighbours",
-  "knearestb" = "k=30 nearest neighbours",
-  "combined" = "Random k=10 neighbours\nwithin disc of fixed radius",
-  "combinedb" = "Random k=30 neighbours\nwithin disc of fixed radius",
+  "knearest" = "k nearest neighbours",
+  # "knearestb" = "k=30 nearest neighbours",
+  "combined" = "Random k neighbours\nwithin disc of fixed radius",
+  # "combinedb" = "Random k=30 neighbours\nwithin disc of fixed radius",
+  "maxmin_immoral" = "Maxmin (immoral)",
+  # "maxmin_moral" = "maxmin (moral)",
   # Simulation efficiency with respect to prior measure for S:
   # "Sfixed" = TeX("$\\bf{S} = \\bf{S}_0 \\sim UBPP(250)$"), 
   "Sfixed" = TeX("$\\bf{S} = \\bf{S}_0$"), 
@@ -66,9 +68,11 @@ estimator_colours <- c(
   # Neighbourhood experiment: 
   "fixedradius" = "gold",
   "knearest" = "dodgerblue4",
-  "knearestb" = "dodgerblue4",
+  # "knearestb" = "dodgerblue4",
   "combined" = "chartreuse4",
-  "combinedb" = "chartreuse4",
+  # "combinedb" = "chartreuse4",
+  "maxmin_immoral" = "red",
+  # "maxmin_moral" = "purple",
   # Simulation efficiency with respect to prior measure for S:
   "Sfixed" = "gold", 
   "Srandom_uniform" = "chartreuse4",

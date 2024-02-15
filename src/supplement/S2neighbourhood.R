@@ -3,9 +3,37 @@ img_path <- file.path("img", "supplement", "neighbours")
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 source(file.path("src", "plotting.R"))
 
-df <- read.csv(file.path(int_path, "estimates.csv"))
+library("reshape2")
+
+## Training risk (check for convergence)
+all_dirs  <- list.dirs(path = int_path, recursive = F)
+df <- lapply(all_dirs, function(dir) {
+  loss_per_epoch <- read.csv(file.path(dir, "loss_per_epoch.csv"), header = FALSE)
+  colnames(loss_per_epoch) <- c("Training set", "Validation set")
+  loss_per_epoch$estimator <- basename(dir)
+  loss_per_epoch$epoch <- 0:(nrow(loss_per_epoch) - 1)
+  loss_per_epoch
+})
+df <- do.call("rbind", df)
+df <- melt(df, id.vars = c("estimator", "epoch"), variable.name = "set", value.name = "risk")
+figure_training <- ggplot(data = df, aes(x = epoch, y = risk, colour = estimator, linetype = set)) +
+  geom_line(alpha = 0.75) +
+  labs(colour = "", linetype = "", y = "Empirical Bayes risk") +
+  coord_cartesian(ylim=c(min(df$risk), 0.15)) + 
+  scale_estimator(df) +
+  theme_bw(base_size = text_size) +
+  theme(
+    strip.text.x = element_text(size = 12),
+    legend.text.align = 0,
+    panel.grid = element_blank(),
+    strip.background = element_blank()
+  )
+figure_training # TODO save this plot
+
+
 
 ## RMSE
+df <- read.csv(file.path(int_path, "estimates.csv"))
 df <- df %>%
   mutate(loss = (estimate - truth)^2) %>%
   group_by(estimator, n) %>% 
