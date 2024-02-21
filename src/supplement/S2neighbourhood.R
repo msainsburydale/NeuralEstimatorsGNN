@@ -2,7 +2,6 @@ int_path <- file.path("intermediates", "supplement", "neighbours")
 img_path <- file.path("img", "supplement", "neighbours")
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 source(file.path("src", "plotting.R"))
-
 library("reshape2")
 
 ## Training risk (check for convergence)
@@ -19,7 +18,7 @@ df <- melt(df, id.vars = c("estimator", "epoch"), variable.name = "set", value.n
 figure_training <- ggplot(data = df, aes(x = epoch, y = risk, colour = estimator, linetype = set)) +
   geom_line(alpha = 0.75) +
   labs(colour = "", linetype = "", y = "Empirical Bayes risk") +
-  coord_cartesian(ylim=c(min(df$risk), 0.15)) + 
+  coord_cartesian(ylim=c(min(df$risk), 0.15)) +
   scale_estimator(df) +
   theme_bw(base_size = text_size) +
   theme(
@@ -28,7 +27,7 @@ figure_training <- ggplot(data = df, aes(x = epoch, y = risk, colour = estimator
     panel.grid = element_blank(),
     strip.background = element_blank()
   )
-figure_training 
+figure_training
 ggsv(figure_training, file = "risk_vs_epoch", width = 7, height = 4, path = img_path)
 
 
@@ -36,7 +35,7 @@ ggsv(figure_training, file = "risk_vs_epoch", width = 7, height = 4, path = img_
 df <- read.csv(file.path(int_path, "estimates.csv"))
 df <- df %>%
   mutate(loss = (estimate - truth)^2) %>%
-  group_by(estimator, n) %>% 
+  group_by(estimator, n) %>%
   # group_by(parameter, .add = TRUE) %>% # group by parameter to illustrate that it's not just range parameters that are affected
   summarise(rmse = sqrt(mean(loss)))
 
@@ -71,8 +70,8 @@ figure_time <- ggplot(data = df,
   geom_point() +
   geom_line(alpha = 0.75) +
   labs(
-    colour = "", 
-    x = expression(n), 
+    colour = "",
+    x = expression(n),
     y = "Inference time (s)"
   ) +
   # scale_y_continuous(trans='log2') +
@@ -84,7 +83,7 @@ figure_time <- ggplot(data = df,
     legend.text.align = 0,
     panel.grid = element_blank(),
     strip.background = element_blank(),
-    strip.text.x = element_blank(), 
+    strip.text.x = element_blank(),
     legend.spacing.y = unit(1, "lines")
   )
 
@@ -102,7 +101,7 @@ df <- read.csv(file.path(int_path, "k_vs_n.csv"))
 ## RMSE
 df <- df %>%
   mutate(loss = (estimate - truth)^2) %>%
-  group_by(k, n) %>% 
+  group_by(k, n) %>%
   # group_by(parameter, .add = TRUE) %>% # group by parameter to illustrate that it's not just range parameters that are affected
   summarise(rmse = sqrt(mean(loss)), time = mean(inference_time))
 
@@ -113,10 +112,12 @@ breaks <- breaks[breaks != 60]
 
 text_size <- 14
 
+
 k_rmse <- ggplot(data = df, aes(x = n, y = rmse, colour = estimator, group = estimator)) +
   geom_point() +
   geom_line(alpha = 0.75) +
-  labs(colour = "k", x = expression(n), y = "RMSE") +
+  labs(colour = "Number of neighbours, k", x = expression(n), y = "RMSE") +
+  scale_color_brewer(palette="Reds") +
   theme_bw(base_size = text_size) +
   theme(
     strip.text.x = element_text(size = 12),
@@ -125,26 +126,26 @@ k_rmse <- ggplot(data = df, aes(x = n, y = rmse, colour = estimator, group = est
     strip.background = element_blank()
   )
 
+ggsv(k_rmse, file = "sensitivity_k_rmseonly", width = 6, height = 4, path = img_path)
+
 k_time <- ggplot(data = df,
                       aes(x = n, y = time, colour = estimator, group = estimator)) +
   geom_point() +
   geom_line(alpha = 0.75) +
   labs(
-    colour = "Disc radius", 
-    x = expression(n), 
-    y = "Inference time (s)"
+    colour = "Number of neighbours, k",  x = expression(n), y = "Inference time (s)"
   ) +
   theme_bw(base_size = text_size) +
   guides(colour = guide_legend(byrow = TRUE)) +
+  scale_color_brewer(palette="Reds") +
   theme(
     legend.text.align = 0,
     panel.grid = element_blank(),
     strip.background = element_blank(),
-    strip.text.x = element_blank(), 
+    strip.text.x = element_blank(),
     legend.spacing.y = unit(1, "lines")
   )
 
 figure <- egg::ggarrange(k_rmse + theme(legend.position = "none"), k_time, nrow = 1)
 
 ggsv(figure, file = "sensitivity_k", width = 12, height = 4, path = img_path)
-

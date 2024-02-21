@@ -6,7 +6,41 @@ source("src/plotting.R")
 
 ## ---- GpGp functions that will be written in Julia ----
 
-# NB ordermaxmin() is slow
+ordermaxmin = function(locs){
+
+  # get number of locs
+  n = nrow(locs)
+  k = round(sqrt(n))
+  # k is number of neighbors to search over
+  # get the past and future nearest neighbors
+  # NNall = FNN::get.knn( locs, k = k )$nn.index
+  NNall = juliaGet(getknn(t(locs), t(locs), as.integer(k)))[[1]]
+  # pick a random ordering
+  index_in_position = c( sample(n), rep(NA,1*n) )
+  position_of_index = order(index_in_position[1:n])
+  # loop over the first n/4 locations
+  # move an index to the end if it is a
+  # near neighbor of a previous location
+  curlen = n
+  nmoved = 0
+  for(j in 2:(2*n) ){
+    nneigh = round( min(k,n/(j-nmoved+1)) )
+    cat("j=", j, "index_in_position[j] = ", index_in_position[j], "\n")
+    neighbors = NNall[index_in_position[j],1:nneigh] # If missing, returns NA
+    if( min( position_of_index[neighbors], na.rm = TRUE ) < j ){
+      nmoved = nmoved+1
+      curlen = curlen+1
+      position_of_index[ index_in_position[j] ] = curlen
+      index_in_position[curlen] = index_in_position[j]
+      index_in_position[j] = NA
+    }
+  }
+  ord = index_in_position[ !is.na( index_in_position ) ]
+
+  return(ord)
+}
+
+# NB this version of ordermaxmin() is slow
 rowMins = function(X) apply(X, 1, FUN = min)
 ordermaxmin = function(locs) {
   D = as.matrix(dist(locs))
@@ -16,39 +50,6 @@ ordermaxmin = function(locs) {
   }
   return(vecchia.seq)
 }
-
-# ordermaxmin = function(locs){
-#    
-#   # get number of locs
-#   n = nrow(locs)
-#   k = round(sqrt(n))
-#   # k is number of neighbors to search over
-#   # get the past and future nearest neighbors
-#   # NNall = FNN::get.knn( locs, k = k )$nn.index
-#   NNall = juliaGet(getknn(t(locs), t(locs), as.integer(k)))[[1]]
-#   # pick a random ordering
-#   index_in_position = c( sample(n), rep(NA,1*n) )
-#   position_of_index = order(index_in_position[1:n])
-#   # loop over the first n/4 locations
-#   # move an index to the end if it is a
-#   # near neighbor of a previous location
-#   curlen = n
-#   nmoved = 0
-#   for(j in 2:(2*n) ){
-#     nneigh = round( min(k,n/(j-nmoved+1)) )
-#     neighbors = NNall[index_in_position[j],1:nneigh]
-#     if( min( position_of_index[neighbors], na.rm = TRUE ) < j ){
-#       nmoved = nmoved+1
-#       curlen = curlen+1
-#       position_of_index[ index_in_position[j] ] = curlen
-#       index_in_position[curlen] = index_in_position[j]
-#       index_in_position[j] = NA
-#     }
-#   }
-#   ord = index_in_position[ !is.na( index_in_position ) ]
-#   
-#   return(ord)
-# }
 
 library("JuliaConnectoR")
 getknn = juliaEval("
@@ -164,14 +165,14 @@ build_dag = function(NNarray) {
   return(R)
 }
 R = build_dag(NNarray)
-image(R)
+# image(R)
 
 ## "Moral" version of the graph
 ## The moralised counterpart of a directed acyclic graph is formed by adding 
 ## edges between all pairs of non-adjacent nodes that have a common child, and 
 ## then making all edges in the graph undirected.
 Q = t(R) %*% R
-image(Q) 
+# image(Q) 
 
 ## number of neighbours:
 apply(R, 2, sum)
@@ -184,20 +185,56 @@ apply(Q, 2, sum)
 df <- as.data.frame(locsord)
 colnames(df) <- c("x", "y")
 
-plot_neighbourhood <- function(df, N) {
+plot_neighbours_maxmin <- function(df, N) {
   ggplot() + 
     geom_point(data = df, aes(x = x, y = y), colour = "lightgray") +
     geom_point(data = df[1:N, ], aes(x = x, y = y), colour = "black") + 
-    geom_point(data = df[N, ], aes(x = x, y = y), colour = "red", size = 1.1) +
-    geom_point(data = df[NNarray[N,2:(k+1)], ], aes(x = x, y = y), colour = "blue", size = 1.1) +
+    geom_point(data = df[N, ], aes(x = x, y = y), colour = "red") +
+    geom_point(data = df[NNarray[N,2:(k+1)], ], aes(x = x, y = y), colour = "orange") +
     labs(title = paste("Location", N)) + 
     coord_fixed() + 
     theme_bw() + 
     theme(axis.title = element_blank(), panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
 }
 
-plots <- lapply(c(1, 2, 5, 50, 100, 200), function(N) plot_neighbourhood(df, N))
+plots <- lapply(c(1, 2, 5, 50, 100, 256), function(N) plot_neighbours_maxmin(df, N))
 
 figure <- egg::ggarrange(plots=plots, nrow = 2)
 
 ggsv(figure, file = "maxminordering", width = 7.3, height = 5.6, path = "img")
+
+
+# Other neighbourhood definitions
+s <- as.numeric(df[1, ]) # central point
+r <- 0.15
+D <- as.matrix(dist(locsord))
+neighbours <- which(D[1, ] < r)[-1]
+
+plot_neighbours <- function(df, s, neighbours, r = NULL) {
+  gg <- ggplot() + 
+    geom_point(data = df, aes(x = x, y = y), colour = "black") + 
+    geom_point(aes(x = s[1], y = s[2]), colour = "red", size = 1.5) +
+    geom_point(data = df[neighbours, ], aes(x = x, y = y), colour = "orange") +
+    coord_fixed() + 
+    theme_bw() + 
+    theme(axis.title = element_blank(), panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))  
+   
+  if (!is.null(r)) {
+    gg <- gg + annotate("path", x=s[1]+r*cos(seq(0,2*pi,len=100)), y=s[2]+r*sin(seq(0,2*pi,len=100)), colour = "orange")
+  }
+  
+  return(gg)
+}
+
+disc <- plot_neighbours(df, s, neighbours, r) + 
+  labs(title = "Disc of fixed radius")
+
+disc_k <- plot_neighbours(df, s, sample(neighbours, k), r) + 
+  labs(title = "Random-k neighbours \n within disc of fixed radius")
+
+k_nearest <- plot_neighbours(df, s, order(D[1, ])[2:(k+1)]) + 
+  labs(title = "k-nearest neighbours")
+
+figure <- egg::ggarrange(k_nearest, disc, disc_k, nrow = 1)
+
+ggsv(figure, file = "otherneighbourhoods", width = 8, height = 3.5, path = "img")

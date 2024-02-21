@@ -234,6 +234,17 @@ function modifyneighbourhood(θ::Parameters, args...)
 	Parameters(θ.θ, S, graphs, θ.chols, θ.chol_pointer, θ.loc_pointer)
 end
 
+function modifyneighbourhood(θ::Parameters, k::Integer; kwargs...)
+
+	S = θ.locations
+	if !(typeof(S) <: AbstractVector) S = [S] end
+
+	A = adjacencymatrix.(S, k; kwargs...)
+	graphs = GNNGraph.(A)
+
+	Parameters(θ.θ, S, graphs, θ.chols, θ.chol_pointer, θ.loc_pointer)
+end
+
 
 # ---- Reshaping data to the correct form for a GNN ----
 

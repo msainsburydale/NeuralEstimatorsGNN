@@ -59,7 +59,7 @@ n = 1000
 Z = simulate(θ_single, M)
 Z = Z |> gpu
 
-for nlayers ∈ [1, 2, 3, 4, 5, 6] # number of propagation layers 
+for nlayers ∈ [1, 2, 3, 4, 5, 6] # number of propagation layers
 	@info "Training GNN with $(nlayers) propagation layers"
 	for nh ∈ [4, 8, 16, 32, 64, 128, 256] # number of channels in each propagation layer
 		@info "Training GNN with $(nh) channels in each propagation layer"
@@ -67,7 +67,7 @@ for nlayers ∈ [1, 2, 3, 4, 5, 6] # number of propagation layers
 		gnn = gnnarchitecture(p, nlayers = nlayers, nh = nh)
 		savepath = joinpath(path, "runs_GNN_depth$(nlayers)_width$(nh)")
 		train(gnn, θ_train, θ_val, simulate, m = M, savepath = savepath, epochs = epochs, epochs_per_Z_refresh = 3)
-		
+
 		# Accurately assess the inference time for a single data set
 		Flux.loadparams!(gnn,  loadbestweights(savepath))
 	  gnn  = gnn|> gpu
