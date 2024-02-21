@@ -274,13 +274,15 @@ function ordermaxmin_fast(S)
   for j ∈ 2:2n
 	nneigh = round(min(k, n /(j-nmoved+1)))
     nneigh = Int(nneigh)
-    neighbors = NNall[index_in_position[j], 1:nneigh]
-    if minimum(skipmissing(position_of_index[neighbors])) < j
-      nmoved += 1
-      curlen += 1
-      position_of_index[ index_in_position[j] ] = curlen
-      rassign(index_in_position, curlen, index_in_position[j])
-      index_in_position[j] = missing
+   if !ismissing(index_in_position[j])
+      neighbors = NNall[index_in_position[j], 1:nneigh]
+      if minimum(skipmissing(position_of_index[neighbors])) < j
+        nmoved += 1
+        curlen += 1
+        position_of_index[ index_in_position[j] ] = curlen
+        rassign(index_in_position, curlen, index_in_position[j])
+        index_in_position[j] = missing
+    	end
   	end
   end
   ord = collect(skipmissing(index_in_position))
@@ -302,7 +304,7 @@ function ordermaxmin_slow(S)
   return vecchia_seq
 end
 
-ordermaxmin(S) = size(S, 1) > 200 ? ordermaxmin_fast(S) : ordermaxmin_slow(S)
+ordermaxmin(S) = ordermaxmin_fast(S)
 
 
 function rassign(v::AbstractVector, index::Integer, x)
@@ -402,21 +404,6 @@ function modifyneighbourhood(θ::Parameters, k::Integer; kwargs...)
 end
 
 
-# ---- Testing with small sample sizes ----
-
-# using NeuralEstimatorsGNN: ordermaxmin, getknn, rassign
-#
-# n = 20
-# seed!(3)
-# θ = Parameters(1, ξ, n, cluster_process = cluster_process)
-#
-# seed!(3)
-# modifyneighbourhood(θ, k; maxmin = true, moralise = false)
-# S = θ.locations[1]
-#
-# seed!(3)
-# ordermaxmin(S)
-
 # ---- initialise the estimators ----
 
 seed!(1)
@@ -432,30 +419,30 @@ epochs_per_Z_refresh = 3
 epochs = quick ? 2 : 300
 stopping_epochs = 10000 # very large number to "turn off" early stopping
 
-# Sample parameter vectors
-seed!(1)
-θ_val   = Parameters(K_val,   ξ, n, J = 5, cluster_process = cluster_process)
-θ_train = Parameters(K_train, ξ, n, J = 5, cluster_process = cluster_process)
-
-@info "Training with a disc of fixed radius"
-θ̃_val   = modifyneighbourhood(θ_val, r)
-θ̃_train = modifyneighbourhood(θ_train, r)
-train(gnn1, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "fixedradius"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
-
-@info "Training with k-nearest neighbours with k=$k"
-θ̃_val   = modifyneighbourhood(θ_val, k)
-θ̃_train = modifyneighbourhood(θ_train, k)
-train(gnn2, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "knearest"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
-
-@info "Training with a random set of k=$k neighbours selected within a disc of fixed spatial radius"
-θ̃_val   = modifyneighbourhood(θ_val, r, k)
-θ̃_train = modifyneighbourhood(θ_train, r, k)
-train(gnn3, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "combined"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
-
-@info "Training with maxmin ordering with k=$k neighbours"
-θ̃_val   = modifyneighbourhood(θ_val, k;   maxmin = true, moralise = false)
-θ̃_train = modifyneighbourhood(θ_train, k; maxmin = true, moralise = false)
-train(gnn4, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "maxmin"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
+# # Sample parameter vectors
+# seed!(1)
+# θ_val   = Parameters(K_val,   ξ, n, J = 5, cluster_process = cluster_process)
+# θ_train = Parameters(K_train, ξ, n, J = 5, cluster_process = cluster_process)
+# 
+# @info "Training with a disc of fixed radius"
+# θ̃_val   = modifyneighbourhood(θ_val, r)
+# θ̃_train = modifyneighbourhood(θ_train, r)
+# train(gnn1, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "fixedradius"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
+# 
+# @info "Training with k-nearest neighbours with k=$k"
+# θ̃_val   = modifyneighbourhood(θ_val, k)
+# θ̃_train = modifyneighbourhood(θ_train, k)
+# train(gnn2, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "knearest"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
+# 
+# @info "Training with a random set of k=$k neighbours selected within a disc of fixed spatial radius"
+# θ̃_val   = modifyneighbourhood(θ_val, r, k)
+# θ̃_train = modifyneighbourhood(θ_train, r, k)
+# train(gnn3, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "combined"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
+# 
+# @info "Training with maxmin ordering with k=$k neighbours"
+# θ̃_val   = modifyneighbourhood(θ_val, k;   maxmin = true, moralise = false)
+# θ̃_train = modifyneighbourhood(θ_train, k; maxmin = true, moralise = false)
+# train(gnn4, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "maxmin"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
 
 
 # ---- Load the trained estimators ----
@@ -467,149 +454,149 @@ Flux.loadparams!(gnn4,  loadbestweights(joinpath(path, "maxmin")))
 
 # ---- Assess the estimators ----
 
-function assessestimators(n, ξ, K::Integer)
-	println("	Assessing estimators with n = $n...")
-
-	# test parameter vectors for estimating the risk function
-	seed!(1)
-	θ = Parameters(K, ξ, n, cluster_process = cluster_process)
-
-	# Estimator trained with a fixed radius
-	θ̃ = modifyneighbourhood(θ, r)
-	seed!(1); Z = simulate(θ̃, m)
-	assessment = assess(
-		[gnn1], θ̃, Z;
-		estimator_names = ["fixedradius"],
-		parameter_names = ξ.parameter_names,
-		verbose = false
-	)
-
-	# Estimators trained with k-nearest neighbours for fixed k
-	θ̃ = modifyneighbourhood(θ, k)
-	seed!(1); Z = simulate(θ̃, m)
-	assessment = merge(assessment, assess(
-		[gnn2], θ̃, Z;
-		estimator_names = ["knearest"],
-		parameter_names = ξ.parameter_names,
-		verbose = false
-	))
-
-	# Estimator trained with a random set of k neighbours selected within a disc of fixed spatial radius
-	θ̃ = modifyneighbourhood(θ, r, k)
-	seed!(1); Z = simulate(θ̃, m)
-	assessment = merge(assessment, assess(
-		[gnn3], θ̃, Z;
-		estimator_names = ["combined"],
-		parameter_names = ξ.parameter_names,
-		verbose = false
-	))
-
-	# Estimators trained with maxmin ordering
-	θ̃ = modifyneighbourhood(θ, k; maxmin = true, moralise = false)
-	seed!(1); Z = simulate(θ̃, m)
-	assessment = merge(assessment, assess(
-		[gnn4], θ̃, Z;
-		estimator_names = ["maxmin"],
-		parameter_names = ξ.parameter_names,
-		verbose = false
-	))
-
-	# Add sample size information
-	assessment.df[:, :n] .= n
-
-	return assessment
-end
-
-test_n = [30, 60, 100, 200, 300, 500, 750, 1000]
-assessment = [assessestimators(n, ξ, K_test) for n ∈ test_n]
-assessment = merge(assessment...)
-CSV.write(joinpath(path, "estimates.csv"), assessment.df)
-CSV.write(joinpath(path, "runtime.csv"), assessment.runtime)
+# function assessestimators(n, ξ, K::Integer)
+# 	println("	Assessing estimators with n = $n...")
+# 
+# 	# test parameter vectors for estimating the risk function
+# 	seed!(1)
+# 	θ = Parameters(K, ξ, n, cluster_process = cluster_process)
+# 
+# 	# Estimator trained with a fixed radius
+# 	θ̃ = modifyneighbourhood(θ, r)
+# 	seed!(1); Z = simulate(θ̃, m)
+# 	assessment = assess(
+# 		[gnn1], θ̃, Z;
+# 		estimator_names = ["fixedradius"],
+# 		parameter_names = ξ.parameter_names,
+# 		verbose = false
+# 	)
+# 
+# 	# Estimators trained with k-nearest neighbours for fixed k
+# 	θ̃ = modifyneighbourhood(θ, k)
+# 	seed!(1); Z = simulate(θ̃, m)
+# 	assessment = merge(assessment, assess(
+# 		[gnn2], θ̃, Z;
+# 		estimator_names = ["knearest"],
+# 		parameter_names = ξ.parameter_names,
+# 		verbose = false
+# 	))
+# 
+# 	# Estimator trained with a random set of k neighbours selected within a disc of fixed spatial radius
+# 	θ̃ = modifyneighbourhood(θ, r, k)
+# 	seed!(1); Z = simulate(θ̃, m)
+# 	assessment = merge(assessment, assess(
+# 		[gnn3], θ̃, Z;
+# 		estimator_names = ["combined"],
+# 		parameter_names = ξ.parameter_names,
+# 		verbose = false
+# 	))
+# 
+# 	# Estimators trained with maxmin ordering
+# 	θ̃ = modifyneighbourhood(θ, k; maxmin = true, moralise = false)
+# 	seed!(1); Z = simulate(θ̃, m)
+# 	assessment = merge(assessment, assess(
+# 		[gnn4], θ̃, Z;
+# 		estimator_names = ["maxmin"],
+# 		parameter_names = ξ.parameter_names,
+# 		verbose = false
+# 	))
+# 
+# 	# Add sample size information
+# 	assessment.df[:, :n] .= n
+# 
+# 	return assessment
+# end
+# 
+# test_n = [30, 60, 100, 200, 300, 500, 750, 1000]
+# assessment = [assessestimators(n, ξ, K_test) for n ∈ test_n]
+# assessment = merge(assessment...)
+# CSV.write(joinpath(path, "estimates.csv"), assessment.df)
+# CSV.write(joinpath(path, "runtime.csv"), assessment.runtime)
 
 
 # ---- Accurately assess the run-time for a single data set ----
 
-@info "Assessing the run-time for a single data set for each estimator and each sample size n ∈ $(test_n)..."
-
-# just use one gnn since the architectures are exactly the same
-gnn  = gnn1 |> gpu
-
-function testruntime(n, ξ)
-
-    # Simulate locations and data
-	seed!(1)
-    S = rand(n, 2)
-	D = pairwise(Euclidean(), S, S, dims = 1)
-  	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
-  	θ = Parameters(1, ξ)
-  	Z = simulate(θ, m; convert_to_graph = false)
-
-  	seed!(1)
-  	θ = Parameters(1, ξ, n, cluster_process = cluster_process)
-
-  	# Fixed radius
-  	θ̃ = modifyneighbourhood(θ, r)
-	Z = simulate(θ̃, m)|> gpu
-  	t_gnn1 = @belapsed gnn($Z)
-
-  	# k-nearest neighbours
-    θ̃ = modifyneighbourhood(θ, k)
-	Z = simulate(θ̃, m)|> gpu
-  	t_gnn2 = @belapsed gnn($Z)
-
-  	# combined
-    θ̃ = modifyneighbourhood(θ, r, k)
-	Z = simulate(θ̃, m)|> gpu
-  	t_gnn3 = @belapsed gnn($Z)
-
-	# maxmin
-	θ̃ = modifyneighbourhood(θ, k; maxmin = true, moralise = false)
-	Z = simulate(θ̃, m)|> gpu
-	t_gnn4 = @belapsed gnn($Z)
-
-  	# Store the run times as a data frame
-  	DataFrame(
-	time = [t_gnn1, t_gnn2, t_gnn3, t_gnn4],
-	estimator = ["fixedradius", "knearest", "combined", "maxmin"],
-	n = n)
-  end
-
-test_n = [32, 64, 128, 256, 512, 1024, 2048, 4096]
-seed!(1)
-times = []
-for n ∈ test_n
-	t = testruntime(n, ξ)
-	push!(times, t)
-end
-times = vcat(times...)
-
-CSV.write(joinpath(path, "runtime_singledataset.csv"), times)
+# @info "Assessing the run-time for a single data set for each estimator and each sample size n ∈ $(test_n)..."
+# 
+# # just use one gnn since the architectures are exactly the same
+# gnn  = gnn1 |> gpu
+# 
+# function testruntime(n, ξ)
+# 
+#     # Simulate locations and data
+# 	seed!(1)
+#     S = rand(n, 2)
+# 	D = pairwise(Euclidean(), S, S, dims = 1)
+#   	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
+#   	θ = Parameters(1, ξ)
+#   	Z = simulate(θ, m; convert_to_graph = false)
+# 
+#   	seed!(1)
+#   	θ = Parameters(1, ξ, n, cluster_process = cluster_process)
+# 
+#   	# Fixed radius
+#   	θ̃ = modifyneighbourhood(θ, r)
+# 	Z = simulate(θ̃, m)|> gpu
+#   	t_gnn1 = @belapsed gnn($Z)
+# 
+#   	# k-nearest neighbours
+#     θ̃ = modifyneighbourhood(θ, k)
+# 	Z = simulate(θ̃, m)|> gpu
+#   	t_gnn2 = @belapsed gnn($Z)
+# 
+#   	# combined
+#     θ̃ = modifyneighbourhood(θ, r, k)
+# 	Z = simulate(θ̃, m)|> gpu
+#   	t_gnn3 = @belapsed gnn($Z)
+# 
+# 	# maxmin
+# 	θ̃ = modifyneighbourhood(θ, k; maxmin = true, moralise = false)
+# 	Z = simulate(θ̃, m)|> gpu
+# 	t_gnn4 = @belapsed gnn($Z)
+# 
+#   	# Store the run times as a data frame
+#   	DataFrame(
+# 	time = [t_gnn1, t_gnn2, t_gnn3, t_gnn4],
+# 	estimator = ["fixedradius", "knearest", "combined", "maxmin"],
+# 	n = n)
+#   end
+# 
+# test_n = [32, 64, 128, 256, 512, 1024, 2048, 4096]
+# seed!(1)
+# times = []
+# for n ∈ test_n
+# 	t = testruntime(n, ξ)
+# 	push!(times, t)
+# end
+# times = vcat(times...)
+# 
+# CSV.write(joinpath(path, "runtime_singledataset.csv"), times)
 
 
 # ---- Sensitivity analysis with respect to k ----
+# 
+# for k ∈ [5, 10, 15, 20, 25, 30]
+# 
+# 	@info "Training GNN with maxmin ordering and k=$k"
+# 
+# 	savepath = joinpath(path, "maxmin_k$k")
+# 
+# 	global θ_val   = modifyneighbourhood(θ_val, k; maxmin = true, moralise = false)
+# 	global θ_train = modifyneighbourhood(θ_train, k; maxmin = true, moralise = false)
+# 
+# 	seed!(1)
+# 	gnn = gnnarchitecture(p)
+# 	train(gnn, θ_train, θ_val, simulate, m = m, savepath = savepath,
+# 		  epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh,
+# 		  stopping_epochs = stopping_epochs)
+# end
 
-for k ∈ [5, 10, 15, 20, 25, 30]
-
-	@info "Training GNN with maxmin ordering and k=$k"
-
-	savepath = joinpath(path, "maxmin_k$k")
-
-	global θ_val   = modifyneighbourhood(θ_val, k; maxmin = true, moralise = false)
-	global θ_train = modifyneighbourhood(θ_train, k; maxmin = true, moralise = false)
-
-	seed!(1)
-	gnn = gnnarchitecture(p)
-	train(gnn, θ_train, θ_val, simulate, m = m, savepath = savepath,
-		  epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh,
-		  stopping_epochs = stopping_epochs)
-end
-
-
+test_n = [30, 60, 100, 200, 300, 500, 750, 1000]
 assessments = []
 for n ∈ test_n
   @info "Assessing the estimators with sample size n=$n"
   seed!(1)
-  θ_test   = Parameters(K_test, ξ, n, J = J)
+  θ_test   = Parameters(K_test, ξ, n, J = 1)
   θ_single = Parameters(1, ξ, n, J = 1)
   for k ∈ [5, 10, 15, 20, 25, 30]
 

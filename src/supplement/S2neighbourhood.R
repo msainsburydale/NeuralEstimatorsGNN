@@ -28,8 +28,8 @@ figure_training <- ggplot(data = df, aes(x = epoch, y = risk, colour = estimator
     panel.grid = element_blank(),
     strip.background = element_blank()
   )
-figure_training # TODO save this plot
-
+figure_training 
+ggsv(figure_training, file = "risk_vs_epoch", width = 7, height = 4, path = img_path)
 
 
 ## RMSE
@@ -92,3 +92,59 @@ figure_time <- ggplot(data = df,
 figure <- egg::ggarrange(figure_rmse + theme(legend.position = "none"), figure_time, nrow = 1)
 
 ggsv(figure, file = "rmse_runtime_vs_n", width = 12, height = 4, path = img_path)
+
+
+
+# ---- Sensitivity analysis of the radius with respect to n ----
+
+df <- read.csv(file.path(int_path, "k_vs_n.csv"))
+
+## RMSE
+df <- df %>%
+  mutate(loss = (estimate - truth)^2) %>%
+  group_by(k, n) %>% 
+  # group_by(parameter, .add = TRUE) %>% # group by parameter to illustrate that it's not just range parameters that are affected
+  summarise(rmse = sqrt(mean(loss)), time = mean(inference_time))
+
+df$estimator <- ordered(df$k)
+
+breaks <- unique(df$n)
+breaks <- breaks[breaks != 60]
+
+text_size <- 14
+
+k_rmse <- ggplot(data = df, aes(x = n, y = rmse, colour = estimator, group = estimator)) +
+  geom_point() +
+  geom_line(alpha = 0.75) +
+  labs(colour = "k", x = expression(n), y = "RMSE") +
+  theme_bw(base_size = text_size) +
+  theme(
+    strip.text.x = element_text(size = 12),
+    legend.text.align = 0,
+    panel.grid = element_blank(),
+    strip.background = element_blank()
+  )
+
+k_time <- ggplot(data = df,
+                      aes(x = n, y = time, colour = estimator, group = estimator)) +
+  geom_point() +
+  geom_line(alpha = 0.75) +
+  labs(
+    colour = "Disc radius", 
+    x = expression(n), 
+    y = "Inference time (s)"
+  ) +
+  theme_bw(base_size = text_size) +
+  guides(colour = guide_legend(byrow = TRUE)) +
+  theme(
+    legend.text.align = 0,
+    panel.grid = element_blank(),
+    strip.background = element_blank(),
+    strip.text.x = element_blank(), 
+    legend.spacing.y = unit(1, "lines")
+  )
+
+figure <- egg::ggarrange(k_rmse + theme(legend.position = "none"), k_time, nrow = 1)
+
+ggsv(figure, file = "sensitivity_k", width = 12, height = 4, path = img_path)
+

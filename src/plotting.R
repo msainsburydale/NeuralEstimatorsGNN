@@ -31,7 +31,8 @@ estimator_labels <- c(
   # "knearestb" = "k=30 nearest neighbours",
   "combined" = "Random k neighbours\nwithin disc of fixed radius",
   # "combinedb" = "Random k=30 neighbours\nwithin disc of fixed radius",
-  "maxmin_immoral" = "Maxmin (immoral)",
+  "maxmin" = "Maxmin",
+  # "maxmin_immoral" = "Maxmin (immoral)",
   # "maxmin_moral" = "maxmin (moral)",
   # Simulation efficiency with respect to prior measure for S:
   # "Sfixed" = TeX("$\\bf{S} = \\bf{S}_0 \\sim UBPP(250)$"), 
@@ -71,7 +72,8 @@ estimator_colours <- c(
   # "knearestb" = "dodgerblue4",
   "combined" = "chartreuse4",
   # "combinedb" = "chartreuse4",
-  "maxmin_immoral" = "red",
+  "maxmin" = "red",
+  # "maxmin_immoral" = "red",
   # "maxmin_moral" = "purple",
   # Simulation efficiency with respect to prior measure for S:
   "Sfixed" = "gold", 
