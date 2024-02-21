@@ -67,24 +67,24 @@ seed!(1)
 θ_train = Parameters(K_train, ξ, n, J = 5, cluster_process = cluster_process)
 
 @info "Training with a disc of fixed radius"
-θ̃_val   = modifyneighbourhood(θ_val, r)
-θ̃_train = modifyneighbourhood(θ_train, r)
-train(gnn1, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "fixedradius"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
+θ_val   = modifyneighbourhood(θ_val, r)
+θ_train = modifyneighbourhood(θ_train, r)
+train(gnn1, θ_train, θ_val, simulate, m = m, savepath = joinpath(path, "fixedradius"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
 
 @info "Training with k-nearest neighbours with k=$k"
-θ̃_val   = modifyneighbourhood(θ_val, k)
-θ̃_train = modifyneighbourhood(θ_train, k)
-train(gnn2, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "knearest"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
+θ_val   = modifyneighbourhood(θ_val, k)
+θ_train = modifyneighbourhood(θ_train, k)
+train(gnn2, θ_train, θ_val, simulate, m = m, savepath = joinpath(path, "knearest"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
 
 @info "Training with a random set of k=$k neighbours selected within a disc of fixed spatial radius"
-θ̃_val   = modifyneighbourhood(θ_val, r, k)
-θ̃_train = modifyneighbourhood(θ_train, r, k)
-train(gnn3, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "combined"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
+θ_val   = modifyneighbourhood(θ_val, r, k)
+θ_train = modifyneighbourhood(θ_train, r, k)
+train(gnn3, θ_train, θ_val, simulate, m = m, savepath = joinpath(path, "combined"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
 
 @info "Training with maxmin ordering with k=$k neighbours"
-θ̃_val   = modifyneighbourhood(θ_val, k;   maxmin = true)
-θ̃_train = modifyneighbourhood(θ_train, k; maxmin = true)
-train(gnn4, θ̃_train, θ̃_val, simulate, m = m, savepath = joinpath(path, "maxmin"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
+θ_val   = modifyneighbourhood(θ_val, k;   maxmin = true)
+θ_train = modifyneighbourhood(θ_train, k; maxmin = true)
+train(gnn4, θ_train, θ_val, simulate, m = m, savepath = joinpath(path, "maxmin"), epochs = epochs, epochs_per_Z_refresh = epochs_per_Z_refresh, stopping_epochs = stopping_epochs)
 
 
 # ---- Load the trained estimators ----
@@ -216,7 +216,10 @@ CSV.write(joinpath(path, "runtime_singledataset.csv"), times)
 
 # ---- Sensitivity analysis with respect to k for maxmin ordering ----
 
-for k ∈ [5, 10, 15, 20, 25]
+
+all_k = [5, 10, 15, 20, 25]
+
+for k ∈ all_k
 
 	@info "Training GNN with maxmin ordering and k=$k"
 
@@ -238,7 +241,7 @@ for n ∈ test_n
   seed!(1)
   θ_test   = Parameters(K_test, ξ, n, J = 1)
   θ_single = Parameters(1, ξ, n, J = 1)
-  for k ∈ [5, 10, 15, 20, 25, 30]
+  for k ∈ all_k
 
     @info "Assessing the estimator with k=$k"
 
