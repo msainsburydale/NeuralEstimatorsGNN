@@ -38,11 +38,11 @@ if quick
 	K_train = K_train ÷ 100
 	K_val   = K_val   ÷ 100
 end
-K_test = K_val ÷ 2
+K_test = quick ? 50 : 1000
 
-n = 30:250  # sample size
-r = 0.10    # disc radius
-k = 10      # number of neighbours
+n = 250  # sample size
+r = 0.10 # disc radius
+k = 10   # number of neighbours
 
 
 # ---- initialise the estimators ----

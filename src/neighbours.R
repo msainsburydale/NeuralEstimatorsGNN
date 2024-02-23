@@ -4,6 +4,8 @@ library("ggplot2")
 library("egg")
 source("src/plotting.R")
 
+#TODO can we move this to S2neighbourhood.R
+
 ## ---- GpGp functions that will be written in Julia ----
 
 ordermaxmin = function(locs){
@@ -191,7 +193,7 @@ plot_neighbours_maxmin <- function(df, N) {
     geom_point(data = df[1:N, ], aes(x = x, y = y), colour = "black") + 
     geom_point(data = df[N, ], aes(x = x, y = y), colour = "red") +
     geom_point(data = df[NNarray[N,2:(k+1)], ], aes(x = x, y = y), colour = "orange") +
-    labs(title = paste("Location", N)) + 
+    labs(title = paste("Maxmin: location", N)) + 
     coord_fixed() + 
     theme_bw() + 
     theme(axis.title = element_blank(), panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
@@ -199,9 +201,9 @@ plot_neighbours_maxmin <- function(df, N) {
 
 plots <- lapply(c(1, 2, 5, 50, 100, 256), function(N) plot_neighbours_maxmin(df, N))
 
-figure <- egg::ggarrange(plots=plots, nrow = 2)
+figure_maxmin <- egg::ggarrange(plots=plots, nrow = 2)
 
-ggsv(figure, file = "maxminordering", width = 7.3, height = 5.6, path = "img")
+ggsv(figure_maxmin, file = "maxminordering", width = 7.3, height = 5.6, path = "img")
 
 
 # Other neighbourhood definitions
@@ -236,5 +238,8 @@ k_nearest <- plot_neighbours(df, s, order(D[1, ])[2:(k+1)]) +
   labs(title = "k-nearest neighbours")
 
 figure <- egg::ggarrange(k_nearest, disc, disc_k, nrow = 1)
-
 ggsv(figure, file = "otherneighbourhoods", width = 8, height = 3.5, path = "img")
+
+figure <- egg::ggarrange(plots = c(list(k_nearest, disc, disc_k), plots), nrow = 3)
+ggsv(figure, file = "neighbourhoods", width = 9.4, height = 8.3, path = "img")
+
