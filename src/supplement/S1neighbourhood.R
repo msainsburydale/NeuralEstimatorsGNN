@@ -94,7 +94,6 @@ k_rmse <- ggplot(data = df, aes(x = n, y = rmse, colour = estimator, group = est
   theme(panel.grid = element_blank())
 
 ## Inference time
-#TODO increase n to 4000 in the timing for sensitivity of k
 time_lims <- range(c(time_lims, df$time))
 k_time <- ggplot(data = df, aes(x = n, y = time, colour = estimator, group = estimator)) +
   geom_point() +

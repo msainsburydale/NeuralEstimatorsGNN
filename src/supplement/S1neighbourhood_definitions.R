@@ -4,12 +4,12 @@ library("ggplot2")
 library("egg")
 source("src/plotting.R")
 
-#TODO can we move this to S2neighbourhood.R
+#TODO clean this script
 
 ## ---- GpGp functions that will be written in Julia ----
 
 ordermaxmin = function(locs){
-
+  
   # get number of locs
   n = nrow(locs)
   k = round(sqrt(n))
@@ -38,7 +38,7 @@ ordermaxmin = function(locs){
     }
   }
   ord = index_in_position[ !is.na( index_in_position ) ]
-
+  
   return(ord)
 }
 
@@ -71,7 +71,7 @@ findorderednn = function(locs,k){
   n = nrow(locs)
   k = min(k,n-1)
   mult = 2
-
+  
   # to store the nearest neighbor indices
   NNarray = matrix(NA,n,k+1)
   
@@ -220,7 +220,7 @@ plot_neighbours <- function(df, s, neighbours, r = NULL) {
     coord_fixed() + 
     theme_bw() + 
     theme(axis.title = element_blank(), panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))  
-   
+  
   if (!is.null(r)) {
     gg <- gg + annotate("path", x=s[1]+r*cos(seq(0,2*pi,len=100)), y=s[2]+r*sin(seq(0,2*pi,len=100)), colour = "orange")
   }

@@ -17,34 +17,23 @@ else
     exit 1
 fi
 
-# echo ""
-# echo "##### Starting supplementary experiment S1: prior measure for S and variable number of spatial locations #####"
-# echo ""
-# julia --threads=auto --project=. src/supplement/S1variablesamplesize.jl $quick
-# Rscript src/supplement/S1variablesamplesize.R
-# 
-# echo ""
-# echo "##### Starting supplementary experiment S1: prior measure for S and simulation efficiency #####"
-# echo ""
-# julia --threads=auto --project=. src/supplement/S1simulationefficiency.jl $quick
-# Rscript src/supplement/S1simulationefficiency.R
 
 echo ""
-echo "##### Starting supplementary experiment S2: neighbourhood selection #####"
+echo "##### Starting supplementary experiment S1: neighbourhood definitions #####"
+echo ""
+Rscript src/supplement/S1neighbourhood_definitions.R
+echo ""
+echo "##### Starting supplementary experiment S1: neighbourhood selection #####"
 echo ""
 julia --threads=auto --project=. src/supplement/S2neighbourhood.jl $quick
-Rscript src/supplement/S2neighbourhood.R
+Rscript src/supplement/S1neighbourhood.R
 
-# echo ""
-# echo "##### Starting supplementary experiment S2: disc radius sensitivity #####"
-# echo ""
-# julia --threads=auto --project=. src/supplement/S2discradius.jl $quick
-# Rscript src/supplement/S2discradius.R
-# 
-# echo ""
-# echo "##### Starting supplementary experiment S3: architecture hyperparameters #####"
-# echo ""
-# julia --threads=auto --project=. src/supplement/factorialexperiment.jl $quick
-# Rscript src/supplement/S3factorialexperiment.R
-# 
-# Rscript S2-S3.R
+echo ""
+echo "##### Starting supplementary experiment S2: prior measure for S and variable number of spatial locations #####"
+echo ""
+julia --threads=auto --project=. src/supplement/S2variablesamplesize.jl $quick
+echo ""
+echo "##### Starting supplementary experiment S2: prior measure for S and simulation efficiency #####"
+echo ""
+julia --threads=auto --project=. src/supplement/S2simulationefficiency.jl $quick
+Rscript src/supplement/S2.R
