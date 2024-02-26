@@ -104,7 +104,7 @@ Ocean <- ggplot() +
   coord_fixed(expand = FALSE) +
   geom_point(data = df, aes(lon, lat, colour =  pmin(pmax(Z, -8), 8)), pch = 46)
 
-Zplot_insets <- ggarrange(Zplot, BMconfluence, Ocean, common.legend = T, nrow = 1, ncol = 3, legend = "right")
+Zplot_insets <-ggpubr::ggarrange(Zplot, BMconfluence, Ocean, common.legend = T, nrow = 1, ncol = 3)
 
 ggsv(Zplot_insets, filename = "data_highlights", width = 9, height = 2.5, path = img_path)
 
