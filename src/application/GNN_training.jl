@@ -59,22 +59,17 @@ J = 3
 seed!(1)
 gnn = gnnarchitecture(p)
 @info "training the point estimator..."
-train(gnn, θ_train, θ_val, simulate, m = 1, savepath = path * "/pointestimator", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
+train(gnn, θ_train, θ_val, simulate, m = 1, savepath = joinpath(path, "pointestimator"), epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
 
 # ---- Credible-interval estimator ----
 
-U = gnnarchitecture(p; final_activation = identity)
-V = deepcopy(U)
-Flux.loadparams!(U, loadbestweights(path * "/pointestimator")) # pretrain with point estimator
-Flux.loadparams!(V, loadbestweights(path * "/pointestimator")) # pretrain with point estimator
+v = gnnarchitecture(p; final_activation = identity)
+Flux.loadparams!(v, loadbestweights(joinpath(path, "pointestimator"))) # pretrain with point estimator
 Ω = ξ.Ω
 a = [minimum.(values(Ω))...]
 b = [maximum.(values(Ω))...]
-intervalestimator = IntervalEstimator(U, V, a, b)
-
-α = 0.05f0
-q = [α/2, 1-α/2] # quantiles
-qloss = (θ̂, θ) -> quantileloss(θ̂, θ, gpu(q))
+g = Compress(a, b)
+intervalestimator = IntervalEstimator(v, g)
 
 @info "training the quantile estimator..."
-train(intervalestimator, θ_train, θ_val, simulate, m = 1, savepath = path * "/intervalestimator", epochs = epochs, batchsize = 16, loss = qloss, epochs_per_Z_refresh = 3)
+train(intervalestimator, θ_train, θ_val, simulate, m = 1, savepath = path * "/intervalestimator", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)

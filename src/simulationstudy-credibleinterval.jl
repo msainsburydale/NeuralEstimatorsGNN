@@ -62,7 +62,7 @@ Flux.loadparams!(pointestimator, loadbestweights(pointestimator_path))
 # Credible-interval estimator:
 seed!(1)
 v = gnnarchitecture(p; final_activation = identity)
-Flux.loadparams!(v, loadbestweights(pointestimator_path)) # pre-train
+Flux.loadparams!(v, loadbestweights(pointestimator_path)) # pretrain with point estimator
 Ω = ξ.Ω
 a = [minimum.(values(Ω))...]
 b = [maximum.(values(Ω))...]
@@ -81,7 +81,7 @@ if !skip_training
 	@info "Sampling parameter vectors used for training..."
 	θ_train = Parameters(K_train, ξ, n, J = J)
 	@info "training the GNN..."
-	trainx(intervalestimator, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN_CI", epochs = epochs, batchsize = 16, loss = qloss, epochs_per_Z_refresh = 3, stopping_epochs = 3)
+	trainx(intervalestimator, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN_CI", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3, stopping_epochs = 3)
 end
 
 # ---- Load the trained estimator ----
