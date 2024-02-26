@@ -42,7 +42,7 @@ do
     julia --threads=auto --project=. src/simulationstudy.jl --model=$model $quick --m=$m #--skip_training
 
     echo ""
-    echo "##### Constructing and quantile estimators #####"
+    echo "##### Constructing and assessing quantile estimators #####"
     echo ""
     julia --threads=auto --project=. src/simulationstudy-credibleinterval.jl --model=$model $quick --m=$m # --skip_training
 
