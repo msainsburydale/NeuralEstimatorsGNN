@@ -75,7 +75,7 @@ Zplot <- Zplot +
   annotate("rect", xmin = BM_box[1, "lon"], xmax = BM_box[2, "lon"], ymin = BM_box[1, "lat"], ymax = BM_box[2, "lat"], fill=NA, color="red", linewidth=1) +
   annotate("rect", xmin = Ocean_box[1, "lon"], xmax = Ocean_box[2, "lon"], ymin = Ocean_box[1, "lat"], ymax = Ocean_box[2, "lat"], fill=NA, color="red", linewidth=1)
 
-ggsv(Zplot, filename = "data", device = "png", width = 6, height = 2.8, path = img_path)
+ggsv(Zplot, filename = "data", width = 6, height = 2.8, path = img_path)
 
 map_layer <- geom_map(
   data = map_data("world"),
@@ -135,46 +135,46 @@ cells@data$id <- 1:length(cells)
 
 # Helper function to map data to BAUs
 map_to_BAUs <- function(data_sp, sp_pols) {
-  
+
   ## Suppress bindings warnings
   . <- BAU_name <- NULL
-  
+
   ## Add BAU ID to the data frame of the SP object
   sp_pols$BAU_name <- as.character(row.names(sp_pols))
-  
+
   ## Add coordinates to @data if not already there
   if(!(all(coordnames(sp_pols) %in% names(sp_pols@data))))
     sp_pols@data <- cbind(sp_pols@data,coordinates(sp_pols))
-  
+
   ## Find which fields in the data object are not already declared in the BAUs
   diff_fields <- intersect(setdiff(names(data_sp),names(sp_pols)),names(data_sp))
-  
+
   ## Create a data frame just of these fields
   data_df <- data_sp@data[diff_fields]
-  
+
   ## Assign the CRS from sp_pols to data_sp. Note that the sp_pols
   ## are typically the BAUs object, and have not been altered
   ## significantly to this point (while data_sp has, and so
   ## its CRS is often NA).
   slot(data_sp, "proj4string") <- slot(sp_pols, "proj4string")
   data_over_sp <- FRK:::.parallel_over(data_sp, sp_pols)
-  
+
   ## We now cbind the original data with data_over_sp
   data_over_sp <- cbind(data_df, data_over_sp)
-  
+
   if(any(is.na(data_over_sp$BAU_name))) {  # data points at 180 boundary or outside BAUs -- remove
     ii <- which(is.na((data_over_sp$BAU_name)))
     data_sp <- data_sp[-ii,]
     data_over_sp <- data_over_sp[-ii,]
     warning("Removing data points that do not fall into any BAUs.")
   }
-  
+
   new_sp_pts <- SpatialPointsDataFrame(
     coords=data_sp@coords,         # coordinates of summarised data
     data= data_over_sp ,                                # data frame
     proj4string = CRS(slot(data_sp, "proj4string")@projargs) # CRS of original data
   )
-  
+
   new_sp_pts
 }
 
@@ -255,14 +255,14 @@ ggsv(ggarrange(gg, gghist, nrow = 1), filename = "clusteringsamplesizes", width 
 
 ## Convert from longitude-latitude to Cartesian coordinates
 convert_to_cartesian <- function(lonlat, R = 6371) {
-  
+
   lon <- lonlat[1] * pi/180
   lat <- lonlat[2] * pi/180
-  
+
   x = R * cos(lat) * cos(lon)
   y = R * cos(lat) * sin(lon)
   z = R * sin(lat)
-  
+
   c(x, y, z)
 }
 clustered_data <- lapply(clustered_data, function(dat) {
@@ -300,9 +300,9 @@ clustered_data <- lapply(seq_along(clustered_data), function(i) {
   dat <- clustered_data[[i]]
   dat$cluster <- i
   return(dat)
-}) 
+})
 clustered_data2 <- do.call("rbind", clustered_data)
-saveRDS(clustered_data2, file = file.path(int_path, "clustered_data2.rds")) 
+saveRDS(clustered_data2, file = file.path(int_path, "clustered_data2.rds"))
 
 
 
