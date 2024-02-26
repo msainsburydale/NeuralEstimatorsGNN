@@ -13,9 +13,6 @@ export spatialconfigurations
 export Parameters, modifyneighbourhood
 export reshapedataGNN, reshapedataGNNcompact
 
-
-
-
 # ---- Utility functions ----
 
 """
@@ -116,8 +113,7 @@ struct Parameters{T, I} <: ParameterConfigurations
 	loc_pointer::Vector{I}
 end
 
-# Method that automatically constructs spatial locations from a Matern cluster
-# process, or uniformly sampled.
+# Method that automatically constructs spatial locations
 function Parameters(K::Integer, ξ, n; J::Integer = 1, cluster_process::Bool = true)
 
 	if typeof(n) <: Integer
@@ -138,42 +134,35 @@ function Parameters(K::Integer, ξ, n; J::Integer = 1, cluster_process::Bool = t
 		S = [rand(rand(n), 2) for k ∈ 1:K]
 	end
 
-	# Compute distance matrices and construct the graphs
-	D = pairwise.(Ref(Euclidean()), S, S, dims = 1)
-
 	# Pass these objects into the next constructor
-	Parameters(K, (ξ..., S = S, D = D); J = J)
+	Parameters(K, (ξ..., S = S); J = J)
 end
 
-# Method that assumes the spatial locations, S, and distance matrices, D, are
-# stored in ξ
+# Method that requires the spatial locations, S, to be stored in ξ
 function Parameters(K::Integer, ξ; J::Integer = 1)
 
 	@assert :Ω ∈ keys(ξ)
-	@assert :D ∈ keys(ξ)
 	@assert :S ∈ keys(ξ)
 	@assert :neighbourhood ∈ keys(ξ)
 	@assert :δ ∈ keys(ξ) || :k ∈ keys(ξ)
 	@assert :σ ∈ union(keys(ξ), keys(ξ.Ω))
 	@assert :ν ∈ union(keys(ξ), keys(ξ.Ω))
 
-	D = ξ.D
 	S = ξ.S
-
-	if !(typeof(D) <: AbstractVector) D = [D] end
 	if !(typeof(S) <: AbstractVector) S = [S] end
+	D = pairwise.(Ref(Euclidean()), S, dims = 1)
 
 	@assert length(S) ∈ (1, K)
-	@assert length(D) ∈ (1, K)
-	@assert length(S) == length(D)
 	loc_pointer = length(S) == 1 ? repeat([1], K*J) : repeat(1:K, inner = J)
 
 	if ξ.neighbourhood == "fixedradius"
-		A = adjacencymatrix.(D, ξ.δ)
+		A = adjacencymatrix.(S, ξ.δ)
 	elseif ξ.neighbourhood == "knearest"
-		A = adjacencymatrix.(D, ξ.k)
+		A = adjacencymatrix.(S, ξ.k)
 	elseif ξ.neighbourhood == "combined"
-		A = adjacencymatrix.(D, ξ.δ, ξ.k)
+		A = adjacencymatrix.(S, ξ.δ, ξ.k)
+	elseif ξ.neighbourhood == "maxmin"
+		A = adjacencymatrix.(S, ξ.k, maxmin = true)
 	else
 		error("ξ.neighbourhood = $(ξ.neighbourhood) not a valid choice for the neighbourhood definition; please use either 'fixedradius', 'knearest', or 'combined'.")
 	end
@@ -217,6 +206,55 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 
 	# Combine parameters into a pxK matrix
 	θ = permutedims(hcat(θ...))
+	θ = Float32.(θ)
+
+	Parameters(θ, S, graphs, chols, chol_pointer, loc_pointer)
+end
+
+
+function Parameters(θ, S, ξ)
+
+	K = size(θ, 2)
+
+	@assert :Ω ∈ keys(ξ)
+	@assert :neighbourhood ∈ keys(ξ)
+	@assert :δ ∈ keys(ξ) || :k ∈ keys(ξ)
+	@assert :σ ∈ union(keys(ξ), keys(ξ.Ω))
+	@assert :ν ∈ union(keys(ξ), keys(ξ.Ω))
+
+	if !(typeof(S) <: AbstractVector) S = [S] end
+	D = pairwise.(Ref(Euclidean()), S, dims = 1)
+
+	@assert length(S) ∈ (1, K)
+	loc_pointer = length(S) == 1 ? repeat([1], K) : collect(1:K)
+
+	if ξ.neighbourhood == "fixedradius"
+		A = adjacencymatrix.(S, ξ.δ)
+	elseif ξ.neighbourhood == "knearest"
+		A = adjacencymatrix.(S, ξ.k)
+	elseif ξ.neighbourhood == "combined"
+		A = adjacencymatrix.(S, ξ.δ, ξ.k)
+	elseif ξ.neighbourhood == "maxmin"
+		A = adjacencymatrix.(S, ξ.k, maxmin = true)
+	else
+		error("ξ.neighbourhood = $(ξ.neighbourhood) not a valid choice for the neighbourhood definition; please use either 'fixedradius', 'knearest', or 'combined'.")
+	end
+	graphs = GNNGraph.(A)
+
+	# Find indices for ρ (and possibly ν and σ) with respect to θ.
+	parameter_names = String.(collect(keys(ξ.Ω)))
+	ρ_idx = findfirst(parameter_names .== "ρ")
+	ν_idx = findfirst(parameter_names .== "ν")
+	σ_idx = findfirst(parameter_names .== "σ")
+
+	# Compute Cholesky factors
+	ρ = isnothing(ρ_idx) ? fill(ξ.ρ, K) : θ[ρ_idx, :]
+	ν = isnothing(ν_idx) ? fill(ξ.ν, K) : θ[ν_idx, :]
+	σ = isnothing(σ_idx) ? fill(ξ.σ, K) : θ[σ_idx, :]
+	chols = maternchols(D, ρ, ν, σ.^2; stack = false)
+	chol_pointer = collect(1:K)
+
+	# Convert to Float32 for efficiency
 	θ = Float32.(θ)
 
 	Parameters(θ, S, graphs, chols, chol_pointer, loc_pointer)

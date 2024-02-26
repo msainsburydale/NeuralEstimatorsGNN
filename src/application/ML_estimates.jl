@@ -63,7 +63,7 @@ function ML(Z, S, θ₀; scale_factor = nothing, prior = nothing)
 	θ₀ = Float64.(θ₀)
 
 	# Compute the distance matrix
-	D = pairwise(Euclidean(), S, dims = 1) 
+	D = pairwise(Euclidean(), S, dims = 1)
 	if !isnothing(scale_factor) D .*= scale_factor end
 
 	## Estimate the parameters by minimising the negative log-likelihood
@@ -106,7 +106,6 @@ total_time = @elapsed results = Folds.map(1:length(clustered_data)) do k
    n = size(data, 1)
 
    # Restrict the sample size for computational reasons
-   # max_n = 4000
    max_n = 2000
    if n > max_n
     data = data[sample(1:n, max_n; replace = false), :]

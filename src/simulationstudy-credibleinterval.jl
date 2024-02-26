@@ -36,6 +36,8 @@ using NamedArrays
 
 include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
+p = ξ.p
+n = ξ.n
 
 path = "intermediates/$model"
 if !isdir(path) mkpath(path) end
@@ -50,32 +52,26 @@ if quick
 end
 K_test = K_val
 
-p = ξ.p
-n = ξ.n
-
-# The number of epochs used during training: note that early stopping means that
-# we never really train for the full amount of epochs
-epochs = quick ? 20 : 200
-
 # ---- Estimator ----
 
-seed!(1)
+# point estimator:
 pointestimator = gnnarchitecture(p)
-U = gnnarchitecture(p; final_activation = identity)
-V = gnnarchitecture(p; final_activation = identity)
+pointestimator_path = joinpath(path, "runs_GNN_m$M")
+Flux.loadparams!(pointestimator, loadbestweights(pointestimator_path))
+
+# Credible-interval estimator:
+seed!(1)
+v = gnnarchitecture(p; final_activation = identity)
+Flux.loadparams!(v, loadbestweights(pointestimator_path)) # pre-train
 Ω = ξ.Ω
 a = [minimum.(values(Ω))...]
 b = [maximum.(values(Ω))...]
-c = Compress(a, b)
-intervalestimator = IntervalEstimator(U, V, c)
-
-α = 0.05f0
-q = [α/2, 1-α/2] # quantiles
-qloss = (θ̂, θ) -> quantileloss(θ̂, θ, gpu(q))
-
-pointestimator = PointEstimator(pointestimator)
+g = Compress(a, b)
+intervalestimator = IntervalEstimator(v, g)
 
 # ---- Training ----
+
+epochs = quick ? 20 : 200
 
 if !skip_training
 
@@ -92,59 +88,57 @@ end
 
 Flux.loadparams!(intervalestimator, loadbestweights(path * "/runs_GNN_CI_m$M"))
 
-# ---- Marginal coverage (coverage over the whole parameter space) ----
+# ---- Empirical coverage ----
 
-"""
-	coverage(intervals::V, θ) where  {V <: AbstractArray{M}} where M <: AbstractMatrix
+# Simulate test data
+seed!(1)
+K_test = quick ? 100 : 3000
+θ_test = Parameters(K_test, ξ, n, J = 1)
+Z_test = simulate(θ_test, M)
 
-Given a p×K matrix of true parameters `θ`, determine the empirical coverage of
-a collection of confidence `intervals` (a K-vector of px2 matrices).
+# Assessment: Quantile estimator
+assessment = assess(intervalestimator, θ_test, Z_test, estimator_name = "quantile", parameter_names = ξ.parameter_names)
 
-The overall empirical coverage is obtained by averaging the resulting 0-1 matrix
-elementwise over all parameter vectors.
-
-# Examples
-```
-p = 3
-K = 100
-θ = rand(p, K)
-intervals = [rand(p, 2) for _ in 1:K]
-coverage(intervals, θ)
-```
-"""
-function coverage(intervals::V, θ) where  {V <: AbstractArray{M}} where M <: AbstractMatrix
-
-    p, K = size(θ)
-	if K == 1
-		K = length(intervals)
-		θ = repeat(θ, 1, K)
-	end
-	@assert length(intervals) == K
-	@assert all(size.(intervals, 1) .== p)
-	@assert all(size.(intervals, 2) .== 2)
-
-	# for each confidence interval, determine if the true parameters, θ, are
-	# within the interval.
-	within = [intervals[k][i, 1] <= θ[i, k] <= intervals[k][i, 2] for i in 1:p, k in 1:K]
-
-	# compute the empirical coverage
-	cvg = mean(within, dims = 2)
-
-	return cvg
+# Assessment: Bootstrap
+B = quick ? 50 : 500
+θ̂_test = estimateinbatches(pointestimator, Z_test)
+θ̂_test = Parameters(θ̂_test, θ_test.locations, ξ)
+Z_boot = [simulate(θ̂_test, M) for _ ∈ 1:B]
+Z_boot = map(1:K_test) do k
+	[z[k] for z ∈ Z_boot]
 end
+assessment_boot = assess(pointestimator, θ_test, Z_test, boot = Z_boot, estimator_name = "bootstrap", parameter_names = ξ.parameter_names)
 
-# Test with respect to a set of irregular uniformly sampled locations
-seed!(1)
-S = rand(n, 2)
+# Coverage
+cov1 = coverage(assessment)
+cov2 = coverage(assessment_boot)
+cov = vcat(cov1, cov2)
+CSV.write(joinpath(path, "uq_coverage.csv"), cov)
 
-# Simulate data
-seed!(1)
-K = quick ? 100 : 3000
-θ = Parameters(K, ξ, n, J = 1)
+
+# ---- Run-time assessment ----
+
+# Accurately assess the run-time for a single data set
+θ = Parameters(1, ξ, n; cluster_process = false) # don't use a cluster process so that we can specify n exactly, rather than simply E(n)
+S = θ.locations
 Z = simulate(θ, M)
+Z = Z |> gpu
 
-# Marginal coverage
-intervals = interval(intervalestimator, Z, parameter_names = ξ.parameter_names)
-cvg = coverage(intervals, θ.θ)
-df  = DataFrame(cvg', ξ.parameter_names)
-CSV.write(path * "/marginal_coverage_interval-estimator.csv", df)
+# Quantile estimator
+intervalestimator = intervalestimator |> gpu
+t1 = @belapsed intervalestimator(Z)
+
+# Bootstrap
+function bs(pointestimator, Z, S, B, ξ)
+	θ̂ = pointestimator(Z)
+	θ̂ = θ̂ |> cpu
+	θ̂ = Parameters(θ̂, S, ξ)
+	Z_boot = [simulate(θ̂, M)[1] for _ ∈ 1:B]
+	estimateinbatches(pointestimator, Z_boot)
+end
+pointestimator = pointestimator |> gpu
+t2 = @belapsed bs($pointestimator, $Z, $S, $B, $ξ)
+
+# Save the runtime
+t = DataFrame(time = [t1, t2], estimator = ["quantile", "bootstrap"])
+CSV.write(joinpath(path, "uq_runtime.csv"), t)

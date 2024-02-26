@@ -90,8 +90,8 @@ if isdefined(Main, :ML)
 	# Simulate data
 	seed!(1)
 	S = rand(n, 2)
-	D = pairwise(Euclidean(), S, S, dims = 1)
-	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
+	D = pairwise(Euclidean(), S, dims = 1)
+	ξ = (ξ..., S = S, D = D) # update ξ to contain the new spatial locations and distance matrix (the latter is needed for ML estimation)
 	θ = Parameters(1, ξ)
 	Z = simulate(θ, M; convert_to_graph = false)
 
@@ -122,19 +122,12 @@ function assessestimators(θ, Z, ξ)
 	Z_graph = reshapedataGNN(Z, g)
 
 	# Assess the GNN
-	assessment = assess(
-		[gnn], θ, Z_graph;
-		estimator_names = ["GNN"],
-		parameter_names = ξ.parameter_names
-	)
+	assessment = assess(gnn, θ, Z_graph; estimator_name = "GNN", parameter_names = ξ.parameter_names)
 
 	# Assess the ML estimator (if it is defined)
 	if isdefined(Main, :ML)
 		ξ = (ξ..., θ₀ = θ.θ)
-		assessment = merge(
-			assessment,
-			assess([ML], θ, Z; estimator_names = ["ML"], use_ξ = true, ξ = ξ)
-		)
+		assessment = merge(assessment, assess(ML, θ, Z; estimator_name = "ML", ξ = ξ))
 	end
 
 	return assessment
@@ -145,7 +138,7 @@ function assessestimators(ξ, set::String)
 	# Generate spatial locations and construct distance matrix
 	S = spatialconfigurations(n, set)
 	D = pairwise(Euclidean(), S, S, dims = 1)
-	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
+	ξ = (ξ..., S = S, D = D) # update ξ to contain the new spatial locations and distance matrix (the latter is needed for ML estimation)
 
 	# test set for estimating the risk function
 	θ = Parameters(K_test, ξ)
@@ -156,7 +149,7 @@ function assessestimators(ξ, set::String)
 
 	# small number of parameters for visualising the sampling distributions
 	K_scenarios = 5
-	seed!(1) # Important that these Parameter scenarios are the same for all locations when constructing the plots. 
+	seed!(1) # Important that these Parameter scenarios are the same for all locations when constructing the plots.
 	θ = Parameters(K_scenarios, ξ)
 	J = quick ? 10 : 100
 	Z = simulate(θ, M, J, convert_to_graph = false)
