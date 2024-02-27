@@ -30,7 +30,7 @@ function gnnarchitecture(
 	)
 
 	@assert nlayers >= 1
-	
+
 	# Propagation module
   prop = if propagation == "GraphConv"
 		 GraphConv
@@ -47,7 +47,7 @@ function gnnarchitecture(
 	  push!(propagation_layers, [GraphConv(nh => nh, relu, aggr = aggr) for _ in 2:nlayers]...)
 	end
 	propagation = GNNChain(propagation_layers...)
-	
+
 	# Readout module
 	readout = if readout == "mean"
 		no = nh

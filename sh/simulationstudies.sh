@@ -36,15 +36,8 @@ do
         m="[1,20]"
     fi
 
-    echo ""
-    echo "---- Constructing and assessing point estimators ----"
-    echo ""
+    # TODO prompt user if they wish to skip training (remember that is had to be runnable from all.sh)
     julia --threads=auto --project=. src/simulationstudy.jl --model=$model $quick --m=$m #--skip_training
-
-    echo ""
-    echo "---- Constructing and assessing quantile estimators ----"
-    echo ""
-    julia --threads=auto --project=. src/simulationstudy-credibleinterval.jl --model=$model $quick --m=$m # --skip_training
 
     Rscript src/simulationstudy.R --model=$model
 done

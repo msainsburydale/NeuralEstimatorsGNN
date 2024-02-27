@@ -53,31 +53,33 @@ if quick
 end
 K_test = K_val
 
-
-# ---- Estimator ----
-
-seed!(1)
-gnn = gnnarchitecture(p)
-
-# ---- Training ----
-
 epochs = quick ? 20 : 200
 J = 3
 
 if !skip_training
-
+	@info "Generating training data..."
 	seed!(1)
 	@info "Sampling parameter vectors used for validation..."
 	θ_val = Parameters(K_val, ξ, n, J = J)
 	@info "Sampling parameter vectors used for training..."
 	θ_train = Parameters(K_train, ξ, n, J = J)
 	@info "Training the GNN point estimator..."
-	trainx(gnn, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
-
 end
 
-# ---- Load the trained estimator ----
+# -----------------------------------------------------------------------------
+# ---------------------- Neural point estimator -------------------------------
+# -----------------------------------------------------------------------------
 
+@info "Constructing and assessing neural point estimator..."
+
+seed!(1)
+gnn = gnnarchitecture(p)
+
+if !skip_training
+	trainx(gnn, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
+end
+
+# Load the trained estimator
 Flux.loadparams!(gnn,  loadbestweights(joinpath(path, "runs_GNN_m$M")))
 
 # ---- Run-time assessment ----
@@ -111,7 +113,7 @@ if isdefined(Main, :ML)
 
 end
 
-# ---- Assess the estimators ----
+# ---- Assess the point estimators ----
 
 function assessestimators(θ, Z, ξ)
 
@@ -229,6 +231,8 @@ assessestimators(ξ, "cup")
 # -----------------------------------------------------------------------------
 # ----- Quantile estimator for marginal posterior credible intervals ----------
 # -----------------------------------------------------------------------------
+
+@info "Constructing and assessing neural quantile estimator..."
 
 # point estimator:
 pointestimator = gnnarchitecture(p)
