@@ -28,6 +28,7 @@ end
 M = maximum(m)
 using NeuralEstimators
 using NeuralEstimatorsGNN
+using NamedArrays
 using BenchmarkTools
 using CSV
 using DataFrames
@@ -35,8 +36,10 @@ using Distances
 using GraphNeuralNetworks
 
 include(joinpath(pwd(), "src/$model/model.jl"))
-if model != "SPDE" include(joinpath(pwd(), "src/$model/ML.jl")) end
 include(joinpath(pwd(), "src/architecture.jl"))
+include(joinpath(pwd(), "src/$model/ML.jl"))
+p = ξ.p
+n = ξ.n
 
 path = "intermediates/$model"
 if !isdir(path) mkpath(path) end
@@ -50,20 +53,15 @@ if quick
 end
 K_test = K_val
 
-p = ξ.p
-n = ξ.n
 
-# The number of epochs used during training: note that early stopping means that
-# we never don't usually train for the full amount of epochs
-epochs = quick ? 20 : 200
-
-# ---- Estimators ----
+# ---- Estimator ----
 
 seed!(1)
 gnn = gnnarchitecture(p)
 
 # ---- Training ----
 
+epochs = quick ? 20 : 200
 J = 3
 
 if !skip_training
@@ -73,7 +71,7 @@ if !skip_training
 	θ_val = Parameters(K_val, ξ, n, J = J)
 	@info "Sampling parameter vectors used for training..."
 	θ_train = Parameters(K_train, ξ, n, J = J)
-	@info "training the GNN..."
+	@info "Training the GNN point estimator..."
 	trainx(gnn, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
 
 end
@@ -225,3 +223,89 @@ assessestimators(ξ, "mixedsparsity")
 #Construct by considering the domain split into three vertical strips
 seed!(1)
 assessestimators(ξ, "cup")
+
+
+
+# -----------------------------------------------------------------------------
+# ----- Quantile estimator for marginal posterior credible intervals ----------
+# -----------------------------------------------------------------------------
+
+# point estimator:
+pointestimator = gnnarchitecture(p)
+pointestimator_path = joinpath(path, "runs_GNN_m$M")
+Flux.loadparams!(pointestimator, loadbestweights(pointestimator_path))
+
+# Credible-interval estimator:
+seed!(1)
+v = gnnarchitecture(p; final_activation = identity)
+Flux.loadparams!(v, loadbestweights(pointestimator_path)) # pretrain with point estimator
+Ω = ξ.Ω
+a = [minimum.(values(Ω))...]
+b = [maximum.(values(Ω))...]
+g = Compress(a, b)
+intervalestimator = IntervalEstimator(v, g)
+
+if !skip_training
+	@info "training the GNN quantile estimator for marginal posterior credible intervals..."
+	trainx(intervalestimator, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN_CI", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
+end
+
+Flux.loadparams!(intervalestimator, loadbestweights(path * "/runs_GNN_CI_m$M"))
+
+
+# ---- Empirical coverage ----
+
+# Simulate test data
+seed!(1)
+K_test = quick ? 100 : 1000
+θ_test = Parameters(K_test, ξ, n, J = 1)
+Z_test = simulate(θ_test, M)
+
+# Assessment: Quantile estimator
+assessment = assess(intervalestimator, θ_test, Z_test, estimator_name = "quantile", parameter_names = ξ.parameter_names)
+
+# Assessment: Bootstrap
+B = quick ? 50 : 1000
+θ̂_test = estimateinbatches(pointestimator, Z_test)
+θ̂_test = Parameters(θ̂_test, θ_test.locations, ξ)
+Z_boot = [simulate(θ̂_test, M) for _ ∈ 1:B]
+Z_boot = map(1:K_test) do k
+	[z[k] for z ∈ Z_boot]
+end
+assessment_boot = assess(pointestimator, θ_test, Z_test, boot = Z_boot, estimator_name = "bootstrap", parameter_names = ξ.parameter_names)
+
+# Coverage
+cov = vcat(coverage(assessment), coverage(assessment_boot))
+CSV.write(joinpath(path, "uq_coverage.csv"), cov)
+
+# Interval score
+is = vcat(intervalscore(assessment), intervalscore(assessment_boot))
+CSV.write(joinpath(path, "uq_intervalscore.csv"), is)
+
+
+# ---- Run-time assessment ----
+
+# Accurately assess the run-time for a single data set
+θ = Parameters(1, ξ, n; cluster_process = false) # don't use a cluster process so that we can specify n exactly, rather than simply E(n)
+S = θ.locations
+Z = simulate(θ, M)
+Z = Z |> gpu
+
+# Quantile estimator
+intervalestimator = intervalestimator |> gpu
+t1 = @belapsed intervalestimator(Z)
+
+# Bootstrap
+function bs(pointestimator, Z, S, B, ξ)
+	θ̂ = pointestimator(Z)
+	θ̂ = θ̂ |> cpu
+	θ̂ = Parameters(θ̂, S, ξ)
+	Z_boot = [simulate(θ̂, M)[1] for _ ∈ 1:B]
+	estimateinbatches(pointestimator, Z_boot)
+end
+pointestimator = pointestimator |> gpu
+t2 = @belapsed bs($pointestimator, $Z, $S, $B, $ξ)
+
+# Save the runtime
+t = DataFrame(time = [t1, t2], estimator = ["quantile", "bootstrap"])
+CSV.write(joinpath(path, "uq_runtime.csv"), t)
