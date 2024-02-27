@@ -75,6 +75,7 @@ epochs = quick ? 20 : 200
 if !skip_training
 
 	seed!(1)
+	J = 1
 	@info "Sampling parameter vectors used for validation..."
 	θ_val = Parameters(K_val, ξ, n, J = J)
 	@info "Sampling parameter vectors used for training..."
