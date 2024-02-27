@@ -101,6 +101,7 @@ seed!(1)
 θ_test = Parameters(K, ξ)
 Z_test = simulate(θ_test, m)
 
+#TODO add ML estimator to this experiment
 assessments = []
 for k ∈ K_seq
   @info "Assessing the estimators trained with K = $k..."
@@ -118,7 +119,7 @@ for k ∈ K_seq
 end
 assessment = merge(assessments...)
 
-#NB this is 800 Mb: maybe better to compute the risk and rmse here.
+#TODO this is 800 Mb: maybe better to compute the risk and rmse here.
 CSV.write(joinpath(path, "assessment.csv"), assessment.df)
 
 @info "Finished!"

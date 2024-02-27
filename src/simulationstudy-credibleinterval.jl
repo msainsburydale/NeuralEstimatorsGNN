@@ -43,9 +43,8 @@ path = "intermediates/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
-J = 3
-K_train = 10_000
-K_val   = K_train ÷ 10
+K_train = 20_000
+K_val   = K_train ÷ 5
 if quick
 	K_train = K_train ÷ 10
 	K_val   = K_val   ÷ 10
@@ -81,7 +80,7 @@ if !skip_training
 	@info "Sampling parameter vectors used for training..."
 	θ_train = Parameters(K_train, ξ, n, J = J)
 	@info "training the GNN..."
-	trainx(intervalestimator, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN_CI", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3, stopping_epochs = 5)
+	trainx(intervalestimator, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN_CI", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
 end
 
 # ---- Load the trained estimator ----
@@ -92,7 +91,7 @@ Flux.loadparams!(intervalestimator, loadbestweights(path * "/runs_GNN_CI_m$M"))
 
 # Simulate test data
 seed!(1)
-K_test = quick ? 100 : 3000
+K_test = quick ? 100 : 1000
 θ_test = Parameters(K_test, ξ, n, J = 1)
 Z_test = simulate(θ_test, M)
 
@@ -100,7 +99,7 @@ Z_test = simulate(θ_test, M)
 assessment = assess(intervalestimator, θ_test, Z_test, estimator_name = "quantile", parameter_names = ξ.parameter_names)
 
 # Assessment: Bootstrap
-B = quick ? 50 : 500
+B = quick ? 50 : 1000
 θ̂_test = estimateinbatches(pointestimator, Z_test)
 θ̂_test = Parameters(θ̂_test, θ_test.locations, ξ)
 Z_boot = [simulate(θ̂_test, M) for _ ∈ 1:B]

@@ -42,8 +42,8 @@ path = "intermediates/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
-K_train = 10_000
-K_val   = K_train ÷ 10
+K_train = 20_000
+K_val   = K_train ÷ 5
 if quick
 	K_train = K_train ÷ 10
 	K_val   = K_val   ÷ 10
@@ -74,7 +74,7 @@ if !skip_training
 	@info "Sampling parameter vectors used for training..."
 	θ_train = Parameters(K_train, ξ, n, J = J)
 	@info "training the GNN..."
-	trainx(gnn, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3, stopping_epochs = 3)
+	trainx(gnn, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
 
 end
 

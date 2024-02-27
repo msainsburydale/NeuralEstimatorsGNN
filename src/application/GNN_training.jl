@@ -45,20 +45,17 @@ epochs = quick ? 2 : 200
 # ---- Training data ----
 
 seed!(1)
-@info "simulating training data..."
 J = 3
-@info "Sampling set of parameter vectors used for validation..."
+@info "Sampling parameter vectors used for validation..."
 θ_val = Parameters(K_val, ξ, n, J = J)
-@info "Sampling set of parameter vectors used for training..."
+@info "Sampling parameter vectors used for training..."
 θ_train = Parameters(K_train, ξ, n, J = J)
-@info "training the GNN..."
-
 
 # ---- Point estimator ----
 
 seed!(1)
 gnn = gnnarchitecture(p)
-@info "training the point estimator..."
+@info "training the GNN-based point estimator..."
 train(gnn, θ_train, θ_val, simulate, m = 1, savepath = joinpath(path, "pointestimator"), epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
 
 # ---- Credible-interval estimator ----
@@ -71,5 +68,5 @@ b = [maximum.(values(Ω))...]
 g = Compress(a, b)
 intervalestimator = IntervalEstimator(v, g)
 
-@info "training the quantile estimator..."
+@info "training the GNN-based quantile estimator..."
 train(intervalestimator, θ_train, θ_val, simulate, m = 1, savepath = path * "/intervalestimator", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
