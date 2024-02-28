@@ -72,7 +72,8 @@ function estimate(pointestimator, intervalestimator, data, scale_factor)
     # Estimate parameters
     t = @elapsed θ = pointestimator(g)
     t += @elapsed θ_quantiles = intervalestimator(g)
-    θ = vcat(v, θ_quantiles)
+    θ = vcat(θ, θ_quantiles)
+    θ = cpu(θ)
 
     # Scale the range parameter and its quantiles back to original scale
     θ[2 .+ (0:2)p] /= scale_factor
@@ -82,7 +83,6 @@ end
 
 pointestimator    = gpu(pointestimator)
 intervalestimator = gpu(intervalestimator)
-
 
 total_time = @elapsed results = Folds.map(1:length(clustered_data)) do k
    estimate(pointestimator, intervalestimator, clustered_data[k], scale_factors[k])
