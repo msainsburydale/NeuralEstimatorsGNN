@@ -9,6 +9,8 @@ using RData
 using Statistics: mean
 using StatsBase: sample
 
+@info "Starting GNN estimation..."
+
 ## ---- Load the data ----
 
 model = joinpath("GP", "nuFixed")
@@ -43,25 +45,21 @@ Flux.loadparams!(intervalestimator, loadbestweights(joinpath(path, "intervalesti
 
 ## ---- Estimate ----
 
-function estimate(pointestimator, intervalestimator data, scale_factor)
+function estimate(pointestimator, intervalestimator, data, scale_factor)
 
-   # Restrict the sample size for computational reasons
-   n = size(data, 1)
-   max_n = 1000
-   if n > max_n
-    data = data[sample(1:n, max_n; replace = false), :]
-   end
+   # # Restrict the sample size for computational reasons
+   # n = size(data, 1)
+   # max_n = 1000
+   # if n > max_n
+   #  data = data[sample(1:n, max_n; replace = false), :]
+   # end
 
    Z = data[:, [:Z]]         |> Matrix
    S = data[:, [:x, :y, :z]] |> Matrix
 
-    # spatial radius
-    r₀ = 0.15                # fixed radius used during training on the unit square
-    r  = r₀ / scale_factor   # neighbourhood disc radius used here
-    k  = 30                  # maximum number of neighbours to consider
-
     # Compute the adjacency matrix
-    A = adjacencymatrix(S, r, k)
+    k = 10 # number of neighbours to consider (same value as used during training)
+    A = adjacencymatrix(S, k; maxmin = true)
 
     # Scale the distances so that they are between [0, sqrt(2)]
     v = A.nzval
@@ -73,7 +71,7 @@ function estimate(pointestimator, intervalestimator data, scale_factor)
 
     # Estimate parameters
     t = @elapsed θ = pointestimator(g)
-    t += @elapsed θ_quantiles = estimator(g)
+    t += @elapsed θ_quantiles = intervalestimator(g)
     θ = vcat(v, θ_quantiles)
 
     # Scale the range parameter and its quantiles back to original scale
@@ -87,7 +85,7 @@ intervalestimator = gpu(intervalestimator)
 
 
 total_time = @elapsed results = Folds.map(1:length(clustered_data)) do k
-   estimate(pointestimator, clustered_data[k], scale_factors[k])
+   estimate(pointestimator, intervalestimator, clustered_data[k], scale_factors[k])
 end
 θ = broadcast(x -> x[1], results)
 t = broadcast(x -> x[2], results)

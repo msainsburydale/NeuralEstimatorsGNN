@@ -22,7 +22,7 @@ using CSV
 include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 
-path = "intermediates/application/SST"
+path = "intermediates/application"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
@@ -54,11 +54,11 @@ J = 3
 # ---- Point estimator ----
 
 seed!(1)
-gnn = gnnarchitecture(p)
+pointestimator = gnnarchitecture(p)
 @info "training the GNN-based point estimator..."
-train(gnn, θ_train, θ_val, simulate, m = 1, savepath = joinpath(path, "pointestimator"), epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
+train(pointestimator, θ_train, θ_val, simulate, m = 1, savepath = joinpath(path, "pointestimator"), epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
 
-# ---- Credible-interval estimator ----
+# ---- Marginal posterior quantile estimator ----
 
 v = gnnarchitecture(p; final_activation = identity)
 Flux.loadparams!(v, loadbestweights(joinpath(path, "pointestimator"))) # pretrain with point estimator
