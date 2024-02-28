@@ -47,19 +47,19 @@ Flux.loadparams!(intervalestimator, loadbestweights(joinpath(path, "intervalesti
 
 function estimate(pointestimator, intervalestimator, data, scale_factor)
 
-   # # Restrict the sample size for computational reasons
-   # n = size(data, 1)
-   # max_n = 1000
-   # if n > max_n
-   #  data = data[sample(1:n, max_n; replace = false), :]
-   # end
+   # Restrict the sample size while prototyping
+   n = size(data, 1)
+   max_n = 2000
+   if n > max_n
+    data = data[sample(1:n, max_n; replace = false), :]
+   end
 
    Z = data[:, [:Z]]         |> Matrix
    S = data[:, [:x, :y, :z]] |> Matrix
 
     # Compute the adjacency matrix
     k = 10 # number of neighbours to consider (same value as used during training)
-    A = adjacencymatrix(S, k; maxmin = true)
+    A = adjacencymatrix(S, k; maxmin = true) 
 
     # Scale the distances so that they are between [0, sqrt(2)]
     v = A.nzval
