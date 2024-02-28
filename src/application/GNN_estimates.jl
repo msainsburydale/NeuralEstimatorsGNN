@@ -32,11 +32,11 @@ p = 3 # number of parameters
 
 pointestimator = gnnarchitecture(p)
 
+v = gnnarchitecture(p; final_activation = identity)
 a = [minimum.(values(Ω))...]
 b = [maximum.(values(Ω))...]
-U = gnnarchitecture(p; final_activation = identity)
-V = deepcopy(U)
-intervalestimator = IntervalEstimator(U, V, a, b)
+g = Compress(a, b)
+intervalestimator = IntervalEstimator(v, g)
 
 Flux.loadparams!(pointestimator,    loadbestweights(joinpath(path, "pointestimator")))
 Flux.loadparams!(intervalestimator, loadbestweights(joinpath(path, "intervalestimator")))

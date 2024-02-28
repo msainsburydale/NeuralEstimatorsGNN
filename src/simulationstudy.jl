@@ -67,20 +67,20 @@ if !skip_training
 end
 
 # -----------------------------------------------------------------------------
-# ---------------------- Neural point estimator -------------------------------
+# -------------------------- Point estimator ----------------------------------
 # -----------------------------------------------------------------------------
 
 @info "Constructing and assessing neural point estimator..."
 
 seed!(1)
-gnn = gnnarchitecture(p)
+pointestimator = gnnarchitecture(p)
 
 if !skip_training
-	trainx(gnn, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
+	trainx(pointestimator, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
 end
 
 # Load the trained estimator
-Flux.loadparams!(gnn,  loadbestweights(joinpath(path, "runs_GNN_m$M")))
+Flux.loadparams!(pointestimator,  loadbestweights(joinpath(path, "runs_GNN_m$M")))
 
 # ---- Run-time assessment ----
 
@@ -104,8 +104,8 @@ if isdefined(Main, :ML)
 	g = θ.graphs[1]
 	Z = reshapedataGNN(Z, g)
 	Z = Z |> gpu
-	gnn  = gnn|> gpu
-	t_gnn = @belapsed gnn(Z)
+	pointestimator  = pointestimator|> gpu
+	t_gnn = @belapsed pointestimator(Z)
 
 	# Save the runtime
 	t = DataFrame(time = [t_gnn, t_ml], estimator = ["GNN", "ML"])
@@ -122,7 +122,7 @@ function assessestimators(θ, Z, ξ)
 	Z_graph = reshapedataGNN(Z, g)
 
 	# Assess the GNN
-	assessment = assess(gnn, θ, Z_graph; estimator_name = "GNN", parameter_names = ξ.parameter_names)
+	assessment = assess(pointestimator, θ, Z_graph; estimator_name = "GNN", parameter_names = ξ.parameter_names)
 
 	# Assess the ML estimator (if it is defined)
 	if isdefined(Main, :ML)
@@ -229,7 +229,7 @@ assessestimators(ξ, "cup")
 
 
 # -----------------------------------------------------------------------------
-# ----- Quantile estimator for marginal posterior credible intervals ----------
+# --------------------- Uncertainty quantification ----------------------------
 # -----------------------------------------------------------------------------
 
 @info "Constructing and assessing neural quantile estimator..."
@@ -251,10 +251,10 @@ intervalestimator = IntervalEstimator(v, g)
 
 if !skip_training
 	@info "training the GNN quantile estimator for marginal posterior credible intervals..."
-	trainx(intervalestimator, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN_CI", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
+	trainx(intervalestimator, θ_train, θ_val, simulate, m, savepath = joinpath(path, "runs_GNN_CI"), epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
 end
 
-Flux.loadparams!(intervalestimator, loadbestweights(path * "/runs_GNN_CI_m$M"))
+Flux.loadparams!(intervalestimator, loadbestweights(joinpath(path, "runs_GNN_CI_m$M")))
 
 
 # ---- Empirical coverage ----
@@ -290,7 +290,8 @@ CSV.write(joinpath(path, "uq_intervalscore.csv"), is)
 # ---- Run-time assessment ----
 
 # Accurately assess the run-time for a single data set
-θ = Parameters(1, ξ, n; cluster_process = false) # don't use a cluster process so that we can specify n exactly, rather than simply E(n)
+# Use a uniform process so that we can specify n exactly, rather than simply E(n)
+θ = Parameters(1, ξ, n; cluster_process = false)
 S = θ.locations
 Z = simulate(θ, M)
 Z = Z |> gpu

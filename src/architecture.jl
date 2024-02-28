@@ -23,7 +23,7 @@ function gnnarchitecture(
 	propagation::String = "WeightedGraphConv",
 	d::Integer = 1, 	    # dimension of the response variable (univariate by default)
 	nh::Integer = 128,    # number of channels in each propagation layer
-	nlayers::Integer = 4, # number of propagation layers 
+	nlayers::Integer = 4, # number of propagation layers
 	aggr = mean,          # node aggregation function
 	readout::String = "mean",
 	final_activation = exp
