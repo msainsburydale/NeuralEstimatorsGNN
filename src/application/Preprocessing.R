@@ -12,6 +12,8 @@ suppressMessages({
   library("JuliaConnectoR")
   library("reshape2")
   library("ggplot2")
+  library("GpGp")
+  library("Matrix")
   library("dggrids")
   library("dplyr")
   library("FRK")
@@ -135,46 +137,46 @@ cells@data$id <- 1:length(cells)
 
 # Helper function to map data to BAUs
 map_to_BAUs <- function(data_sp, sp_pols) {
-
+  
   ## Suppress bindings warnings
   . <- BAU_name <- NULL
-
+  
   ## Add BAU ID to the data frame of the SP object
   sp_pols$BAU_name <- as.character(row.names(sp_pols))
-
+  
   ## Add coordinates to @data if not already there
   if(!(all(coordnames(sp_pols) %in% names(sp_pols@data))))
     sp_pols@data <- cbind(sp_pols@data,coordinates(sp_pols))
-
+  
   ## Find which fields in the data object are not already declared in the BAUs
   diff_fields <- intersect(setdiff(names(data_sp),names(sp_pols)),names(data_sp))
-
+  
   ## Create a data frame just of these fields
   data_df <- data_sp@data[diff_fields]
-
+  
   ## Assign the CRS from sp_pols to data_sp. Note that the sp_pols
   ## are typically the BAUs object, and have not been altered
   ## significantly to this point (while data_sp has, and so
   ## its CRS is often NA).
   slot(data_sp, "proj4string") <- slot(sp_pols, "proj4string")
   data_over_sp <- FRK:::.parallel_over(data_sp, sp_pols)
-
+  
   ## We now cbind the original data with data_over_sp
   data_over_sp <- cbind(data_df, data_over_sp)
-
+  
   if(any(is.na(data_over_sp$BAU_name))) {  # data points at 180 boundary or outside BAUs -- remove
     ii <- which(is.na((data_over_sp$BAU_name)))
     data_sp <- data_sp[-ii,]
     data_over_sp <- data_over_sp[-ii,]
     warning("Removing data points that do not fall into any BAUs.")
   }
-
+  
   new_sp_pts <- SpatialPointsDataFrame(
     coords=data_sp@coords,         # coordinates of summarised data
     data= data_over_sp ,                                # data frame
     proj4string = CRS(slot(data_sp, "proj4string")@projargs) # CRS of original data
   )
-
+  
   new_sp_pts
 }
 
@@ -255,14 +257,14 @@ ggsv(ggarrange(gg, gghist, nrow = 1), filename = "clusteringsamplesizes", width 
 
 ## Convert from longitude-latitude to Cartesian coordinates
 convert_to_cartesian <- function(lonlat, R = 6371) {
-
+  
   lon <- lonlat[1] * pi/180
   lat <- lonlat[2] * pi/180
-
+  
   x = R * cos(lat) * cos(lon)
   y = R * cos(lat) * sin(lon)
   z = R * sin(lat)
-
+  
   c(x, y, z)
 }
 clustered_data <- lapply(clustered_data, function(dat) {
@@ -288,6 +290,38 @@ scale_factors <- sapply(clustered_data, function(dat) {
   scale_factor <- sqrt(2) / (max_dist - min_dist)
   return(scale_factor)
 })
+
+## Build the implied dag
+# build_dag = function(NNarray) {
+#   n = nrow(NNarray)
+#   k = ncol(NNarray)
+#   
+#   all_i = all_j = 1
+#   for (j in 2:n) {
+#     i = NNarray[j, ]
+#     i = i[!is.na(i)]
+#     all_j = c(all_j, rep(j, length(i)))
+#     all_i = c(all_i, i)
+#   }
+#   R = sparseMatrix(i = all_i, j = all_j)
+#   return(R)
+# }
+
+
+## Adjacency matrix
+## TODO parallel version of sapply to make this faster
+# adj_matrices <- sapply(clustered_data, function(dat) {
+#   S <- as.matrix(dat[, c("x", "y", "z")])
+#   locs <- S
+#   ord <- GpGp::order_maxmin(locs)
+#   locsord <- locs[ord, ]
+#   k <- 10
+#   NNarray <- GpGp::find_ordered_nn(locsord, k)
+#   return(NNarray)
+#   # R <- build_dag(NNarray)
+#   # return(R)
+# })
+
 
 # ---- Save objects ----
 

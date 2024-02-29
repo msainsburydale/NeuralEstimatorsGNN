@@ -2,7 +2,7 @@
 
 This repository contains code for reproducing the results in "Neural Bayes Estimators for Irregular Spatial Data using Graph Neural Networks" [(Sainsbury-Dale et al., 2023+)](https://arxiv.org/abs/2310.02600).
 
-The methodology described in the manuscript has been incorporated into the Julia package [NeuralEstimators.jl](https://github.com/msainsburydale/NeuralEstimators.jl). In particular, see the example given [here](https://msainsburydale.github.io/NeuralEstimators.jl/dev/workflow/examples/#Irregular-spatial-data). The code in this repository is therefore made available primarily for reproducibility purposes, and we encourage readers seeking to implement GNN-based neural Bayes estimators to explore the package and its documentation. Users are also welcome to contact the package maintainer if there are any questions. 
+The methodology described in the manuscript has been incorporated into the Julia package [NeuralEstimators.jl](https://github.com/msainsburydale/NeuralEstimators.jl). In particular, see the example given [here](https://msainsburydale.github.io/NeuralEstimators.jl/dev/workflow/examples/#Irregular-spatial-data). The code in this repository is therefore made available primarily for reproducibility purposes, and we encourage readers seeking to implement GNN-based neural Bayes estimators to explore the package and its documentation. Users are also welcome to contact the package maintainer if there are any questions.
 
 ## Repository structure
 
@@ -21,24 +21,7 @@ First, download this repository and navigate to its top-level directory within t
 
 ### Software dependencies
 
-Before installing the software dependencies, users may wish to set up a [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html) environment, so that the dependencies of this repository do not affect the user's current installation. To create a conda environment, run the following command in terminal:
-
-```
-conda create -n NeuralEstimatorsGNN -c conda-forge julia=1.7.3 r-base nlopt
-```
-
-Then activate the conda environment with:
-
-```
-conda activate NeuralEstimatorsGNN
-```
-
-The above conda environment installs Julia and R automatically. If you do not wish to use a conda environment, you will need to install Julia and R manually if they are not already on your system:  
-
-- Install [Julia 1.7.3](https://julialang.org/downloads/).
-- Install [R >= 4.0.0](https://www.r-project.org/).
-
-Once Julia and R are setup, install the Julia and R package dependencies (given in `Project.toml` and `Manifest.toml`, and `dependencies.txt`, respectively) by running the following commands from the top-level of the repository:
+To begin, please install [Julia](https://julialang.org/downloads/) and [R](https://www.r-project.org/). Once Julia and R are setup, install the Julia and R package dependencies (given in `Project.toml` and `Manifest.toml`, and `dependencies.txt`, respectively) by running the following commands from the top-level of the repository:
 
 ```
 julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
@@ -58,7 +41,6 @@ or by manually installing the system dependencies before installing `devtools` m
 ```
 sudo apt -y install libfontconfig1-dev libharfbuzz-dev libfribidi-dev
 ```
-
 
 
 ### Hardware requirements

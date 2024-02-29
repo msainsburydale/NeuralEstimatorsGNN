@@ -8,6 +8,8 @@ using RData
 using Statistics: mean
 using StatsBase: sample
 
+@info "Starting ML estimation..."
+
 ## ---- Load the data ----
 
 model = joinpath("GP", "nuFixed")

@@ -47,19 +47,19 @@ Flux.loadparams!(intervalestimator, loadbestweights(joinpath(path, "intervalesti
 
 function estimate(pointestimator, intervalestimator, data, scale_factor)
 
-   # Restrict the sample size while prototyping
-   n = size(data, 1)
-   max_n = 2000
-   if n > max_n
-    data = data[sample(1:n, max_n; replace = false), :]
-   end
+    # Restrict the sample size while prototyping
+    n = size(data, 1)
+    max_n = 2000
+    if n > max_n
+     data = data[sample(1:n, max_n; replace = false), :]
+    end
 
-   Z = data[:, [:Z]]         |> Matrix
-   S = data[:, [:x, :y, :z]] |> Matrix
+    Z = data[:, [:Z]]         |> Matrix
+    S = data[:, [:x, :y, :z]] |> Matrix
 
     # Compute the adjacency matrix
     k = 10 # number of neighbours to consider (same value as used during training)
-    A = adjacencymatrix(S, k; maxmin = true) 
+    A = adjacencymatrix(S, k; maxmin = true)
 
     # Scale the distances so that they are between [0, sqrt(2)]
     v = A.nzval
@@ -90,7 +90,7 @@ end
 θ = broadcast(x -> x[1], results)
 t = broadcast(x -> x[2], results)
 θ = permutedims(hcat(θ...))
-estimates = DataFrame(θ, repeat(["τ", "ρ", "σ"], 3) .* repeat(["", "_lower", "_upper"], inner = 3))
+estimates = DataFrame(θ, repeat(["τ", "ρ", "σ"], 3) .* repeat(["", "_lower", "_upper"], inner = 3)) #TODO parameter names shouldn't be hardcoded like this...
 estimates[:, :time] = t
 estimates[:, :total_time] .= total_time
 CSV.write(joinpath(path, "GNN_estimates.csv"), estimates)
