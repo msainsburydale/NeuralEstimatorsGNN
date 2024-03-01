@@ -87,8 +87,9 @@ findorderednn = function(locs,k){
   while( length(query_inds) > 0 ){
     ksearch = min( max(query_inds), 2*ksearch )
     data_inds = 1:min( max(query_inds), n )
-    NN = FNN::get.knnx( locs[data_inds,,drop=FALSE], locs[query_inds,,drop=FALSE], ksearch )$nn.index
-    #NN = juliaGet(getknn(t(locs[data_inds,,drop=FALSE]), t(locs[query_inds,,drop=FALSE]), as.integer(ksearch)))[[1]]
+    # TODO my getknn() function is super slow... how can I speed it up?
+    # NN = FNN::get.knnx( locs[data_inds,,drop=FALSE], locs[query_inds,,drop=FALSE], ksearch )$nn.index
+    NN = juliaGet(getknn(t(locs[data_inds,,drop=FALSE]), t(locs[query_inds,,drop=FALSE]), as.integer(ksearch)))[[1]]
     less_than_l = t(sapply( 1:nrow(NN), function(l) NN[l,] <= query_inds[l]  ))
     sum_less_than_l = apply(less_than_l,1,sum)
     ind_less_than_l = which(sum_less_than_l >= k+1)

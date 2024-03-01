@@ -8,8 +8,6 @@ using RData
 using Statistics: mean
 using StatsBase: sample
 
-@info "Starting ML estimation..."
-
 ## ---- Load the data ----
 
 model = joinpath("GP", "nuFixed")
@@ -102,6 +100,8 @@ end
 θ₀ = [0.5, 0.3, 1.5]
 prior = extrema.([Ω...])
 
+@info "Starting ML estimation..."
+
 total_time = @elapsed results = Folds.map(1:length(clustered_data)) do k
 
    data = clustered_data[k]
@@ -134,6 +134,7 @@ t = broadcast(x -> x[2], results)
 estimates = DataFrame(θ̂, [:τ, :ρ, :σ])
 estimates[:, :time] = t
 estimates[:, :total_time] .= total_time
+CSV.write(joinpath(path, "ML_runtime.csv"), DataFrame(time = [total_time]))
 CSV.write(joinpath(path, "ML_estimates.csv"), estimates)
 
 @info "Finished maximum-likelihood estimation!"

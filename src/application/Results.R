@@ -82,7 +82,7 @@ fig <- egg::ggarrange(rho_plot1, sigma_plot1, tau_plot1,
                       rho_plot2, sigma_plot2, tau_plot2, 
                       nrow = 2)
 
-ggsv(fig_GNN_ML, filename = "GNN_ML", width = 12, height = 4, path = img_path)
+ggsv(fig, filename = "GNN_ML", width = 12, height = 4, path = img_path)
 
 
 # ---- Plotting: credible intervals ----
@@ -144,7 +144,7 @@ tau_lower <- plot_estimates(cells, estimates_tau, "τ_lower", limits) + labs(tit
 tau_upper <- plot_estimates(cells, estimates_tau, "τ_upper", limits) + labs(title = expression(hat(sigma)[epsilon] *": upper bound"), fill = "")
 tau_ci <- ggpubr::ggarrange(tau_lower, tau_upper, align = "hv", nrow = 1, legend = "right", common.legend = T)
 
-figure <- ggpubr::ggarrange(rho_ci, sigma_ci, tau_ci, ncol = 1)
+fig <- ggpubr::ggarrange(rho_ci, sigma_ci, tau_ci, ncol = 1)
 
-ggsv(figure, filename = "intervals", width = 8, height = 7, path = img_path)
+ggsv(fig, filename = "intervals", width = 8, height = 7, path = img_path)
 

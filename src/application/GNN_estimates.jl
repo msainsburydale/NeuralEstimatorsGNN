@@ -8,8 +8,7 @@ using GraphNeuralNetworks
 using RData
 using Statistics: mean
 using StatsBase: sample
-
-@info "Starting GNN estimation..."
+using SparseArrays
 
 ## ---- Load the data ----
 
@@ -26,6 +25,17 @@ clustered_data = [filter(:cluster => cluster -> cluster == i, clustered_data) fo
 
 ## Load the distance scaling factors
 scale_factors = RData.load(joinpath(path, "scale_factors.rds")).data
+
+## Load the adjacency matrices
+adjacency_matrices = RData.load(joinpath(path, "adjacency_matrices.rds"))
+adjacency_matrices = [filter(:cluster => cluster -> cluster == i, adjacency_matrices) for i in unique(adjacency_matrices[:, :cluster])]
+function buildmatrix(A)
+  I = A[:, :row]
+  J = A[:, :col]
+  V = Float32.(A[:, :v])
+  return sparse(I,J,V)
+end
+adjacency_matrices = buildmatrix.(adjacency_matrices);
 
 
 ## ---- Load estimators ----
@@ -45,54 +55,51 @@ Flux.loadparams!(intervalestimator, loadbestweights(joinpath(path, "intervalesti
 
 ## ---- Estimate ----
 
-function estimate(pointestimator, intervalestimator, data, scale_factor)
+@info "Starting GNN estimation..."
+
+function constructgraph(data, scale_factor, adjacency_matrix)
+
+    A = copy(adjacency_matrix) # avoid mutating global variable adjacency_matrices
 
     # Restrict the sample size while prototyping
-    n = size(data, 1)
-    max_n = 2000
-    if n > max_n
-     data = data[sample(1:n, max_n; replace = false), :]
-    end
+    # n = size(data, 1)
+    # max_n = 2000
+    # if n > max_n
+    # data = data[sample(1:n, max_n; replace = false), :]
+    # end
 
-    Z = data[:, [:Z]]         |> Matrix
-    S = data[:, [:x, :y, :z]] |> Matrix
-
-    # Compute the adjacency matrix
-    k = 10 # number of neighbours to consider (same value as used during training)
-    A = adjacencymatrix(S, k; maxmin = true)
+    # # Compute the adjacency matrix
+    # S = data[:, [:x, :y, :z]] |> Matrix
+    # k = 10 # number of neighbours to consider (same value as used during training)
+    # A = adjacencymatrix(S, k; maxmin = true)
 
     # Scale the distances so that they are between [0, sqrt(2)]
     v = A.nzval
     v .*= scale_factor
 
     # Construct the graph
+    Z = data[:, [:Z]] |> Matrix
+    Z = Float32.(Z)
     g = GNNGraph(A, ndata = permutedims(Z))
-    g = gpu(g)
 
-    # Estimate parameters
-    t = @elapsed θ = pointestimator(g)
-    t += @elapsed θ_quantiles = intervalestimator(g)
-    θ = vcat(θ, θ_quantiles)
-    θ = cpu(θ)
-
-    # Scale the range parameter and its quantiles back to original scale
-    θ[2 .+ (0:2)p] /= scale_factor
-
-    return θ, t
+    return g
 end
 
-pointestimator    = gpu(pointestimator)
-intervalestimator = gpu(intervalestimator)
-
-total_time = @elapsed results = Folds.map(1:length(clustered_data)) do k
-   estimate(pointestimator, intervalestimator, clustered_data[k], scale_factors[k])
+t = @elapsed g = Folds.map(1:length(clustered_data)) do k
+   constructgraph(clustered_data[k], scale_factors[k], adjacency_matrices[k])
 end
-θ = broadcast(x -> x[1], results)
-t = broadcast(x -> x[2], results)
-θ = permutedims(hcat(θ...))
-estimates = DataFrame(θ, repeat(["τ", "ρ", "σ"], 3) .* repeat(["", "_lower", "_upper"], inner = 3)) #TODO parameter names shouldn't be hardcoded like this...
-estimates[:, :time] = t
-estimates[:, :total_time] .= total_time
-CSV.write(joinpath(path, "GNN_estimates.csv"), estimates)
+t += @elapsed θ = estimateinbatches(pointestimator, g)
+t += @elapsed θ_quantiles = estimateinbatches(intervalestimator, g)
+θ = vcat(θ, θ_quantiles)
+
+# Scale the range parameter point and quantile estimates back to original scale
+for k in 1:size(θ, 2)
+  θ[2 .+ (0:2)p, k] /= scale_factors[k]
+end
+
+θ = permutedims(θ)
+θ = DataFrame(θ, repeat(["τ", "ρ", "σ"], 3) .* repeat(["", "_lower", "_upper"], inner = 3)) #TODO parameter names shouldn't be hardcoded like this...
+CSV.write(joinpath(path, "GNN_runtime.csv"), DataFrame(time = [t]))
+CSV.write(joinpath(path, "GNN_estimates.csv"), θ)
 
 @info "Finished GNN estimation!"

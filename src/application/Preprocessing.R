@@ -19,6 +19,7 @@ suppressMessages({
   library("FRK")
   library("sp")
   library("ggpubr")
+  library("parallel") # mclapply
   library("spdep") # poly2nb()
   library("spatstat.geom") # nndist()
   options(dplyr.summarise.inform = FALSE)
@@ -291,45 +292,87 @@ scale_factors <- sapply(clustered_data, function(dat) {
   return(scale_factor)
 })
 
-## Build the implied dag
-# build_dag = function(NNarray) {
-#   n = nrow(NNarray)
-#   k = ncol(NNarray)
-#   
-#   all_i = all_j = 1
-#   for (j in 2:n) {
-#     i = NNarray[j, ]
-#     i = i[!is.na(i)]
-#     all_j = c(all_j, rep(j, length(i)))
-#     all_i = c(all_i, i)
-#   }
-#   R = sparseMatrix(i = all_i, j = all_j)
-#   return(R)
-# }
+## Adjacency matrices
+build_dag <- function(NNarray) {
+  n = nrow(NNarray)
+  k = ncol(NNarray)
+  
+  all_i = all_j = 1
+  for (j in 2:n) {
+    i = NNarray[j, ]
+    i = i[!is.na(i)]
+    all_j = c(all_j, rep(j, length(i)))
+    all_i = c(all_i, i)
+  }
+  R = sparseMatrix(i = all_i, j = all_j)
+  return(R)
+}
+adjacency_matrix <- function(S, k = 10) {
+  ord <- GpGp::order_maxmin(S)
+  Sord <- S[ord, ]
+  NNarray <- GpGp::find_ordered_nn(Sord, k)
+  A <- build_dag(NNarray)
+  
+  # Add distances to A
+  indices <- which(A != 0, arr.ind = TRUE)
+  ## TODO think it's inefficient to compute all of the distances when we 
+  ## only need a very small subset. This computation corresponds to about half 
+  ## of the run time, so it worthwhile improving the efficiency here (particularly 
+  ## since this is quite memory inefficient)
+  D <- as.matrix(dist(Sord))
+  d <- D[indices]
+  A <- as(A, "dMatrix")
+  A@x <- d
+  # Sanity check: A[1:6, 1:6]; D[1:6, 1:6]
+  
+  # "unorder" back to the original ordering
+  # Sanity check: all(Sord[order(ord), ] == S)
+  # Sanity check: all(D[order(ord), order(ord)] == as.matrix(dist(S)))
+  A <- A[order(ord), order(ord)]
+  
+  return(A)
+} 
 
+dat <- clustered_data[[which.max(sapply(clustered_data, nrow))]]
 
-## Adjacency matrix
-## TODO parallel version of sapply to make this faster
-# adj_matrices <- sapply(clustered_data, function(dat) {
-#   S <- as.matrix(dat[, c("x", "y", "z")])
-#   locs <- S
-#   ord <- GpGp::order_maxmin(locs)
-#   locsord <- locs[ord, ]
-#   k <- 10
-#   NNarray <- GpGp::find_ordered_nn(locsord, k)
-#   return(NNarray)
-#   # R <- build_dag(NNarray)
-#   # return(R)
-# })
-
+adj_mat_time <- system.time({
+  adjacency_matrices <- mclapply(clustered_data, function(dat) { 
+    S <- as.matrix(dat[, c("x", "y", "z")])
+    A <- adjacency_matrix(S)
+    return(A)
+  }, mc.cores = round(parallel::detectCores() / 2)
+  )
+})
+## Difficult to save R sparse matrices and load them into Julia... just save the 
+## indices and non-zero values, and re-build sparse matrix in Julia
+convert_to_matrix <- function(A) {
+  # Find non-zeros
+  ij <- which(A != 0, arr.ind = TRUE)
+  v <- A[ij]
+  ijv <- cbind(ij, v)
+  
+  # Add diagonal elements 
+  n <- nrow(A)
+  ijv_diagonal <- matrix(c(1:n, 1:n, rep(0, n)), ncol = 3)
+  ijv <- rbind(ijv, ijv_diagonal)
+  
+  return(ijv)
+}
+adjacency_matrices <- lapply(adjacency_matrices, convert_to_matrix)
+## Convert to single data frame (RData didn't seem to like data stored as a list)
+adjacency_matrices <- lapply(seq_along(adjacency_matrices), function(cluster) cbind(adjacency_matrices[[cluster]], cluster))
+adjacency_matrices <- do.call(rbind, adjacency_matrices)
+adjacency_matrices <- as.data.frame(adjacency_matrices)
 
 # ---- Save objects ----
 
-saveRDS(clustered_data, file = file.path(int_path, "clustered_data.rds")) # a list of data frames with data for each cell cluster
-saveRDS(cells, file = file.path(int_path, "cells.rds"))                   # the cells as a "SpatialPolygonsDataFrame"
-saveRDS(scale_factors, file = file.path(int_path, "scale_factors.rds"))   # scaling factors for transformation to the unit square
+saveRDS(clustered_data, file = file.path(int_path, "clustered_data.rds"))   # a list of data frames with data for each cell cluster
+saveRDS(cells, file = file.path(int_path, "cells.rds"))                     # the cells as a "SpatialPolygonsDataFrame"
+saveRDS(scale_factors, file = file.path(int_path, "scale_factors.rds"))     # scaling factors for transformation to the unit square
+saveRDS(adjacency_matrices, file = file.path(int_path, "adjacency_matrices.rds")) # adjacency matrices
+write.csv(adj_mat_time["elapsed"], file = file.path(int_path, "adjacency_matrices_time.csv")) # adjacency matrices time
 
-# Also save the list of clustered data sets as a single data frame
+## Also save the list of clustered data sets as a single data frame
 clustered_data <- lapply(seq_along(clustered_data), function(i) {
   dat <- clustered_data[[i]]
   dat$cluster <- i
@@ -337,14 +380,3 @@ clustered_data <- lapply(seq_along(clustered_data), function(i) {
 })
 clustered_data2 <- do.call("rbind", clustered_data)
 saveRDS(clustered_data2, file = file.path(int_path, "clustered_data2.rds"))
-
-
-
-## Can't save the distance matrices, way too large:
-# set.seed(123)
-# n <- 5000
-# S <- matrix(runif(2 * n), nrow = n, ncol = 2)
-# D <- dist(S)
-# print(object.size(D), units = "GB")
-# D <- as.matrix(D)
-# print(object.size(D), units = "GB")
