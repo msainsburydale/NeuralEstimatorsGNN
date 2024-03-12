@@ -25,7 +25,7 @@ Rscript src/supplement/S1neighbourhood_definitions.R
 echo ""
 echo "##### Starting supplementary experiment S1: neighbourhood selection #####"
 echo ""
-julia --threads=auto --project=. src/supplement/S2neighbourhood.jl $quick
+julia --threads=auto --project=. src/supplement/S1neighbourhood.jl $quick
 Rscript src/supplement/S1neighbourhood.R
 
 echo ""

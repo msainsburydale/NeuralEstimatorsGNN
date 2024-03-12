@@ -45,16 +45,16 @@ path = "intermediates/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
-K_train = 20_000
+K_train = 10_000
 K_val   = K_train ÷ 5
 if quick
 	K_train = K_train ÷ 10
 	K_val   = K_val   ÷ 10
 end
-K_test = K_val
+
 
 epochs = quick ? 20 : 200
-J = 3
+J = 5
 
 if !skip_training
 	@info "Generating training data..."
@@ -114,6 +114,8 @@ if isdefined(Main, :ML)
 end
 
 # ---- Assess the point estimators ----
+
+K_test = quick ? 100 : 1000
 
 function assessestimators(θ, Z, ξ)
 
@@ -243,11 +245,7 @@ Flux.loadparams!(pointestimator, loadbestweights(pointestimator_path))
 seed!(1)
 v = gnnarchitecture(p; final_activation = identity)
 Flux.loadparams!(v, loadbestweights(pointestimator_path)) # pretrain with point estimator
-Ω = ξ.Ω
-a = [minimum.(values(Ω))...]
-b = [maximum.(values(Ω))...]
-g = Compress(a, b)
-intervalestimator = IntervalEstimator(v, g)
+intervalestimator = IntervalEstimator(v)
 
 if !skip_training
 	@info "training the GNN quantile estimator for marginal posterior credible intervals..."
@@ -260,31 +258,43 @@ Flux.loadparams!(intervalestimator, loadbestweights(joinpath(path, "runs_GNN_CI_
 # ---- Empirical coverage ----
 
 # Simulate test data
-seed!(1)
-K_test = quick ? 100 : 1000
-θ_test = Parameters(K_test, ξ, n, J = 1)
+seed!(2023)
+K_test = quick ? 100 : 3000
+θ_test = Parameters(K_test, ξ, n, J = 3)
 Z_test = simulate(θ_test, M)
 
 # Assessment: Quantile estimator
 assessment = assess(intervalestimator, θ_test, Z_test, estimator_name = "quantile", parameter_names = ξ.parameter_names)
 
-# Assessment: Bootstrap
-B = quick ? 50 : 1000
+# Assessment: Parametric Bootstrap
+B = quick ? 50 : 500
 θ̂_test = estimateinbatches(pointestimator, Z_test)
+θ̂_test = Float64.(θ̂_test)
+θ̂_test = max.(θ̂_test, 0.01)
 θ̂_test = Parameters(θ̂_test, θ_test.locations, ξ)
 Z_boot = [simulate(θ̂_test, M) for _ ∈ 1:B]
 Z_boot = map(1:K_test) do k
 	[z[k] for z ∈ Z_boot]
 end
-assessment_boot = assess(pointestimator, θ_test, Z_test, boot = Z_boot, estimator_name = "bootstrap", parameter_names = ξ.parameter_names)
+assessment_boot = assess(pointestimator, θ_test, Z_test, boot = Z_boot, estimator_name = "bootstrap_parametric", parameter_names = ξ.parameter_names)
 
-# Coverage
+# Assessment: Nonparametric Bootstrap
+# if M > 1
+#  # TODO subsetting the graph with subsetdata() is super slow... would be good to fix this so that non-parametric bootstrap is more efficient/can be used here.
+#  assessment_boot2 = assess(pointestimator, θ_test, Z_test, boot = true, estimator_name = "bootstrap_nonparametric", parameter_names = ξ.parameter_names)
+#  assessment_boot = merge(assessment_boot, assessment_boot2)
+#end
+
+# Save interval estimates
+ass = merge(assessment, assessment_boot)
+CSV.write(joinpath(path, "uq_interval_estimates.csv"), ass.df)
+
+# Compute and save diagnostics
 cov = vcat(coverage(assessment), coverage(assessment_boot))
-CSV.write(joinpath(path, "uq_coverage.csv"), cov)
+is  = vcat(intervalscore(assessment), intervalscore(assessment_boot))
+uq_assessment = innerjoin(cov, is, on = [:estimator, :parameter])
+CSV.write(joinpath(path, "uq_assessment.csv"), uq_assessment)
 
-# Interval score
-is = vcat(intervalscore(assessment), intervalscore(assessment_boot))
-CSV.write(joinpath(path, "uq_intervalscore.csv"), is)
 
 
 # ---- Run-time assessment ----
@@ -312,5 +322,5 @@ pointestimator = pointestimator |> gpu
 t2 = @belapsed bs($pointestimator, $Z, $S, $B, $ξ)
 
 # Save the runtime
-t = DataFrame(time = [t1, t2], estimator = ["quantile", "bootstrap"])
+t = DataFrame(time = [t1, t2], estimator = ["quantile", "bootstrap_parametric"])
 CSV.write(joinpath(path, "uq_runtime.csv"), t)

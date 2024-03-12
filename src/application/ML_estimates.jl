@@ -82,19 +82,6 @@ function ML(Z, S, θ₀; scale_factor = nothing, prior = nothing)
 	return θ
 end
 
-#	## Estimate the parameters by minimising the negative log-likelihood
-# 	if isnothing(prior)
-# 	  loss(θ) = nll(θ, Z, D) # closure that will be minimised
-	 #θ₀ = log.(θ₀)  # log initial values since we exponentiate during optimisation
-	 # θ̂  = optimize(loss, θ₀, NelderMead()) |> Optim.minimizer
-	  #θ̂  = exp.(θ̂)   # exponentiate from the log-scale
-	#else
-	 # loss(θ) = nll(θ, Z, D, prior) # closure that will be minimised
-    #θ₀ = scaledlogit.(θ₀, prior)
-    #θ̂  = optimize(loss, θ₀, NelderMead()) |> Optim.minimizer
-    #θ̂  = scaledlogistic.(θ̂, prior)
-  #end
-
 # ---- MLE over clusters in parallel ----
 
 θ₀ = [0.5, 0.3, 1.5]
@@ -108,7 +95,7 @@ total_time = @elapsed results = Folds.map(1:length(clustered_data)) do k
    n = size(data, 1)
 
    # Restrict the sample size for computational reasons
-   max_n = 2000
+   max_n = 3000
    if n > max_n
     data = data[sample(1:n, max_n; replace = false), :]
    end

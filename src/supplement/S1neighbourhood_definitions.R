@@ -5,11 +5,12 @@ library("egg")
 source("src/plotting.R")
 
 #TODO clean this script
+#TODO remove dependency on Julia package NearestNeighbors (don't want this in the Project dependency list and its not really needed)
 
 ## ---- GpGp functions that will be written in Julia ----
 
 ordermaxmin = function(locs){
-  
+
   # get number of locs
   n = nrow(locs)
   k = round(sqrt(n))
@@ -38,7 +39,7 @@ ordermaxmin = function(locs){
     }
   }
   ord = index_in_position[ !is.na( index_in_position ) ]
-  
+
   return(ord)
 }
 
@@ -59,31 +60,31 @@ getknn = juliaEval("
           function getknn(S, s, k; leafsize = 10)
             tree = KDTree(S; leafsize = leafsize)
             nn_index, nn_dist = knn(tree, s, k, true)
-            nn_index = hcat(nn_index...) |> permutedims 
-            nn_dist  = hcat(nn_dist...)  |> permutedims  
+            nn_index = hcat(nn_index...) |> permutedims
+            nn_dist  = hcat(nn_dist...)  |> permutedims
             nn_index, nn_dist
           end
           ")
 
 findorderednn = function(locs,k){
-  
+
   # number of locations
   n = nrow(locs)
   k = min(k,n-1)
   mult = 2
-  
+
   # to store the nearest neighbor indices
   NNarray = matrix(NA,n,k+1)
-  
+
   # find neighbours of first mult*k+1 locations by brute force
   maxval = min( mult*k + 1, n )
   NNarray[1:maxval,] = find_ordered_nn_brute(locs[1:maxval,,drop=FALSE],k)
-  
+
   query_inds = min( maxval+1, n):n
   data_inds = 1:n
-  
+
   ksearch = k
-  
+
   while( length(query_inds) > 0 ){
     ksearch = min( max(query_inds), 2*ksearch )
     data_inds = 1:min( max(query_inds), n )
@@ -93,15 +94,15 @@ findorderednn = function(locs,k){
     less_than_l = t(sapply( 1:nrow(NN), function(l) NN[l,] <= query_inds[l]  ))
     sum_less_than_l = apply(less_than_l,1,sum)
     ind_less_than_l = which(sum_less_than_l >= k+1)
-    
+
     NN_k = t(sapply(ind_less_than_l,function(l) NN[l,][less_than_l[l,]][1:(k+1)] ))
-    
+
     NNarray[ query_inds[ind_less_than_l], ] = NN_k
-    
+
     query_inds = query_inds[-ind_less_than_l]
-    
+
   }
-  
+
   return(NNarray)
 }
 
@@ -127,11 +128,11 @@ use_GpGp = FALSE
 n1 = 16
 n2 = 16
 n = n1*n2
-locs = as.matrix(expand.grid((1:n1)/n1, (1:n2)/n2))  
+locs = as.matrix(expand.grid((1:n1)/n1, (1:n2)/n2))
 locs <- locs + rnorm(n, sd = 0.0001) # add a small amount of noise
 
 
-## Calculate Vecchia ordering 
+## Calculate Vecchia ordering
 ord = if (use_GpGp) {
   GpGp::order_maxmin(locs) # NB: there is randomness here (GpGp::order_maxmin(locs) gives different results everytime, despite the locations remaining fixed), and the ordering doesn't start in the centre
 } else {
@@ -144,9 +145,9 @@ locsord = locs[ord, ]
 ## Find ordered nearest k neighbors (parents) for each node
 k = 10
 NNarray = if (use_GpGp) {
-  GpGp::find_ordered_nn(locsord, k)  
+  GpGp::find_ordered_nn(locsord, k)
 } else {
-  findorderednn(locsord, k)  
+  findorderednn(locsord, k)
 }
 
 system.time(GpGp::find_ordered_nn(locsord, k))
@@ -156,7 +157,7 @@ system.time(findorderednn(locsord, k))
 build_dag = function(NNarray) {
   n = nrow(NNarray)
   k = ncol(NNarray)
-  
+
   all_i = all_j = 1
   for (j in 2:n) {
     i = NNarray[j, ]
@@ -171,11 +172,11 @@ R = build_dag(NNarray)
 # image(R)
 
 ## "Moral" version of the graph
-## The moralised counterpart of a directed acyclic graph is formed by adding 
-## edges between all pairs of non-adjacent nodes that have a common child, and 
+## The moralised counterpart of a directed acyclic graph is formed by adding
+## edges between all pairs of non-adjacent nodes that have a common child, and
 ## then making all edges in the graph undirected.
 Q = t(R) %*% R
-# image(Q) 
+# image(Q)
 
 ## number of neighbours:
 apply(R, 2, sum)
@@ -189,14 +190,14 @@ df <- as.data.frame(locsord)
 colnames(df) <- c("x", "y")
 
 plot_neighbours_maxmin <- function(df, N) {
-  ggplot() + 
+  ggplot() +
     geom_point(data = df, aes(x = x, y = y), colour = "lightgray") +
-    geom_point(data = df[1:N, ], aes(x = x, y = y), colour = "black") + 
+    geom_point(data = df[1:N, ], aes(x = x, y = y), colour = "black") +
     geom_point(data = df[N, ], aes(x = x, y = y), colour = "red") +
     geom_point(data = df[NNarray[N,2:(k+1)], ], aes(x = x, y = y), colour = "orange") +
-    labs(title = paste("Maxmin: location", N)) + 
-    coord_fixed() + 
-    theme_bw() + 
+    labs(title = paste("Maxmin: location", N)) +
+    coord_fixed() +
+    theme_bw() +
     theme(axis.title = element_blank(), panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
 }
 
@@ -214,28 +215,28 @@ D <- as.matrix(dist(locsord))
 neighbours <- which(D[1, ] < r)[-1]
 
 plot_neighbours <- function(df, s, neighbours, r = NULL) {
-  gg <- ggplot() + 
-    geom_point(data = df, aes(x = x, y = y), colour = "black") + 
+  gg <- ggplot() +
+    geom_point(data = df, aes(x = x, y = y), colour = "black") +
     geom_point(aes(x = s[1], y = s[2]), colour = "red", size = 1.5) +
     geom_point(data = df[neighbours, ], aes(x = x, y = y), colour = "orange") +
-    coord_fixed() + 
-    theme_bw() + 
-    theme(axis.title = element_blank(), panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))  
-  
+    coord_fixed() +
+    theme_bw() +
+    theme(axis.title = element_blank(), panel.grid = element_blank(), plot.title = element_text(hjust = 0.5))
+
   if (!is.null(r)) {
     gg <- gg + annotate("path", x=s[1]+r*cos(seq(0,2*pi,len=100)), y=s[2]+r*sin(seq(0,2*pi,len=100)), colour = "orange")
   }
-  
+
   return(gg)
 }
 
-disc <- plot_neighbours(df, s, neighbours, r) + 
+disc <- plot_neighbours(df, s, neighbours, r) +
   labs(title = "Disc of fixed radius")
 
-disc_k <- plot_neighbours(df, s, sample(neighbours, k), r) + 
+disc_k <- plot_neighbours(df, s, sample(neighbours, k), r) +
   labs(title = "Random-k neighbours \n within disc of fixed radius")
 
-k_nearest <- plot_neighbours(df, s, order(D[1, ])[2:(k+1)]) + 
+k_nearest <- plot_neighbours(df, s, order(D[1, ])[2:(k+1)]) +
   labs(title = "k-nearest neighbours")
 
 figure <- egg::ggarrange(k_nearest, disc, disc_k, nrow = 1)
@@ -243,4 +244,3 @@ ggsv(figure, file = "otherneighbourhoods", width = 8, height = 3.5, path = "img"
 
 figure <- egg::ggarrange(plots = c(list(k_nearest, disc, disc_k), plots), nrow = 3)
 ggsv(figure, file = "neighbourhoods", width = 9.4, height = 8.3, path = "img")
-

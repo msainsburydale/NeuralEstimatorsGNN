@@ -2,7 +2,7 @@ img_path <- file.path("img", "supplement")
 dir.create(img_path, recursive = TRUE, showWarnings = FALSE)
 source(file.path("src", "plotting.R"))
 
-# ---- Variable sample sizes ----
+# ---- Variable sample sizes: point estimator ----
 
 int_path <- file.path("intermediates", "supplement", "variablesamplesize")
 
@@ -17,6 +17,7 @@ df <- df %>%
 breaks <- unique(df$n)
 breaks <- breaks[breaks != 60]
 breaks <- breaks[breaks != 100]
+breaks <- breaks[breaks != 350]
 
 figure1 <- ggplot(data = df, aes(x = n, y = rmse, colour = estimator, group = estimator)) +
   geom_point() +
@@ -26,7 +27,6 @@ figure1 <- ggplot(data = df, aes(x = n, y = rmse, colour = estimator, group = es
   scale_estimator(df) +
   theme_bw(base_size = text_size) +
   theme(legend.text.align = 0, legend.position = "top", panel.grid = element_blank()) 
-
 
 # Zoom in on the larger sample sizes
 figure <- figure1
@@ -67,6 +67,41 @@ figure <- ggpubr::ggarrange(
 )
 
 ggsv("variable_sample_size", figure, path = img_path, width = 9.5, height = 4.5)
+
+
+# ---- Variable sample sizes: point estimator ----
+
+df <- read.csv(file.path(int_path, "estimates_interval.csv"))
+
+a <- df$α[1]
+
+df <- df %>%
+  filter(!(n %in% c(60, 100))) %>% 
+  mutate(
+    length = upper - lower, 
+    within = lower <= truth & truth <= upper, 
+    IS = length + (2/a) * (lower - truth) * (truth < lower) + (2/a) * (truth - upper) * (truth > upper)
+    ) %>%
+  group_by(estimator, n, parameter) %>%
+  summarise(length = mean(length), coverage = mean(within), IS = mean(IS)) %>% 
+  melt(measure.vars = c("coverage", "length", "IS"))
+
+df2 <- data.frame(variable = "coverage", parameter = unique(df$parameter), yintercept = 1-a)
+
+df  <- mutate_at(df, .vars = "parameter", .funs = factor, levels = names(parameter_labels), labels = parameter_labels)
+df2 <- mutate_at(df2, .vars = "parameter", .funs = factor, levels = names(parameter_labels), labels = parameter_labels)
+
+figure <- ggplot(data = df, aes(x = n, y = value)) +
+  geom_point() +
+  geom_line() +
+  geom_hline(data=df2, aes(yintercept=yintercept), colour="red", linetype = "dashed") + 
+  labs(colour = "", y = "") +
+  ylim(c(0.1, NA)) + 
+  facet_grid(variable ~ parameter, labeller = label_parsed) + 
+  theme_bw(base_size = text_size) +
+  theme(panel.grid = element_blank()) 
+
+ggsv("variable_sample_size_interval", figure, path = img_path, width = 7.6, height = 5.8)
 
 
 # ---- Simulation efficiency ----

@@ -9,6 +9,7 @@ suppressMessages({
   library("latex2exp")
   library("ggExtra") # ggMarginal
   library("cowplot") # get_x_axis
+  library("reshape2") # melt
   options(dplyr.summarise.inform = FALSE) 
 })
 

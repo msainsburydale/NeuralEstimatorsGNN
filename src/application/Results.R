@@ -35,6 +35,10 @@ GNN_estimates$rho_ciwidth <- GNN_estimates$ρ_upper - GNN_estimates$ρ_lower
 GNN_estimates$sigma_ciwidth <- GNN_estimates$σ_upper - GNN_estimates$σ_lower
 GNN_estimates$tau_ciwidth <- GNN_estimates$τ_upper - GNN_estimates$τ_lower
 
+GNN_estimates$ρ_error <- GNN_estimates$ρ - ML_estimates$ρ
+GNN_estimates$σ_error <- GNN_estimates$σ - ML_estimates$σ
+GNN_estimates$τ_error <- GNN_estimates$τ - ML_estimates$τ
+
 process_estimates <- function(estimates) {
   estimates <- t(estimates)
   colnames(estimates) <- names(clustered_data)
@@ -50,21 +54,27 @@ GNN_estimates <- process_estimates(GNN_estimates)
 
 # Plot the point estimates
 plot_estimates <- function(cells, estimates, param, limits = c(NA, NA)) {
-  
+
   estimates$estimate <- pmin(estimates$estimate, limits[2], na.rm = TRUE)
   cells <- merge(cells, filter(estimates, parameter == param))
 
   suppressMessages({
-    
+
     gg <- plot_spatial_or_ST(cells, column_names = "estimate", plot_over_world = T)[[1]]
     gg <- draw_world_custom(gg)
     gg <- gg +
-      scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1, limits = limits) +
       theme(axis.title = element_blank(),
             panel.border = element_blank(),
             panel.background = element_blank(),
             legend.position = "top",
             legend.key.width = unit(1, 'cm'))
+
+    if (grep("error", param)) {
+      gg <- gg + scale_fill_gradient2(low = 'blue', mid = 'white', high = 'red', midpoint = 0, limits = c(-limits[2], limits[2]), na.value = NA)
+    } else {
+      gg <- gg + scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1, limits = limits)
+    }
+
   })
 
   gg
@@ -72,18 +82,22 @@ plot_estimates <- function(cells, estimates, param, limits = c(NA, NA)) {
 
 rho_plot1   <- plot_estimates(cells, GNN_estimates, "ρ", rho_limit) + labs(fill = expression(hat(rho)))
 sigma_plot1 <- plot_estimates(cells, GNN_estimates, "σ", sigma_limit) + labs(fill = expression(hat(sigma)))
-tau_plot1   <- plot_estimates(cells, GNN_estimates, "τ",  c(0, 0.8)) + labs(fill = expression(hat(sigma)[epsilon]))
+tau_plot1   <- plot_estimates(cells, GNN_estimates, "τ", tau_limit) + labs(fill = expression(hat(sigma)[epsilon]))
 
 rho_plot2   <- plot_estimates(cells, ML_estimates, "ρ", rho_limit) + theme(legend.position = "none")
 sigma_plot2 <- plot_estimates(cells, ML_estimates, "σ", sigma_limit) + theme(legend.position = "none")
-tau_plot2   <- plot_estimates(cells, ML_estimates, "τ", c(0, 0.8)) + theme(legend.position = "none")
+tau_plot2   <- plot_estimates(cells, ML_estimates, "τ", tau_limit) + theme(legend.position = "none")
 
-fig <- egg::ggarrange(rho_plot1, sigma_plot1, tau_plot1, 
-                      rho_plot2, sigma_plot2, tau_plot2, 
+fig <- egg::ggarrange(rho_plot1, sigma_plot1, tau_plot1,
+                      rho_plot2, sigma_plot2, tau_plot2,
                       nrow = 2)
+ggsv(fig, filename = "GNN_ML", width = 10, height = 4, path = img_path)
 
-ggsv(fig, filename = "GNN_ML", width = 12, height = 4, path = img_path)
-
+## Error maps
+rho_plot3   <- plot_estimates(cells, GNN_estimates, "ρ_error", rho_limit) + labs(fill = expression(hat(rho)[GNN] - hat(rho)[ML]))
+sigma_plot3 <- plot_estimates(cells, GNN_estimates, "σ_error", sigma_limit) + labs(fill = expression(hat(sigma)[GNN] - hat(sigma)[ML]))
+tau_plot3   <- plot_estimates(cells, GNN_estimates, "τ_error", tau_limit) + labs(fill = expression(hat(sigma)[epsilon]))
+fig <- egg::ggarrange(rho_plot3, sigma_plot3, tau_plot3, nrow = 1)
 
 # ---- Plotting: credible intervals ----
 
@@ -147,4 +161,3 @@ tau_ci <- ggpubr::ggarrange(tau_lower, tau_upper, align = "hv", nrow = 1, legend
 fig <- ggpubr::ggarrange(rho_ci, sigma_ci, tau_ci, ncol = 1)
 
 ggsv(fig, filename = "intervals", width = 8, height = 7, path = img_path)
-
