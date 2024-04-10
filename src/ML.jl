@@ -67,7 +67,7 @@ function ML(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVector
 	end
 
 	# Convert to matrix
-	θ̂ = hcat(θ̂...)
+	θ̂ = hcat(θ̂...) # TODO reduce(hcat, θ̂)
 
 	return θ̂
 end

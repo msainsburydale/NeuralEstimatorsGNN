@@ -38,8 +38,15 @@ using GraphNeuralNetworks
 include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 include(joinpath(pwd(), "src/$model/ML.jl"))
+if model == "GP/nuSigmaFixed"
+	include(joinpath(pwd(), "src/MCMC.jl"))
+end
 p = ξ.p
 n = ξ.n
+
+# ML initial estimates and MCMC initial values (prior mean)
+θ₀ = mean.([ξ.Ω...])
+ξ = (ξ..., θ₀ = θ₀)
 
 path = "intermediates/$model"
 if !isdir(path) mkpath(path) end
@@ -63,7 +70,6 @@ if !skip_training
 	θ_val = Parameters(K_val, ξ, n, J = J)
 	@info "Sampling parameter vectors used for training..."
 	θ_train = Parameters(K_train, ξ, n, J = J)
-	@info "Training the GNN point estimator..."
 end
 
 # -----------------------------------------------------------------------------
@@ -76,6 +82,7 @@ seed!(1)
 pointestimator = gnnarchitecture(p)
 
 if !skip_training
+	@info "Training the GNN point estimator..."
 	trainx(pointestimator, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
 end
 
@@ -95,9 +102,7 @@ if isdefined(Main, :ML)
 	θ = Parameters(1, ξ)
 	Z = simulate(θ, M; convert_to_graph = false)
 
-	# ML estimates (initialised to the prior mean)
-	θ₀ = mean.([ξ.Ω...])
-	ξ = (ξ..., θ₀ = θ₀)
+	#ML estimates
 	t_ml = @belapsed ML(Z, ξ)
 
 	# GNN estimates
@@ -115,7 +120,7 @@ end
 
 # ---- Assess the point estimators ----
 
-K_test = quick ? 100 : 1000
+K_test = quick ? 50 : 1000
 
 function assessestimators(θ, Z, ξ)
 
@@ -128,8 +133,12 @@ function assessestimators(θ, Z, ξ)
 
 	# Assess the ML estimator (if it is defined)
 	if isdefined(Main, :ML)
-		ξ = (ξ..., θ₀ = θ.θ)
 		assessment = merge(assessment, assess(ML, θ, Z; estimator_name = "ML", ξ = ξ))
+	end
+
+	# Assess the posterior median obtained using MCMC (if it is defined)
+	if isdefined(Main, :MCMC)
+		assessment = merge(assessment, assess(MCMC, θ, Z; estimator_name = "MCMC", ξ = ξ))
 	end
 
 	return assessment
@@ -151,7 +160,7 @@ function assessestimators(ξ, set::String)
 
 	# small number of parameters for visualising the sampling distributions
 	K_scenarios = 5
-	seed!(1) # Important that these Parameter scenarios are the same for all locations when constructing the plots.
+	seed!(1)
 	θ = Parameters(K_scenarios, ξ)
 	J = quick ? 10 : 100
 	Z = simulate(θ, M, J, convert_to_graph = false)
@@ -234,7 +243,7 @@ assessestimators(ξ, "cup")
 # --------------------- Uncertainty quantification ----------------------------
 # -----------------------------------------------------------------------------
 
-@info "Constructing and assessing neural quantile estimator..."
+@info "Constructing and assessing neural quantile..."
 
 # point estimator:
 pointestimator = gnnarchitecture(p)
@@ -259,8 +268,8 @@ Flux.loadparams!(intervalestimator, loadbestweights(joinpath(path, "runs_GNN_CI_
 
 # Simulate test data
 seed!(2023)
-K_test = quick ? 100 : 3000
-θ_test = Parameters(K_test, ξ, n, J = 3)
+K_test = quick ? 100 : 1000
+θ_test = Parameters(K_test, ξ, n, J = 1)
 Z_test = simulate(θ_test, M)
 
 # Assessment: Quantile estimator
@@ -269,9 +278,9 @@ assessment = assess(intervalestimator, θ_test, Z_test, estimator_name = "quanti
 # Assessment: Parametric Bootstrap
 B = quick ? 50 : 500
 θ̂_test = estimateinbatches(pointestimator, Z_test)
-θ̂_test = Float64.(θ̂_test)
-θ̂_test = max.(θ̂_test, 0.01)
-θ̂_test = Parameters(θ̂_test, θ_test.locations, ξ)
+θ̂_test = max.(Float64.(θ̂_test), 0.01) # prevent positive-definite errors
+S = θ_test.locations[θ_test.loc_pointer]
+θ̂_test = Parameters(θ̂_test, S, ξ)
 Z_boot = [simulate(θ̂_test, M) for _ ∈ 1:B]
 Z_boot = map(1:K_test) do k
 	[z[k] for z ∈ Z_boot]
@@ -286,8 +295,9 @@ assessment_boot = assess(pointestimator, θ_test, Z_test, boot = Z_boot, estimat
 #end
 
 # Save interval estimates
-ass = merge(assessment, assessment_boot)
-CSV.write(joinpath(path, "uq_interval_estimates.csv"), ass.df)
+#TODO assessment doesn't have point estimates; just extract the dataframes and remove the point estimates before joining
+# ass = merge(assessment, assessment_boot)
+# CSV.write(joinpath(path, "uq_interval_estimates.csv"), ass.df)
 
 # Compute and save diagnostics
 cov = vcat(coverage(assessment), coverage(assessment_boot))

@@ -36,8 +36,8 @@ do
         m="[1,20]"
     fi
 
-    # TODO prompt user if they wish to skip training (remember that is had to be runnable from all.sh)
-    julia --threads=auto --project=. src/simulationstudy.jl --model=$model $quick --m=$m #--skip_training
+    # TODO prompt user if they wish to skip training (remember that is has to be runnable from all.sh)
+    julia --threads=auto --project=. src/simulationstudy.jl --model=$model $quick --m=$m --skip_training
 
     Rscript src/simulationstudy.R --model=$model
 done

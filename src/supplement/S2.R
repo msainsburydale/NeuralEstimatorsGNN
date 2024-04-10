@@ -69,7 +69,7 @@ figure <- ggpubr::ggarrange(
 ggsv("variable_sample_size", figure, path = img_path, width = 9.5, height = 4.5)
 
 
-# ---- Variable sample sizes: point estimator ----
+# ---- Variable sample sizes: interval estimator ----
 
 df <- read.csv(file.path(int_path, "estimates_interval.csv"))
 
@@ -96,7 +96,6 @@ figure <- ggplot(data = df, aes(x = n, y = value)) +
   geom_line() +
   geom_hline(data=df2, aes(yintercept=yintercept), colour="red", linetype = "dashed") + 
   labs(colour = "", y = "") +
-  ylim(c(0.1, NA)) + 
   facet_grid(variable ~ parameter, labeller = label_parsed) + 
   theme_bw(base_size = text_size) +
   theme(panel.grid = element_blank()) 

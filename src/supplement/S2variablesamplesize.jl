@@ -116,8 +116,8 @@ function assessestimators(n, ξ, K::Integer)
 	Z = simulate(θ, m)
 	# ML estimator requires the locations and distance matrix:
 	S = θ.locations
-	D = pairwise.(Ref(Euclidean()), S, dims = 1)
-	ξ = (ξ..., S = S, D = D)
+	#D = pairwise.(Ref(Euclidean()), S, dims = 1)
+	ξ = (ξ..., S = S)#, D = D)
 
 	assessment = assessestimators(θ, Z, ξ)
 	assessment.df[:, :n] .= n
