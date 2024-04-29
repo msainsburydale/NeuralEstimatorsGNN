@@ -32,10 +32,9 @@ loaddata <- function(set) {
 }
 
 estimators <- c("GNN", "ML")
+#if (model %in% c("GP/nuSigmaFixed")) estimators <- c("GNN", "ML", "MCMC")
+if (model %in% c("Schlather", "BrownResnick")) estimator_labels["ML"] <- "PL"
 
-if (model %in% c("Schlather", "BrownResnick")) {
-  estimator_labels["ML"] <- "PL"
-}
 
 # ---- Marginal + joint sampling distribution with uniform spatial locations ----
 
@@ -64,7 +63,7 @@ if (p == 2) {
 
     figure <- ggpubr::ggarrange(plotlist = c(list(gg1, gg2), gg3), nrow = 1, ncol = 4, align = "hv")
 
-    ggsv(figure, file = paste0("uniformlocations", K), width = 9.3, height = 3, path = img_path)
+    #ggsv(figure, file = paste0("uniformlocations", K), width = 9.3, height = 3, path = img_path)
 
     figure
   })
@@ -76,6 +75,14 @@ sets <- c("uniform", "quadrants", "mixedsparsity", "cup")
 df <- lapply(sets, loadestimates, type = "test")
 df <- do.call(rbind, df)
 df <- filter(df, estimator %in% estimators)
+
+## Global plot of estimates vs truth
+figure <- plotestimates(df %>% filter(estimator == "GNN"),
+              parameter_labels = parameter_labels,
+              estimator_labels = estimator_labels) +
+  geom_smooth(aes(truth,estimate), method="lm", se=F)
+ggsv(figure, file = "estimates_vs_truth", path = img_path, width = 1+ 3*p, height = 3)
+
 
 ## Bayes risk with respect to absolute error
 df %>%
@@ -90,6 +97,12 @@ df %>%
   group_by(estimator) %>%
   summarise(RMSE = sqrt(mean(loss))) %>%
   write.csv(file = paste0(img_path, "/RMSE.csv"), row.names = F)
+
+## Bias
+df %>%
+  group_by(estimator, parameter) %>%
+  summarise(bias = mean(estimate - truth)) %>%
+  write.csv(file = paste0(img_path, "/bias.csv"), row.names = F)
 
 # ---- Sampling distributions ----
 
@@ -211,30 +224,3 @@ figures <- lapply(unique(df$k), function(K) {
 
   figure
 })
-
-
-
-# ---- Conditional coverage ----
-
-# # load data
-# sets <- c("uniform", "quadrants", "mixedsparsity", "cup")
-# df  <- lapply(sets, loadcoverage); df  <- do.call(rbind, df)
-# zdf <- lapply(sets, loaddata); zdf <- do.call(rbind, zdf)
-# zdf <- zdf %>% filter(k == 1)
-#
-# df <- df %>%
-#   pivot_wider(names_from = "parameter", values_from = c("parameter_value", "coverage")) %>%
-#   as.data.frame
-#
-# ggplot(df) +
-#   geom_tile(aes(x = parameter_value_τ, y = parameter_value_ρ, fill = coverage_τ)) +
-#   scale_fill_viridis_c(option = "magma") +
-#   labs(x = expression(tau), y = expression(rho)) +
-#   facet_grid( .~ set)
-#
-# ggplot(df) +
-#   geom_tile(aes(x = parameter_value_τ, y = parameter_value_ρ, fill = coverage_ρ)) +
-#   scale_fill_viridis_c(option = "magma") +
-#   labs(x = expression(tau), y = expression(rho)) +
-#   facet_grid(.~ set)
-#

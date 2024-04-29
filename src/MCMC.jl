@@ -66,6 +66,7 @@ function MCMC(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVect
 	return θ
 end
 
+
 function MCMC(Z::M, θ₀::V, D, Ω; nMH = 7000, burn = 2000, thin = 10) where {T, V <: AbstractVector{T}, M <: AbstractMatrix{T}}
 
 	# initialise MCMC chain
@@ -106,7 +107,8 @@ function MCMC(Z::M, θ₀::V, D, Ω; nMH = 7000, burn = 2000, thin = 10) where {
 
 		## Monitor acceptance rate
 		acc_ratio = n_accept / i
-		if i % 1000 == 0 println("Sample $i: Acceptance rate: $acc_ratio") end
+		#if i % 1000 == 0 println("Sample $i: Acceptance rate: $acc_ratio") end
+
 		## If within the burn-in period, adapt acceptance rate
 		if (i < burn) & (i % 100 == 0)
 		  if acc_ratio < 0.15

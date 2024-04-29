@@ -84,9 +84,9 @@ df <- read.csv(file.path(int_path, "k_vs_n.csv")) %>%
 df$estimator <- ordered(df$k)
 rmse_lims <- range(c(rmse_lims, df$rmse))
 
-k_rmse <- ggplot(data = df, aes(x = n, y = rmse, colour = estimator, group = estimator)) +
+k_rmse <- ggplot(data = df %>% filter(n <= 1000), aes(x = n, y = rmse, colour = estimator, group = estimator)) +
   geom_point() +
-  ylim(rmse_lims) + 
+  ylim(rmse_lims) +
   geom_line(alpha = 0.75) +
   labs(colour = "Number of neighbours, k", x = expression(n), y = "RMSE") +
   scale_color_brewer(palette="Reds") +
@@ -99,7 +99,7 @@ k_time <- ggplot(data = df, aes(x = n, y = time, colour = estimator, group = est
   geom_point() +
   geom_line(alpha = 0.75) +
   labs(colour = "k", y = "Inference time (s)") +
-  ylim(time_lims) + 
+  ylim(time_lims) +
   theme_bw(base_size = text_size) +
   scale_color_brewer(palette="Reds") +
   theme(panel.grid = element_blank())
@@ -107,9 +107,8 @@ k_time <- ggplot(data = df, aes(x = n, y = time, colour = estimator, group = est
 # ---- Combined plot ----
 
 figure <- egg::ggarrange(
-  figure_rmse + theme(legend.position = "none"), figure_time, 
+  figure_rmse + theme(legend.position = "none"), figure_time,
   k_rmse + theme(legend.position = "none"), k_time,
   nrow = 2)
 
 ggsv(figure, file = "neighbourhood", width = 9.4, height = 5.3, path = img_path)
-

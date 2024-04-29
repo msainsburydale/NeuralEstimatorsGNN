@@ -17,7 +17,7 @@ else
     exit 1
 fi
 
-for model in GP/nuSigmaFixed GP/nuFixed Schlather # BrownResnick
+for model in GP/nuSigmaFixed GP/nuFixed Schlather
 do
 
     echo ""
@@ -33,11 +33,11 @@ do
     elif [[ $model == "SPDE" ]]; then
         m="[1]"
     else
-        m="[1,20]"
+        m="[1,50]"
     fi
 
     # TODO prompt user if they wish to skip training (remember that is has to be runnable from all.sh)
-    julia --threads=auto --project=. src/simulationstudy.jl --model=$model $quick --m=$m --skip_training
+    julia --threads=auto --project=. src/simulationstudy.jl --model=$model $quick --m=$m # --skip_training
 
     Rscript src/simulationstudy.R --model=$model
 done

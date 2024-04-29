@@ -10,7 +10,7 @@ suppressMessages({
   library("ggExtra") # ggMarginal
   library("cowplot") # get_x_axis
   library("reshape2") # melt
-  options(dplyr.summarise.inform = FALSE) 
+  options(dplyr.summarise.inform = FALSE)
 })
 
 if(!interactive()) pdf(NULL)
@@ -19,14 +19,15 @@ text_size <- 14
 
 # see: latex2exp_supported()
 estimator_labels <- c(
-  # Main text experiments: 
+  # Main text experiments:
   "GNN" = "GNN",
   "ML" = "ML",
+  "MCMC" = "Bayes",
   # Variable sample size experiment:
   "GNN1" = expression(n==30),
   "GNN2" = expression(n==1000),
   "GNN3" = TeX("$n \\sim U(30, 1000)$"),
-  # Neighbourhood experiment: 
+  # Neighbourhood experiment:
   "fixedradius" = "Disc of fixed radius",
   "knearest" = "k nearest neighbours",
   # "knearestb" = "k=30 nearest neighbours",
@@ -36,8 +37,8 @@ estimator_labels <- c(
   # "maxmin_immoral" = "Maxmin (immoral)",
   # "maxmin_moral" = "maxmin (moral)",
   # Simulation efficiency with respect to prior measure for S:
-  # "Sfixed" = TeX("$\\bf{S} = \\bf{S}_0 \\sim UBPP(250)$"), 
-  "Sfixed" = TeX("$\\bf{S} = \\bf{S}_0$"), 
+  # "Sfixed" = TeX("$\\bf{S} = \\bf{S}_0 \\sim UBPP(250)$"),
+  "Sfixed" = TeX("$\\bf{S} = \\bf{S}_0$"),
   "Srandom_uniform" = TeX("$\\bf{S} \\sim UBPP(250)$"),
   # "Srandom_cluster" = TeX("$\\bf{S} \\sim $MCP with $E(n) = 250")
   "Srandom_cluster" = TeX("$\\bf{S} \\sim $MCP")
@@ -60,14 +61,15 @@ scale_estimator <- function(df, scale = "colour", values = estimator_colours, ..
 
 # for more colours, see: http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf
 estimator_colours <- c(
-  # Main text experiments: 
+  # Main text experiments:
   "ML" = "gold",
   "GNN" = "chartreuse4",
+  "MCMC" = "orange",
   # Variable sample size experiment:
   "GNN1" = "gold",
   "GNN2" = "dodgerblue4",
   "GNN3" = "chartreuse4",
-  # Neighbourhood experiment: 
+  # Neighbourhood experiment:
   "fixedradius" = "gold",
   "knearest" = "dodgerblue4",
   # "knearestb" = "dodgerblue4",
@@ -77,13 +79,13 @@ estimator_colours <- c(
   # "maxmin_immoral" = "red",
   # "maxmin_moral" = "purple",
   # Simulation efficiency with respect to prior measure for S:
-  "Sfixed" = "gold", 
+  "Sfixed" = "gold",
   "Srandom_uniform" = "chartreuse4",
   "Srandom_cluster" = "dodgerblue4"
 )
 
 estimator_linetypes <- c(
-  # Neighbourhood experiment: 
+  # Neighbourhood experiment:
   "fixedradius" = "solid",
   "knearest" = "solid",
   "knearestb" = "dashed",
@@ -161,13 +163,13 @@ ggsv <- function(filename, plot, ...) {
 
 
 draw_world_custom <- function(g) {
-  
+
   ## Load the world map data from the FRK package
   data(worldmap, envir=environment(), package = "FRK")
-  
+
   ## Homogenise (see details) to avoid lines crossing the map
   worldmap <- FRK:::.homogenise_maps(worldmap)
-  
+
   ## Now return a gg object with the map overlayed
   g + geom_polygon(data = worldmap, aes(x=long, y=lat, group=group), fill="black", linewidth=0.1)
 }

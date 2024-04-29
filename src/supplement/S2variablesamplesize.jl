@@ -131,49 +131,6 @@ assessment = [assessestimators(n, ξ, K_test) for n ∈ test_n]
 assessment = merge(assessment...)
 CSV.write(path * "/estimates.csv", assessment.df)
 
-
-# # ---- Accurately assess the run-time for a single data set ----
-#
-# gnn1  = gnn1 |> gpu
-# gnn2  = gnn2 |> gpu
-# gnn3  = gnn3 |> gpu
-#
-# function testruntime(n, ξ)
-#
-#     # Simulate locations and data
-#     S = rand(n, 2)
-# 	D = pairwise(Euclidean(), S, S, dims = 1)
-# 	ξ = (ξ..., S = S, D = D) # update ξ to contain the new distance matrix D (needed for simulation and ML estimation)
-# 	θ = Parameters(1, ξ)
-# 	Z = simulate(θ, m; convert_to_graph = false)
-#
-# 	# ML estimates (initialised to the prior mean)
-# 	θ₀ = mean.([ξ.Ω...])
-# 	ξ = (ξ..., θ₀ = θ₀)
-# 	t_ml = @belapsed ML($Z, $ξ)
-#
-# 	# GNN estimates
-# 	g = θ.graphs[1]
-# 	Z = reshapedataGNN(Z, g)
-# 	Z = Z |> gpu
-# 	t_gnn1 = @belapsed gnn1($Z)
-# 	t_gnn2 = @belapsed gnn2($Z)
-# 	t_gnn3 = @belapsed gnn3($Z)
-#
-# 	# Store the run times as a data frame
-# 	DataFrame(time = [t_gnn1, t_gnn2, t_gnn3, t_ml], estimator = ["GNN1", "GNN2", "GNN3", "ML"], n = n)
-# end
-#
-# seed!(1)
-# times = []
-# for n ∈ [32, 64, 128, 256, 512, 1024, 1500, 2048] # mostly use powers of 2 to avoid artefacts
-# 	t = testruntime(n, ξ)
-# 	push!(times, t)
-# end
-# times = vcat(times...)
-#
-# CSV.write(path * "/runtime.csv", times)
-
 # ----------------------------------------------------------------------------
 # ---- Quantile estimator ----
 # ----------------------------------------------------------------------------
@@ -210,40 +167,3 @@ end
 assessment = [assessestimators(n, ξ, 3K_test) for n ∈ test_n]
 assessment = merge(assessment...)
 CSV.write(joinpath(path, "estimates_interval.csv"), assessment.df)
-
-
-####TODO delete once everything is finished and working correctly
-
-# θ_n1 = Parameters(K_val, ξ, small_n, J = J, cluster_process = false)
-# Z_n1 = simulate(θ_n1, m)
-# est_n1 = estimateinbatches(intervalestimator, Z_n1)
-# ints_n1 = interval(intervalestimator, Z_n1)
-#
-#
-# θ_n2 = Parameters(K_val, ξ, large_n, J = J, cluster_process = false)
-# Z_n2 = simulate(θ_n2, m)
-# est_n2 = estimateinbatches(intervalestimator, Z_n2)
-# ints_n2 = interval(intervalestimator, Z_n2)
-#
-# # Compute lengths
-# lengths1 = hcat([[x[1, "upper"] - x[1, "lower"], x[2, "upper"] - x[2, "lower"]] for x ∈ ints_n1]...)
-# lengths2 = hcat([[x[1, "upper"] - x[1, "lower"], x[2, "upper"] - x[2, "lower"]] for x ∈ ints_n2]...)
-#
-# test_n = [30, 60, 100, 200, 350, 500, 750, 1000, 1500, 2000]
-# df = map(test_n) do n
-# 	println("	Assessing interval estimator with n = $n...")
-# 	seed!(1)
-# 	θ = Parameters(3K_test, ξ, n, cluster_process = false)
-# 	Z = simulate(θ, m)
-# 	ints = interval(intervalestimator, Z; parameter_names = ξ.parameter_names)
-#
-# 	# convert each matrix into data frame
-# 	x = ints[1]
-# 	df = DataFrame(parameter = x.rownames, lower = x[:, :lower], upper = x[:, :upper], truth = TODO)
-#
-#
-# 	# Add sample size information
-# 	df[:, :n] .= n
-# end
-# assessment = merge(assessment...)
-# CSV.write(joinpath(path, "estimates_interval2.csv"), assessment.df)

@@ -69,7 +69,7 @@ plot_estimates <- function(cells, estimates, param, limits = c(NA, NA)) {
             legend.position = "top",
             legend.key.width = unit(1, 'cm'))
 
-    if (grep("error", param)) {
+    if (grepl("error", param)) {
       gg <- gg + scale_fill_gradient2(low = 'blue', mid = 'white', high = 'red', midpoint = 0, limits = c(-limits[2], limits[2]), na.value = NA)
     } else {
       gg <- gg + scale_fill_distiller(palette = "YlOrRd", na.value = NA, direction = 1, limits = limits)

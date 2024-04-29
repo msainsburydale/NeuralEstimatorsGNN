@@ -38,13 +38,11 @@ using GraphNeuralNetworks
 include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
 include(joinpath(pwd(), "src/$model/ML.jl"))
-if model == "GP/nuSigmaFixed"
-	include(joinpath(pwd(), "src/MCMC.jl"))
-end
+# if model == "GP/nuSigmaFixed" include(joinpath(pwd(), "src/MCMC.jl")) end
 p = ξ.p
 n = ξ.n
 
-# ML initial estimates and MCMC initial values (prior mean)
+# ML initial estimates (and MCMC initial values) taken to be the prior mean
 θ₀ = mean.([ξ.Ω...])
 ξ = (ξ..., θ₀ = θ₀)
 
@@ -58,7 +56,6 @@ if quick
 	K_train = K_train ÷ 10
 	K_val   = K_val   ÷ 10
 end
-
 
 epochs = quick ? 20 : 200
 J = 5
@@ -83,7 +80,13 @@ pointestimator = gnnarchitecture(p)
 
 if !skip_training
 	@info "Training the GNN point estimator..."
-	trainx(pointestimator, θ_train, θ_val, simulate, m, savepath = path * "/runs_GNN", epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
+	trainx(
+		pointestimator, θ_train, θ_val, simulate, m,
+		savepath = joinpath(path, "runs_GNN"),
+		epochs = epochs,
+		batchsize = 16,
+		epochs_per_Z_refresh = 3
+		)
 end
 
 # Load the trained estimator
@@ -107,14 +110,14 @@ if isdefined(Main, :ML)
 
 	# GNN estimates
 	g = θ.graphs[1]
-	Z = reshapedataGNN(Z, g)
+	Z = spatialgraph(g, Z[1])
 	Z = Z |> gpu
-	pointestimator  = pointestimator|> gpu
+	pointestimator = pointestimator|> gpu
 	t_gnn = @belapsed pointestimator(Z)
 
 	# Save the runtime
 	t = DataFrame(time = [t_gnn, t_ml], estimator = ["GNN", "ML"])
-	CSV.write(path * "/runtime.csv", t)
+	CSV.write(joinpath(path, "runtime.csv"), t)
 
 end
 
@@ -126,7 +129,7 @@ function assessestimators(θ, Z, ξ)
 
 	# Convert the data to a graph
 	g = θ.graphs[1]
-	Z_graph = reshapedataGNN(Z, g)
+	Z_graph = spatialgraph.(Ref(g), Z)
 
 	# Assess the GNN
 	assessment = assess(pointestimator, θ, Z_graph; estimator_name = "GNN", parameter_names = ξ.parameter_names)
@@ -182,6 +185,55 @@ function assessestimators(ξ, set::String)
 	CSV.write(path * "/Z_$set.csv", df)
 
 	return assessment
+end
+
+
+"""
+	spatialconfigurations(n::Integer, set::String)
+Generates spatial configurations of size `n` corresponding to one of
+the four types of `set`s as used in Section 3 of the manuscript.
+
+# Examples
+```
+n = 250
+S₁ = spatialconfigurations(n, "uniform")
+S₂ = spatialconfigurations(n, "quadrants")
+S₃ = spatialconfigurations(n, "mixedsparsity")
+S₄ = spatialconfigurations(n, "cup")
+
+using UnicodePlots
+[scatterplot(S[:, 1], S[:, 2]) for S ∈ [S₁, S₂, S₃, S₄]]
+```
+"""
+function spatialconfigurations(n::Integer, set::String)
+
+	@assert n > 0
+	@assert set ∈ ["uniform", "quadrants", "mixedsparsity", "cup"]
+
+	if set == "uniform"
+		S = rand(n, 2)
+	elseif set == "quadrants"
+		S₁ = 0.5 * rand(n÷2, 2)
+		S₂ = 0.5 * rand(n÷2, 2) .+ 0.5
+		S  = vcat(S₁, S₂)
+	elseif set == "mixedsparsity"
+		n_centre = (3 * n) ÷ 4
+		n_corner = (n - n_centre) ÷ 4
+		S_centre  = 1/3 * rand(n_centre, 2) .+ 1/3
+		S_corner1 = 1/3 * rand(n_corner, 2)
+		S_corner2 = 1/3 * rand(n_corner, 2); S_corner2[:, 2] .+= 2/3
+		S_corner3 = 1/3 * rand(n_corner, 2); S_corner3[:, 1] .+= 2/3
+		S_corner4 = 1/3 * rand(n_corner, 2); S_corner4 .+= 2/3
+		S = vcat(S_centre, S_corner1, S_corner2, S_corner3, S_corner4)
+	elseif set == "cup"
+		n_strip2 = n÷3 + n % 3 # ensure that total sample size is n (even if n is not divisible by 3)
+		S_strip1 = rand(n÷3, 2);      S_strip1[:, 1] .*= 0.2;
+		S_strip2 = rand(n_strip2, 2); S_strip2[:, 1] .*= 0.6; S_strip2[:, 1] .+= 0.2; S_strip2[:, 2] .*= 1/3;
+		S_strip3 = rand(n÷3, 2);      S_strip3[:, 1] .*= 0.2; S_strip3[:, 1] .+= 0.8;
+		S = vcat(S_strip1, S_strip2, S_strip3)
+	end
+
+	return S
 end
 
 

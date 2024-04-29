@@ -25,6 +25,29 @@ using DataFrames
 using GraphNeuralNetworks
 using CSV
 
+# Helper functions for this script: same API as adjacencymatrix()
+function modifyneighbourhood(θ::Parameters, args...)
+
+	S = θ.locations
+	if !(typeof(S) <: AbstractVector) S = [S] end
+
+	A = adjacencymatrix.(S, args...)
+	graphs = GNNGraph.(A)
+
+	Parameters(θ.θ, S, graphs, θ.chols, θ.chol_pointer, θ.loc_pointer)
+end
+function modifyneighbourhood(θ::Parameters, k::Integer; kwargs...)
+
+	S = θ.locations
+	if !(typeof(S) <: AbstractVector) S = [S] end
+
+	A = adjacencymatrix.(S, k; kwargs...)
+	graphs = GNNGraph.(A)
+
+	Parameters(θ.θ, S, graphs, θ.chols, θ.chol_pointer, θ.loc_pointer)
+end
+
+
 include(joinpath(pwd(), "src", model, "model.jl"))
 include(joinpath(pwd(), "src", "architecture.jl"))
 
@@ -236,10 +259,10 @@ for k ∈ all_k
 end
 
 assessments = []
-for n ∈ test_n
+for n ∈ union(test_n, [2048, 4096])
   @info "Assessing the estimators with sample size n=$n"
   seed!(1)
-  θ_test   = Parameters(K_test, ξ, n, J = 1)
+  θ_test   = Parameters(n > 1000 ? 1 : K_test, ξ, n, J = 1) #NB only want run-times timings for n>1000
   θ_single = Parameters(1, ξ, n, J = 1)
   for k ∈ all_k
 
@@ -249,8 +272,8 @@ for n ∈ test_n
   	loadpath = joinpath(path, "maxmin_k$k")
   	Flux.loadparams!(gnn, loadbestweights(loadpath))
 
-    θ_test   = modifyneighbourhood(θ_test, k; maxmin = true)
-    θ_single = modifyneighbourhood(θ_single, k; maxmin = true)
+  	θ_test = modifyneighbourhood(θ_test, k; maxmin = true)
+  	θ_single = modifyneighbourhood(θ_single, k; maxmin = true)
 
   	# Assess the estimator's accuracy
   	seed!(1)
@@ -275,3 +298,5 @@ for n ∈ test_n
 end
 assessment = merge(assessments...)
 CSV.write(joinpath(path, "k_vs_n.csv"), assessment.df)
+
+#
