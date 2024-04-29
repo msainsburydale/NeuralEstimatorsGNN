@@ -55,7 +55,6 @@ GNN_estimates <- process_estimates(GNN_estimates)
 # Plot the point estimates
 plot_estimates <- function(cells, estimates, param, limits = c(NA, NA)) {
 
-  estimates$estimate <- pmin(estimates$estimate, limits[2], na.rm = TRUE)
   cells <- merge(cells, filter(estimates, parameter == param))
 
   suppressMessages({
@@ -124,7 +123,7 @@ plot_ciwidth <- function(cells, estimates, param) {
 
 rhoci_plot   <- plot_ciwidth(cells, GNN_estimates, "rho_ciwidth") + labs(fill = expression(atop(hat(rho) ~ "credible-", "interval width")))
 sigmaci_plot <- plot_ciwidth(cells, GNN_estimates, "sigma_ciwidth") + labs(fill = expression(atop(hat(sigma) ~ "credible-", "interval width")))
-tauci_plot   <- plot_ciwidth(cells, mutate(GNN_estimates, estimate = pmin(estimate, 0.5)), "tau_ciwidth") + labs(fill = expression(atop(hat(sigma)[epsilon] ~ "credible-", "interval width")))
+tauci_plot   <- plot_ciwidth(cells, GNN_estimates, "tau_ciwidth") + labs(fill = expression(atop(hat(sigma)[epsilon] ~ "credible-", "interval width")))
 
 fig <-  egg::ggarrange(rho_plot1, sigma_plot1, tau_plot1,
                        rhoci_plot, sigmaci_plot, tauci_plot,
@@ -149,10 +148,7 @@ sigma_lower <- plot_estimates(cells, GNN_estimates, "σ_lower", limits) + labs(t
 sigma_upper <- plot_estimates(cells, GNN_estimates, "σ_upper", limits) + labs(title = expression(hat(sigma) *": upper bound"), fill = "")
 sigma_ci <- ggpubr::ggarrange(sigma_lower, sigma_upper, align = "hv", nrow = 1, legend = "right", common.legend = T)
 
-estimates_tau <- GNN_estimates %>%
-  filter(parameter %in% c("τ_lower", "τ_upper")) %>%
-  mutate(estimate = pmin(estimate, 0.6)) # TODO make this consistent with above
-limits <- estimates_tau %>% summarise(range(estimate))
+limits <- GNN_estimates %>% filter(parameter %in% c("τ_lower", "τ_upper")) %>% summarise(range(estimate))
 limits <- limits[[1]]
 tau_lower <- plot_estimates(cells, estimates_tau, "τ_lower", limits) + labs(title = expression(hat(sigma)[epsilon] *": lower bound"), fill = "")
 tau_upper <- plot_estimates(cells, estimates_tau, "τ_upper", limits) + labs(title = expression(hat(sigma)[epsilon] *": upper bound"), fill = "")
