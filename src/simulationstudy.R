@@ -76,14 +76,6 @@ df <- lapply(sets, loadestimates, type = "test")
 df <- do.call(rbind, df)
 df <- filter(df, estimator %in% estimators)
 
-## Global plot of estimates vs truth
-figure <- plotestimates(df %>% filter(estimator == "GNN"),
-              parameter_labels = parameter_labels,
-              estimator_labels = estimator_labels) +
-  geom_smooth(aes(truth,estimate), method="lm", se=F)
-ggsv(figure, file = "estimates_vs_truth", path = img_path, width = 1+ 3*p, height = 3)
-
-
 ## Bayes risk with respect to absolute error
 df %>%
   mutate(loss = abs(estimate - truth)) %>%

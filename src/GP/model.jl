@@ -19,25 +19,26 @@ using Folds
 )
 
 function simulate(parameters::Parameters, m::R; convert_to_graph::Bool = true) where {R <: AbstractRange{I}} where I <: Integer
-
-	K = size(parameters, 2)
+  
+  p, K = size(parameters)
 	m = rand(m, K)
-
-	τ  			 = parameters.θ[1, :]
+  θ = parameters.θ
 	chols        = parameters.chols
 	chol_pointer = parameters.chol_pointer
 	loc_pointer  = parameters.loc_pointer
-	g            = parameters.graphs
+	graphs       = parameters.graphs
 
 	z = Folds.map(1:K) do k
 		Lₖ = chols[chol_pointer[k]][:, :]
-		τₖ = τ[k]
 		mₖ = m[k]
 		zₖ = simulategaussianprocess(Lₖ, mₖ)
-		zₖ = zₖ + τₖ * randn(size(zₖ)...) # add measurement error
+		if p > 1 # add measurement error
+			τₖ = θ[1, k]
+			zₖ = zₖ + τₖ * randn(size(zₖ)...)
+		end
 		zₖ = Float32.(zₖ)
 		if convert_to_graph
-			gₖ = g[loc_pointer[k]]
+			gₖ = graphs[loc_pointer[k]]
 			zₖ = spatialgraph(gₖ, zₖ)
 		end
 		zₖ

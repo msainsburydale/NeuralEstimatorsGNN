@@ -47,12 +47,9 @@ install_dependencies <- function(install_exact_versions) {
   if(!("NeuralEstimators" %in% rownames(installed.packages())))
     devtools::install_github("msainsburydale/NeuralEstimators", ref = "main")
 
-  if(!("INLA" %in% rownames(installed.packages())))
-    install.packages("INLA", repos="https://inla.r-inla-download.org/R/stable")
-
   ## Remove this from the search list so that the script does not
   ## attempt to re-install them
-  pkg_versions <- pkg_versions[!(names(pkg_versions) %in% c("ngme2", "INLA", "dggrids", "NeuralEstimators"))]
+  pkg_versions <- pkg_versions[!(names(pkg_versions) %in% c("ngme2", "dggrids", "NeuralEstimators"))]
 
   # ---- CRAN packages ----
 

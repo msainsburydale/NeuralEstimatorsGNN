@@ -17,8 +17,11 @@ else
     exit 1
 fi
 
-Rscript src/application/Preprocessing.R  $quick
+#TODO add option to skip training
+#TODO add option to skip ML estimation
+
+# Rscript src/application/Preprocessing.R  $quick
 julia --threads=auto --project=. src/application/GNN_training.jl $quick
 julia --threads=auto --project=. src/application/GNN_estimates.jl 
-julia --threads=auto --project=. src/application/ML_estimates.jl
+# julia --threads=auto --project=. src/application/ML_estimates.jl
 Rscript src/application/Results.R

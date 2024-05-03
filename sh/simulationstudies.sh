@@ -3,6 +3,7 @@ unset R_HOME
 
 set -e
 
+# Prompt user if they wish to do a "quick" run to test the code
 if [ ! ${quick_str} ]; then
   echo "Do you wish to use a very low number of parameter configurations and epochs to quickly establish that the code is working? (y/n)"
   read quick_str
@@ -17,27 +18,37 @@ else
     exit 1
 fi
 
-for model in GP/nuSigmaFixed GP/nuFixed Schlather
+
+# Prompt user if they wish to skip training 
+if [ ! ${skip_training_str} ]; then
+  echo "Do you wish to skip training? (y/n)"
+  read skip_training_str
+fi
+
+if [[ $skip_training_str == "y" ||  $skip_training_str == "Y" ]]; then
+    skip_training=--skip_training
+elif [[ $skip_training_str == "n" ||  $skip_training_str == "N" ]]; then
+    skip_training=""
+else
+    echo "Please re-run and type y or n"
+    exit 1
+fi
+
+
+# for model in GP/nuSigmaTauFixed GP/nuSigmaFixed GP/nuFixed Schlather
+for model in Schlather
 do
 
     echo ""
     echo "##### Starting simulation study for $model model #####"
     echo ""
 
-    if [[ $model == "BrownResnick"  ]]; then
-        bash sh/compile.sh
-    fi
-
-    if [[ $model == "GP/nuSigmaFixed" || $model == "GP/nuFixed" ]]; then
-        m="[1]"
-    elif [[ $model == "SPDE" ]]; then
-        m="[1]"
-    else
+    if [[ $model == "Schlather" ]]; then
         m="[1,50]"
+    else
+        m="[1]"
     fi
 
-    # TODO prompt user if they wish to skip training (remember that is has to be runnable from all.sh)
-    julia --threads=auto --project=. src/simulationstudy.jl --model=$model $quick --m=$m # --skip_training
-
+    julia --threads=auto --project=. src/simulationstudy.jl --model=$model $quick $skip_training --m=$m 
     Rscript src/simulationstudy.R --model=$model
 done

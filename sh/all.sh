@@ -15,6 +15,13 @@ if ! [[ $quick_str == "y" ||  $quick_str == "Y" || $quick_str == "n" ||  $quick_
     exit 1
 fi
 
+echo "Do you wish to skip training? (y/n)"
+read skip_training_str
+if ! [[ $skip_training_str == "y" ||  $skip_training_str == "Y" || $skip_training_str == "n" ||  $skip_training_str == "N" ]]; then
+    echo "Please re-run and type y or n"
+    exit 1
+fi
+
 Rscript src/pointprocesses.R       # Point-process figure in Section 2
 source sh/simulationstudies.sh     # Section 3
 source sh/application.sh           # Section 4

@@ -50,7 +50,7 @@ path = "intermediates/$model"
 if !isdir(path) mkpath(path) end
 
 # Size of the training, validation, and test sets
-K_train = 10_000
+K_train = 50_000
 K_val   = K_train ÷ 5
 if quick
 	K_train = K_train ÷ 10
@@ -58,7 +58,7 @@ if quick
 end
 
 epochs = quick ? 20 : 200
-J = 5
+J = 1
 
 if !skip_training
 	@info "Generating training data..."
@@ -73,8 +73,6 @@ end
 # -------------------------- Point estimator ----------------------------------
 # -----------------------------------------------------------------------------
 
-@info "Constructing and assessing neural point estimator..."
-
 seed!(1)
 pointestimator = gnnarchitecture(p)
 
@@ -84,7 +82,7 @@ if !skip_training
 		pointestimator, θ_train, θ_val, simulate, m,
 		savepath = joinpath(path, "runs_GNN"),
 		epochs = epochs,
-		batchsize = 16,
+		batchsize = 64,
 		epochs_per_Z_refresh = 3
 		)
 end
@@ -122,6 +120,8 @@ if isdefined(Main, :ML)
 end
 
 # ---- Assess the point estimators ----
+
+@info "Assessing point estimators..."
 
 K_test = quick ? 50 : 1000
 
@@ -295,94 +295,40 @@ assessestimators(ξ, "cup")
 # --------------------- Uncertainty quantification ----------------------------
 # -----------------------------------------------------------------------------
 
-@info "Constructing and assessing neural quantile..."
+#TODO uncomment
 
-# point estimator:
-pointestimator = gnnarchitecture(p)
-pointestimator_path = joinpath(path, "runs_GNN_m$M")
-Flux.loadparams!(pointestimator, loadbestweights(pointestimator_path))
-
-# Credible-interval estimator:
-seed!(1)
-v = gnnarchitecture(p; final_activation = identity)
-Flux.loadparams!(v, loadbestweights(pointestimator_path)) # pretrain with point estimator
-intervalestimator = IntervalEstimator(v)
-
-if !skip_training
-	@info "training the GNN quantile estimator for marginal posterior credible intervals..."
-	trainx(intervalestimator, θ_train, θ_val, simulate, m, savepath = joinpath(path, "runs_GNN_CI"), epochs = epochs, batchsize = 16, epochs_per_Z_refresh = 3)
-end
-
-Flux.loadparams!(intervalestimator, loadbestweights(joinpath(path, "runs_GNN_CI_m$M")))
-
-
-# ---- Empirical coverage ----
-
-# Simulate test data
-seed!(2023)
-K_test = quick ? 100 : 1000
-θ_test = Parameters(K_test, ξ, n, J = 1)
-Z_test = simulate(θ_test, M)
-
-# Assessment: Quantile estimator
-assessment = assess(intervalestimator, θ_test, Z_test, estimator_name = "quantile", parameter_names = ξ.parameter_names)
-
-# Assessment: Parametric Bootstrap
-B = quick ? 50 : 500
-θ̂_test = estimateinbatches(pointestimator, Z_test)
-θ̂_test = max.(Float64.(θ̂_test), 0.01) # prevent positive-definite errors
-S = θ_test.locations[θ_test.loc_pointer]
-θ̂_test = Parameters(θ̂_test, S, ξ)
-Z_boot = [simulate(θ̂_test, M) for _ ∈ 1:B]
-Z_boot = map(1:K_test) do k
-	[z[k] for z ∈ Z_boot]
-end
-assessment_boot = assess(pointestimator, θ_test, Z_test, boot = Z_boot, estimator_name = "bootstrap_parametric", parameter_names = ξ.parameter_names)
-
-# Assessment: Nonparametric Bootstrap
-# if M > 1
-#  # TODO subsetting the graph with subsetdata() is super slow... would be good to fix this so that non-parametric bootstrap is more efficient/can be used here.
-#  assessment_boot2 = assess(pointestimator, θ_test, Z_test, boot = true, estimator_name = "bootstrap_nonparametric", parameter_names = ξ.parameter_names)
-#  assessment_boot = merge(assessment_boot, assessment_boot2)
-#end
-
-# Save interval estimates
-#TODO assessment doesn't have point estimates; just extract the dataframes and remove the point estimates before joining
-# ass = merge(assessment, assessment_boot)
-# CSV.write(joinpath(path, "uq_interval_estimates.csv"), ass.df)
-
-# Compute and save diagnostics
-cov = vcat(coverage(assessment), coverage(assessment_boot))
-is  = vcat(intervalscore(assessment), intervalscore(assessment_boot))
-uq_assessment = innerjoin(cov, is, on = [:estimator, :parameter])
-CSV.write(joinpath(path, "uq_assessment.csv"), uq_assessment)
-
-
-
-# ---- Run-time assessment ----
-
-# Accurately assess the run-time for a single data set
-# Use a uniform process so that we can specify n exactly, rather than simply E(n)
-θ = Parameters(1, ξ, n; cluster_process = false)
-S = θ.locations
-Z = simulate(θ, M)
-Z = Z |> gpu
-
-# Quantile estimator
-intervalestimator = intervalestimator |> gpu
-t1 = @belapsed intervalestimator(Z)
-
-# Bootstrap
-function bs(pointestimator, Z, S, B, ξ)
-	θ̂ = pointestimator(Z)
-	θ̂ = θ̂ |> cpu
-	θ̂ = Parameters(θ̂, S, ξ)
-	Z_boot = [simulate(θ̂, M)[1] for _ ∈ 1:B]
-	estimateinbatches(pointestimator, Z_boot)
-end
-pointestimator = pointestimator |> gpu
-t2 = @belapsed bs($pointestimator, $Z, $S, $B, $ξ)
-
-# Save the runtime
-t = DataFrame(time = [t1, t2], estimator = ["quantile", "bootstrap_parametric"])
-CSV.write(joinpath(path, "uq_runtime.csv"), t)
+# @info "Constructing and assessing neural quantile..."
+# 
+# # Credible-interval estimator:
+# seed!(1)
+# v = gnnarchitecture(p; final_activation = identity)
+# intervalestimator = IntervalEstimator(v)
+# 
+# if !skip_training
+# 	@info "training the GNN quantile estimator for marginal posterior credible intervals..."
+# 	trainx(
+# 	  intervalestimator, θ_train, θ_val, simulate, m, 
+# 	  savepath = joinpath(path, "runs_GNN_CI"), 
+# 	  epochs = epochs, 
+# 	  batchsize = 64, 
+# 	  epochs_per_Z_refresh = 3
+# 	  )
+# end
+# 
+# Flux.loadparams!(intervalestimator, loadbestweights(joinpath(path, "runs_GNN_CI_m$M")))
+# 
+# # Assessment
+# seed!(2023)
+# K_test = quick ? 100 : 1000
+# θ_test = Parameters(K_test, ξ, n, J = 1)
+# Z_test = simulate(θ_test, M)
+# assessment = assess(
+#       intervalestimator, θ_test, Z_test, 
+#       estimator_name = "quantile", parameter_names = ξ.parameter_names
+#       )
+# 
+# # Compute and save diagnostics
+# cov = coverage(assessment)
+# is  = intervalscore(assessment)
+# uq_assessment = innerjoin(cov, is, on = [:estimator, :parameter])
+# CSV.write(joinpath(path, "uq_assessment.csv"), uq_assessment)

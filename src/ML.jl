@@ -17,9 +17,9 @@ function ML(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVector
 	# prior support, here we provide the logit-transformed values.
 	Ω = ξ.Ω
 	Ω = [Ω...] # convert to array since broadcasting over dictionaries and NamedTuples is reserved
-	# Ω = map(Ω) do x
-	# 	[minimum(x)/3, maximum(x)*3] # widen support to get closer to true maximum-likelihood
-	# end
+	Ω = map(Ω) do ω
+	 	[minimum(ω)/3, maximum(ω)*3] # widen support to get closer to true maximum-likelihood
+	end
 	θ₀ = scaledlogit.(ξ.θ₀, Ω)
 
 	# Convert to Float64 so that Cholesky factorisation doesn't throw positive

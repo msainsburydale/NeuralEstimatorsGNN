@@ -1,5 +1,3 @@
-using LinearAlgebra
-using NeuralEstimators
 include(joinpath(pwd(), "src/ML.jl"))
 
 corrmatrix(D, ρ, ν) = matern.(D, ρ, ν)

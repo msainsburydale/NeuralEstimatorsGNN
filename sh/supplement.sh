@@ -17,6 +17,7 @@ else
     exit 1
 fi
 
+#TODO add option to skip training
 
 echo ""
 echo "##### Starting supplementary experiment S1: neighbourhood definitions #####"

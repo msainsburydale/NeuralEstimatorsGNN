@@ -1,4 +1,5 @@
 using LinearAlgebra
+using Distributions
 using Folds
 using Flux: flatten
 using NeuralEstimators
@@ -55,7 +56,7 @@ function MCMC(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVect
 
 	# Compute MCMC samples
 	θ = Folds.map(1:K) do k
-		 @info "MCMC sampling parameters for data set $k out of $K"
+		 # @info "MCMC sampling parameters for data set $k out of $K"
 		 Dₖ = D[D_pointer[k]]
 		 MCMC(Z[k], θ₀[k], Dₖ, Ω)
 	end
@@ -137,16 +138,30 @@ end
 function covariancematrix(D; τ, ρ, ν, σ²)
 	# Exploit symmetry of D to minimise the number of computations
     Σ = matern.(UpperTriangular(D), ρ, ν, σ²)
-	Σ[diagind(Σ)] .+= τ^2
+    if !isnothing(τ) 
+      Σ[diagind(Σ)] .+= τ^2 
+    end
     return Σ
 end
 
 function logmvnorm(θ, Z, D)
+
+  # Determine which parameters we're estimating
 	ν  = one(eltype(θ)) # smoothness fixed to 1
 	p  = length(θ)
+	if p == 1
+	  τ = nothing
+	  ρ = θ[1]
+	else
+	  τ = θ[1]
+	  ρ = θ[2]
+  end
 	σ  = p > 2 ? θ[3] : one(eltype(θ))
 	σ² = σ^2
-	Σ = covariancematrix(D; τ = θ[1], ρ = θ[2], ν = ν, σ² = σ²)
+	
+	Σ = covariancematrix(D; τ = τ, ρ = ρ, ν = ν, σ² = σ²)
 	ℓ = gaussiandensity(Z, Σ; logdensity = true)
 	return ℓ
 end
+
+
