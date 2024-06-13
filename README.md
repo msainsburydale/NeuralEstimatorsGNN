@@ -1,6 +1,6 @@
 # Source code for "Neural Bayes Estimators for Irregular Spatial Data using Graph Neural Networks"
 
-![Figure 1: The architecture of a GNN-based neural Bayes estimator, which takes as input spatial data and returns parameter point estimates.](/img/scehmatic.png?raw=true)
+![Figure 1: The architecture of a GNN-based neural Bayes estimator, which takes as input spatial data and returns parameter point estimates.](/img/schematic.png?raw=true)
 
 This repository contains code for reproducing the results in "Neural Bayes Estimators for Irregular Spatial Data using Graph Neural Networks" [(Sainsbury-Dale, Zammit-Mangion, Richards, and Huser, 2023)](https://arxiv.org/abs/2310.02600).
 
