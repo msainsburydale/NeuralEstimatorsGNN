@@ -7,6 +7,7 @@ suppressMessages({
   library("viridis")
   library("tidyr")
   library("latex2exp")
+  library("stringr") # str_interp for string interpolation
   library("ggExtra") # ggMarginal
   library("cowplot") # get_x_axis
   library("reshape2") # melt
@@ -21,27 +22,23 @@ text_size <- 14
 estimator_labels <- c(
   # Main text experiments:
   "GNN" = "GNN",
-  "ML" = "ML",
+  "ML" = "MAP",
   "MCMC" = "Bayes",
   # Variable sample size experiment:
   "GNN1" = expression(n==30),
   "GNN2" = expression(n==1000),
   "GNN3" = TeX("$n \\sim U(30, 1000)$"),
   # Neighbourhood experiment:
-  "fixedradius" = "Disc of fixed radius",
-  "knearest" = "k nearest neighbours",
-  # "knearestb" = "k=30 nearest neighbours",
-  "combined" = "Random k neighbours\nwithin disc of fixed radius",
-  # "combinedb" = "Random k=30 neighbours\nwithin disc of fixed radius",
-  "maxmin" = "Maxmin",
-  # "maxmin_immoral" = "Maxmin (immoral)",
-  # "maxmin_moral" = "maxmin (moral)",
+  "fixedradius" = "Disc of fixed radius r", 
+  "fixedradiusmaxk" = "Subset of k neighbours\nwithin a disc of fixed\nradius r=0.1", 
+  "knearest" = "k-nearest neighbours", 
+  "maxmin" = "k-nearest neighbours\nsubject to a maxmin\nordering",
   # Simulation efficiency with respect to prior measure for S:
-  # "Sfixed" = TeX("$\\bf{S} = \\bf{S}_0 \\sim UBPP(250)$"),
-  "Sfixed" = TeX("$\\bf{S} = \\bf{S}_0$"),
-  "Srandom_uniform" = TeX("$\\bf{S} \\sim UBPP(250)$"),
-  # "Srandom_cluster" = TeX("$\\bf{S} \\sim $MCP with $E(n) = 250")
-  "Srandom_cluster" = TeX("$\\bf{S} \\sim $MCP")
+  # "Sfixed" = TeX("$S = S_0 \\sim UBPP(250)$"),
+  "Sfixed" = TeX("$S = S_0$"),
+  "Srandom_uniform" = TeX("$S \\sim UBPP(250)$"),
+  # "Srandom_cluster" = TeX("$S \\sim $MCP with $E(n) = 250")
+  "Srandom_cluster" = TeX("$S \\sim $MCP")
 )
 
 estimators <- names(estimator_labels)
@@ -70,14 +67,10 @@ estimator_colours <- c(
   "GNN2" = "dodgerblue4",
   "GNN3" = "chartreuse4",
   # Neighbourhood experiment:
-  "fixedradius" = "gold",
-  "knearest" = "dodgerblue4",
-  # "knearestb" = "dodgerblue4",
-  "combined" = "chartreuse4",
-  # "combinedb" = "chartreuse4",
-  "maxmin" = "red",
-  # "maxmin_immoral" = "red",
-  # "maxmin_moral" = "purple",
+  "fixedradius" = "gold", 
+  "fixedradiusmaxk" = "red", 
+  "knearest" = "dodgerblue4", 
+  "maxmin" = "chartreuse4",
   # Simulation efficiency with respect to prior measure for S:
   "Sfixed" = "gold",
   "Srandom_uniform" = "chartreuse4",

@@ -16,10 +16,10 @@ using Folds
 	p = length(Ω),
 	n = 256,
 	parameter_names = String.(collect(keys(Ω))),
-	σ = 1.0, # marginal variance to use if σ is not included in Ω
-	r = 0.10, # cutoff distance used to define the neighbourhood of each node
-	k = 10,   # maximum number of neighbours to consider when constructing the neighbourhood
-	neighbourhood = "maxmin", # neighbourhood definition
+	σ = 1.0,  # marginal variance to use if σ is not included in Ω
+	r = 0.15, # cutoff distance used to define the neighbourhood of each node
+	k = 30,   # maximum number of neighbours to consider when constructing the neighbourhood
+	neighbourhood = "combined", # neighbourhood definition
 	invtransform = exp # inverse of variance-stabilising transformation
 )
 

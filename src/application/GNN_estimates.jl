@@ -26,18 +26,6 @@ clustered_data = [filter(:cluster => cluster -> cluster == i, clustered_data) fo
 ## Load the distance scaling factors
 scale_factors = RData.load(joinpath(path, "scale_factors.rds")).data
 
-## Load the adjacency matrices
-adjacency_matrices = RData.load(joinpath(path, "adjacency_matrices.rds"))
-adjacency_matrices = [filter(:cluster => cluster -> cluster == i, adjacency_matrices) for i in unique(adjacency_matrices[:, :cluster])]
-function buildmatrix(A)
-  I = A[:, :row]
-  J = A[:, :col]
-  V = Float32.(A[:, :v])
-  return sparse(I,J,V)
-end
-adjacency_matrices = buildmatrix.(adjacency_matrices);
-
-
 ## ---- Load estimators ----
 
 p = 3 # number of parameters
@@ -57,21 +45,21 @@ Flux.loadparams!(intervalestimator, loadbestweights(joinpath(path, "intervalesti
 
 @info "Starting GNN estimation..."
 
-function constructgraph(data, scale_factor, adjacency_matrix)
-
-    A = copy(adjacency_matrix) # avoid mutating global variable adjacency_matrices
+function constructgraph(data, scale_factor)
 
     # Restrict the sample size while prototyping
-    # n = size(data, 1)
-    # max_n = 2000
-    # if n > max_n
-    # data = data[sample(1:n, max_n; replace = false), :]
-    # end
+    #n = size(data, 1)
+    #max_n = 2000
+    #if n > max_n
+    #  data = data[sample(1:n, max_n; replace = false), :]
+    #end
 
-    # # Compute the adjacency matrix
-    # S = data[:, [:x, :y, :z]] |> Matrix
-    # k = 10 # number of neighbours to consider (same value as used during training)
-    # A = adjacencymatrix(S, k; maxmin = true)
+    # Compute the adjacency matrix
+    S = data[:, [:x, :y, :z]] |> Matrix
+    S = Float32.(S)
+    r = 0.15 # disc radius on the unit square
+    k = 30   # maximum number of neighbours to consider 
+    A = adjacencymatrix(S, r / scale_factor, k)
 
     # Scale the distances so that they are between [0, sqrt(2)]
     v = A.nzval
@@ -80,13 +68,11 @@ function constructgraph(data, scale_factor, adjacency_matrix)
     # Construct the graph
     Z = data[:, [:Z]] |> Matrix
     Z = Float32.(Z)
-    g = GNNGraph(A, ndata = permutedims(Z))
-
-    return g
+    GNNGraph(A, ndata = (Z = permutedims(Z), ))
 end
 
 t = @elapsed g = Folds.map(1:length(clustered_data)) do k
-   constructgraph(clustered_data[k], scale_factors[k], adjacency_matrices[k])
+   constructgraph(clustered_data[k], scale_factors[k])
 end
 t += @elapsed θ = estimateinbatches(pointestimator, g)
 t += @elapsed θ_quantiles = estimateinbatches(intervalestimator, g)
@@ -98,7 +84,7 @@ for k in 1:size(θ, 2)
 end
 
 θ = permutedims(θ)
-θ = DataFrame(θ, repeat(["τ", "ρ", "σ"], 3) .* repeat(["", "_lower", "_upper"], inner = 3)) #TODO parameter names shouldn't be hardcoded like this...
+θ = DataFrame(θ, repeat(["τ", "ρ", "σ"], 3) .* repeat(["", "_lower", "_upper"], inner = 3)) 
 CSV.write(joinpath(path, "GNN_runtime.csv"), DataFrame(time = [t]))
 CSV.write(joinpath(path, "GNN_estimates.csv"), θ)
 

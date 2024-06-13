@@ -27,9 +27,9 @@ cells          <- readRDS("intermediates/application/cells.rds")
 ML_estimates   <- read.csv("intermediates/application/ML_estimates.csv")
 GNN_estimates  <- read.csv("intermediates/application/GNN_estimates.csv")
 
-rho_limit   <- range(c(ML_estimates$ρ, GNN_estimates$ρ))
-sigma_limit <- range(c(ML_estimates$σ, GNN_estimates$σ))
-tau_limit <- range(c(ML_estimates$τ, GNN_estimates$τ))
+sigma_limit <- range(c(GNN_estimates$σ, ML_estimates$σ))
+tau_limit <- range(c(GNN_estimates$τ, ML_estimates$τ))
+rho_limit   <- range(GNN_estimates$ρ, ML_estimates$ρ)
 
 GNN_estimates$rho_ciwidth <- GNN_estimates$ρ_upper - GNN_estimates$ρ_lower
 GNN_estimates$sigma_ciwidth <- GNN_estimates$σ_upper - GNN_estimates$σ_lower
@@ -87,8 +87,8 @@ rho_plot2   <- plot_estimates(cells, ML_estimates, "ρ", rho_limit) + theme(lege
 sigma_plot2 <- plot_estimates(cells, ML_estimates, "σ", sigma_limit) + theme(legend.position = "none")
 tau_plot2   <- plot_estimates(cells, ML_estimates, "τ", tau_limit) + theme(legend.position = "none")
 
-fig <- egg::ggarrange(rho_plot1, sigma_plot1, tau_plot1,
-                      rho_plot2, sigma_plot2, tau_plot2,
+fig <- egg::ggarrange(rho_plot1, sigma_plot1, tau_plot1, 
+                      rho_plot2, sigma_plot2, tau_plot2, 
                       nrow = 2)
 ggsv(fig, filename = "GNN_ML", width = 10, height = 4, path = img_path)
 
@@ -133,8 +133,6 @@ ggsv(fig, filename = "estimates", width = 12, height = 6, path = img_path)
 
 
 # Plot the lower and upper quantiles
-
-#TODO align the legends
 
 limits <- GNN_estimates %>% filter(parameter %in% c("ρ_lower", "ρ_upper")) %>% summarise(range(estimate))
 limits <- limits[[1]]

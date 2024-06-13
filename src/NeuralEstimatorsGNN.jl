@@ -2,12 +2,16 @@ module NeuralEstimatorsGNN
 
 using NeuralEstimators
 using Flux
+using Folds
 using GraphNeuralNetworks
+using LinearAlgebra
 using Random: seed!; export seed!
 using Distributions
 using Distances
 
 export Parameters
+
+#TODO probably neater to just forego xi from this functionality...
 
 """
 	Parameters <: ParameterConfigurations
@@ -25,9 +29,6 @@ named tuple containing fields:
 
 - `Ω`: the prior distribution, itself a named tuple where each field can be sampled using rand(),
 - `S`: matrix of spatial coordinates (or K-vector of matrices),
-- `neighbourhood`: string specifying the neighbourhood definition ("fixedradius", "knearest", "combined", or "maxmin"),
-- `r`: fixed radius when constructing the neighbour matrix (only required when neighbourhood is "fixedradius" or "combined"),
-- `k`: maximum number of neighbours to consider when constructing the neighbour matrix (only required when neighbourhood is not "fixedradius").
 
 The type assumes the presence of a GP in the model, with range parameter
 ρ, smoothness ν, and marginal standard deviation σ; if the latter two parameters
@@ -44,9 +45,7 @@ struct Parameters{T, I} <: ParameterConfigurations
 	loc_pointer::Vector{I}
 end
 
-
-
-# Method that automatically constructs spatial locations
+# Method that simulates spatial configurations
 function Parameters(K::Integer, ξ, n; J::Integer = 1, cluster_process::Bool = true)
 
 	if typeof(n) <: Integer
@@ -55,12 +54,12 @@ function Parameters(K::Integer, ξ, n; J::Integer = 1, cluster_process::Bool = t
 
 	# Simulate spatial locations from a cluster process over the unit square
 	if cluster_process
-		λ_prior = Uniform(10, 100) # λ_prior = Uniform(ceil(n/20), ceil(n/3))
+		λ_prior = Uniform(10, 100) 
 		S = map(1:K) do k
 			nₖ = rand(n)
 			λₖ = rand(λ_prior)
 			μₖ = nₖ / λₖ
-			Sₖ = maternclusterprocess(λ = λₖ, μ = μₖ)
+			Sₖ = maternclusterprocess(λ = λₖ, μ = μₖ; unit_bounding_box = true)
 			Sₖ
 		end
 	else
@@ -76,8 +75,6 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 
 	@assert :Ω ∈ keys(ξ)
 	@assert :S ∈ keys(ξ)
-	@assert :neighbourhood ∈ keys(ξ)
-	@assert :r ∈ keys(ξ) || :k ∈ keys(ξ)
 	@assert :σ ∈ union(keys(ξ), keys(ξ.Ω))
 	@assert :ν ∈ union(keys(ξ), keys(ξ.Ω))
 
@@ -89,17 +86,9 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	@assert length(S) ∈ (1, K)
 	loc_pointer = length(S) == 1 ? repeat([1], K*J) : repeat(1:K, inner = J)
 
-	if ξ.neighbourhood == "fixedradius"
-		A = adjacencymatrix.(S, ξ.r)
-	elseif ξ.neighbourhood == "knearest"
-		A = adjacencymatrix.(S, ξ.k)
-	elseif ξ.neighbourhood == "combined"
-		A = adjacencymatrix.(S, ξ.r, ξ.k)
-	elseif ξ.neighbourhood == "maxmin"
-		A = adjacencymatrix.(S, ξ.k, maxmin = true)
-	else
-		error("ξ.neighbourhood = $(ξ.neighbourhood) not a valid choice for the neighbourhood definition; please use either 'fixedradius', 'knearest', or 'combined'.")
-	end
+  r = 0.15 # cutoff distance used to define the neighbourhood of each node
+  k = 30   # maximum number of neighbours to consider
+	A = adjacencymatrix.(S, r, k)
 	graphs = GNNGraph.(A)
 
 	# Sample parameters not associated with the Gaussian process
@@ -112,7 +101,16 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	estimate_σ = "σ" ∈ parameter_names
 	ν = estimate_ν ? rand(ξ.Ω.ν, K) : fill(ξ.ν, K)
 	σ = estimate_σ ? rand(ξ.Ω.σ, K) : fill(ξ.σ, K)
-	chols = maternchols(D, ρ, ν, σ.^2; stack = false)
+	σ² = σ.^2
+	#chols = maternchols(D, ρ, ν, σ²; stack = false)
+	D = UpperTriangular.(D) # D is symmetric, so only consider upper triangle
+	chols = Folds.map(1:K) do k
+	  Dₖ = length(D) == 1 ? D[1] : D[k]
+		Σ = matern.(Dₖ, ρ[k], ν[k], σ²[k]) 
+		L = cholesky(Symmetric(Σ)).L
+		L = convert(Array, L) # convert from Triangular to Array
+		L
+	end
 	chol_pointer = repeat(1:K, inner = J)
 	ρ = repeat(ρ, inner = J)
 	ν = repeat(ν, inner = J)
@@ -139,7 +137,7 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	end
 
 	# Combine parameters into a pxK matrix
-	θ = permutedims(hcat(θ...))
+	θ = permutedims(reduce(hcat, θ))
 
 	# Convert to Float32 for efficiency
 	θ = Float32.(θ)
@@ -147,16 +145,13 @@ function Parameters(K::Integer, ξ; J::Integer = 1)
 	Parameters(θ, S, graphs, chols, chol_pointer, loc_pointer)
 end
 
-#TODO why so much code repetition between these latter two methods?
-
-# Used for parametric bootstrap
+# Can be used for parametric bootstrap
+# TODO A lot of code repetition with the method above.. Can't I just make the above method call this one?
 function Parameters(θ, S, ξ)
 
 	K = size(θ, 2)
 
 	@assert :Ω ∈ keys(ξ)
-	@assert :neighbourhood ∈ keys(ξ)
-	@assert :r ∈ keys(ξ) || :k ∈ keys(ξ)
 	@assert :σ ∈ union(keys(ξ), keys(ξ.Ω))
 	@assert :ν ∈ union(keys(ξ), keys(ξ.Ω))
 
@@ -167,17 +162,9 @@ function Parameters(θ, S, ξ)
 	@assert length(S) ∈ (1, K)
 	loc_pointer = length(S) == 1 ? repeat([1], K) : collect(1:K)
 
-	if ξ.neighbourhood == "fixedradius"
-		A = adjacencymatrix.(S, ξ.r)
-	elseif ξ.neighbourhood == "knearest"
-		A = adjacencymatrix.(S, ξ.k)
-	elseif ξ.neighbourhood == "combined"
-		A = adjacencymatrix.(S, ξ.r, ξ.k)
-	elseif ξ.neighbourhood == "maxmin"
-		A = adjacencymatrix.(S, ξ.k, maxmin = true)
-	else
-		error("ξ.neighbourhood = $(ξ.neighbourhood) not a valid choice for the neighbourhood definition; please use either 'fixedradius', 'knearest', or 'combined'.")
-	end
+  r = 0.15 # disc radius used to define the neighbourhood of each node
+	k = 30   # maximum number of neighbours to consider when constructing the neighbourhood
+	A = adjacencymatrix.(S, r, k)
 	graphs = GNNGraph.(A)
 
 	# Find indices for ρ (and possibly ν and σ) with respect to θ.

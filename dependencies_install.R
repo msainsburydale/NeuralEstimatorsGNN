@@ -95,7 +95,7 @@ if (install_depends == "y") {
   install_exact_versions <- user_decision("Do you want to ensure that all package versions are as given in dependencies.txt (this option is only recommended for use if there is a problem with the latest version of the packages)? (y/n)")
   install_exact_versions <- install_exact_versions == "y" # Convert to Boolean
   
-  install_application_depends <- user_decision("Some dependencies specific to the application study take a long time to install (e.g., 'INLA', 'spdep', 'spatstat'): do you want to install these packages? (y/n)")
+  install_application_depends <- user_decision("Some dependencies (e.g., 'spdep' and 'spatstat') specific to the application study may take a long time to install: do you want to install these packages? (y/n)")
   install_application_depends <- install_application_depends == "y" # Convert to Boolean
   
   CRANMIRROR <- "https://cran.csiro.au"

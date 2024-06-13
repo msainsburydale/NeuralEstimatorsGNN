@@ -8,13 +8,10 @@ using Folds
 ξ = (
 	Ω = Ω,
 	p = length(Ω),
-	n = 256,
 	parameter_names = String.(collect(keys(Ω))),
+	n = 256,
 	ν = 1.0,  # smoothness to use if ν is not included in Ω
 	σ = 1.0,  # marginal standard deviation to use if σ is not included in Ω
-	r = 0.10, # cutoff distance used to define the neighbourhood of each node
-	k = 10,   # maximum number of neighbours to consider when constructing the neighbourhood
-	neighbourhood = "maxmin", # neighbourhood definition
 	invtransform = identity # inverse of variance-stabilising transformation
 )
 

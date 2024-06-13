@@ -33,7 +33,7 @@ loaddata <- function(set) {
 
 estimators <- c("GNN", "ML")
 #if (model %in% c("GP/nuSigmaFixed")) estimators <- c("GNN", "ML", "MCMC")
-if (model %in% c("Schlather", "BrownResnick")) estimator_labels["ML"] <- "PL"
+if (model %in% c("Schlather", "BrownResnick")) estimator_labels["ML"] <- "PMAP"
 
 
 # ---- Marginal + joint sampling distribution with uniform spatial locations ----

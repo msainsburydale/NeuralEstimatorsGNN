@@ -9,17 +9,12 @@ function ML(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVector
 	# Compress the data from an n-dimensional array to a matrix
 	Z = flatten.(Z)
 
-	# inverse of the variance-stabilising transform
+	# Inverse of the variance-stabilising transform
 	Z = broadcast.(ξ.invtransform, Z)
 
-	# intitialise the estimates to the true parameters. Since we logistic-transform
-	# the parameters during optimisation to force the estimates to be within the
-	# prior support, here we provide the logit-transformed values.
+	# Constrain estimates to prior support
 	Ω = ξ.Ω
-	Ω = [Ω...] # convert to array since broadcasting over dictionaries and NamedTuples is reserved
-	Ω = map(Ω) do ω
-	 	[minimum(ω)/3, maximum(ω)*3] # widen support to get closer to true maximum-likelihood
-	end
+	Ω = [[minimum(ω), maximum(ω)] for ω in Ω]
 	θ₀ = scaledlogit.(ξ.θ₀, Ω)
 
 	# Convert to Float64 so that Cholesky factorisation doesn't throw positive
@@ -66,7 +61,7 @@ function ML(Z::V, ξ) where {T, N, A <: AbstractArray{T, N}, V <: AbstractVector
 	end
 
 	# Convert to matrix
-	θ̂ = hcat(θ̂...) # TODO reduce(hcat, θ̂)
+	θ̂ = hcat(θ̂...) 
 
 	return θ̂
 end

@@ -234,7 +234,7 @@ disc <- plot_neighbours(df, s, neighbours, r) +
   labs(title = "Disc of fixed radius")
 
 disc_k <- plot_neighbours(df, s, sample(neighbours, k), r) +
-  labs(title = "Random-k neighbours \n within disc of fixed radius")
+  labs(title = "Subset of k neighbours \n within disc of fixed radius")
 
 k_nearest <- plot_neighbours(df, s, order(D[1, ])[2:(k+1)]) +
   labs(title = "k-nearest neighbours")

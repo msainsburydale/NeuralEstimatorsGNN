@@ -21,35 +21,26 @@ using CSV
 
 include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
+p = ξ.p
 
 path = "intermediates/application"
 if !isdir(path) mkpath(path) end
 
-# Size of the training, validation, and test sets
-K_train = 10_000
-K_val   = K_train ÷ 10
-if quick
-	K_train = K_train ÷ 100
-	K_val   = K_val   ÷ 100
-end
-K_test = K_val
-
-p = ξ.p
-n = 30:2000
-
-# The number of epochs used during training: note that early stopping means that
-# we never really train for the full amount of epochs
+# Maximum number of epochs used during training
 epochs = quick ? 2 : 200
 
 
 # ---- Training data ----
 
+K = quick ? 1000 : 10000
+n = vcat(repeat(100:1000, 20), 1001:2000)
+
 seed!(1)
 J = 3
 @info "Sampling parameter vectors used for validation..."
-θ_val = Parameters(K_val, ξ, n, J = J)
+θ_val = Parameters(K ÷ 10, ξ, n, J = J)
 @info "Sampling parameter vectors used for training..."
-θ_train = Parameters(K_train, ξ, n, J = J)
+θ_train = Parameters(K, ξ, n, J = J)
 
 # ---- Point estimator ----
 

@@ -17,8 +17,6 @@ else
     exit 1
 fi
 
-#TODO add option to skip training
-
 echo ""
 echo "##### Starting supplementary experiment S1: neighbourhood definitions #####"
 echo ""
@@ -36,5 +34,5 @@ julia --threads=auto --project=. src/supplement/S2variablesamplesize.jl $quick
 echo ""
 echo "##### Starting supplementary experiment S2: prior measure for S and simulation efficiency #####"
 echo ""
-julia --threads=auto --project=. src/supplement/S2simulationefficiency.jl $quick
+julia --threads=auto --project=. src/supplement/S2simulationefficiency.jl $quick #TODO add @info to tell the user what is happening
 Rscript src/supplement/S2.R

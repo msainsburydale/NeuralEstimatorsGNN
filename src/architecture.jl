@@ -13,37 +13,60 @@ function gnnarchitecture(Ω; args...)
 	return gnnarchitecture(p; final_activation = final_activation, args...)
 end
 
-function gnnarchitecture(
-	p::Integer;
-	nₕ = [128, 128, 128, 128],    # number of channels in each propagation layer
-	aggr = mean,                 # neighbourhood aggregation function
-	final_activation = identity
-	)
+function gnnarchitecture(p::Integer; final_activation = identity, expert_statistics = false)
 
-	if isa(nₕ, Integer) nₕ = [nₕ] end
-	nlayers = length(nₕ)             # number of propagation layers
-	c = [16, fill(1, nlayers-1)...]  # number of channels for weight function w(⋅)
-	in=[1, nₕ[1:end-1]...]           # input dimensions of propagation features
-
+  q = 10
+  h_max = 0.15
+  
 	# Propagation module
-	propagation_layers = map(1:nlayers) do l
-		SpatialGraphConv(in[l] => nₕ[l], relu, w_scalar = true, aggr = aggr)
-	end
-	propagation = GNNChain(propagation_layers...)
+	propagation = GNNChain(
+	  # NB one may also use "GraphSkipConnection" for skip connections
+    SpatialGraphConv(1 => 2q,  relu, w = spatialweights(h_max, q), w_out = 2q),
+    SpatialGraphConv(2q => 2q, relu, w = spatialweights(h_max, q), w_out = 2q)
+   )
 
 	# Readout module
 	readout = GlobalPool(mean)
-	nᵣ = nₕ[end] # dimension of readout vector
+
+  # Global features 
+  globalfeatures = SpatialGraphConv(1 => 2q, relu, w = spatialweights(h_max, q), w_out = 2q, glob = true)
 
 	# Summary network
-	ψ = GNNSummary(propagation, readout)
+	ψ = GNNSummary(propagation, readout, globalfeatures)
+	
+	# Expert summary statistics 
+	if expert_statistics 
+	  S = NeighbourhoodVariogram(h_max, q)
+	  in = 5q 
+	else 
+	  S = nothing
+	  in = 4q
+	end
+	
+	# Final layer
+	if isa(final_activation, Compress) 
+	  final_layer = Chain(Dense(128 => p, identity), final_activation)
+	else
+	  final_layer = Dense(128 => p, final_activation) 
+	end
 
 	# Mapping module
 	ϕ = Chain(
-	  Dense(nᵣ => 128, relu), 
-	  Dense(nᵣ => 128, relu), 
-	  Dense(128 => p, final_activation)
-	  )
+	  Dense(in => 128, relu), 
+	  Dense(128 => 128, relu),
+	  final_layer
+	)
 
-	return DeepSet(ψ, ϕ)
+	return DeepSet(ψ, ϕ; S = S)
+end
+
+function spatialweights(h_max, q)
+  Parallel(
+    vcat, 
+    IndicatorWeights(0.15, q),
+    Chain(
+    			Dense(1 => 128, sigmoid),
+					Dense(128 => q, sigmoid)
+					)
+    )
 end

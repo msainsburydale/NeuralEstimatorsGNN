@@ -2,7 +2,7 @@
 
 julia_version = "1.9.2"
 manifest_format = "2.0"
-project_hash = "f0bd38ceec87f3095d4dba416233737bcb229be3"
+project_hash = "97a780bdac1d7380fd0f0e2917f2f271c76faab6"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -221,9 +221,9 @@ version = "0.10.12"
 
 [[deps.CUDA]]
 deps = ["AbstractFFTs", "Adapt", "BFloat16s", "CEnum", "CUDA_Driver_jll", "CUDA_Runtime_Discovery", "CUDA_Runtime_jll", "ExprTools", "GPUArrays", "GPUCompiler", "KernelAbstractions", "LLVM", "LazyArtifacts", "Libdl", "LinearAlgebra", "Logging", "Preferences", "Printf", "Random", "Random123", "RandomNumbers", "Reexport", "Requires", "SparseArrays", "SpecialFunctions", "UnsafeAtomicsLLVM"]
-git-tree-sha1 = "968c1365e2992824c3e7a794e30907483f8469a9"
+git-tree-sha1 = "b2e58316a391bddc8b9234ca4aa484eba6878ef2"
 uuid = "052768ef-5323-5732-b1bb-66c8b64840ba"
-version = "4.4.1"
+version = "4.4.2"
 
 [[deps.CUDA_Driver_jll]]
 deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl", "Pkg"]
@@ -299,9 +299,9 @@ version = "1.63.0"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra"]
-git-tree-sha1 = "aef70bb349b20aa81a82a19704c3ef339d4ee494"
+git-tree-sha1 = "575cd02e080939a33b6df6c5853d14924c08e35b"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "1.22.1"
+version = "1.23.0"
 weakdeps = ["SparseArrays"]
 
     [deps.ChainRulesCore.extensions]
@@ -1372,7 +1372,7 @@ version = "1.2.0"
 
 [[deps.NeuralEstimators]]
 deps = ["AlgebraOfGraphics", "BSON", "CSV", "CUDA", "CairoMakie", "ChainRulesCore", "Clustering", "ColorSchemes", "DataFrames", "Distances", "Distributions", "Flux", "Folds", "Functors", "GaussianRandomFields", "GraphNeuralNetworks", "Graphs", "InvertedIndices", "LinearAlgebra", "NamedArrays", "NearestNeighbors", "Optim", "Parameters", "Random", "RecursiveArrayTools", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "Suppressor", "Test", "Zygote", "cuDNN"]
-git-tree-sha1 = "3906ded79e19a37d5626cf927a69d8190467c011"
+git-tree-sha1 = "08b765e942c1fb63d757d739ebc2bb7945b190f8"
 repo-rev = "GNN"
 repo-url = "https://github.com/msainsburydale/NeuralEstimators.jl"
 uuid = "38f6df31-6b4a-4144-b2af-7ace2da57606"

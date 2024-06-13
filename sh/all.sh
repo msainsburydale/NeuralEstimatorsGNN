@@ -23,9 +23,10 @@ if ! [[ $skip_training_str == "y" ||  $skip_training_str == "Y" || $skip_trainin
 fi
 
 Rscript src/pointprocesses.R       # Point-process figure in Section 2
+source sh/application.sh           # Section 4 
 source sh/simulationstudies.sh     # Section 3
-source sh/application.sh           # Section 4
-source sh/supplement.sh            # Supplementary material
+# source sh/supplement.sh            # Supplementary material 
+
 
 echo ""
 echo "######## Everything finished! ############"

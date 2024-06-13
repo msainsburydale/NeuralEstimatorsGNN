@@ -34,9 +34,7 @@ else
     exit 1
 fi
 
-
-# for model in GP/nuSigmaTauFixed GP/nuSigmaFixed GP/nuFixed Schlather
-for model in Schlather
+for model in GP/nuSigmaFixed GP/nuFixed Schlather 
 do
 
     echo ""
@@ -44,7 +42,7 @@ do
     echo ""
 
     if [[ $model == "Schlather" ]]; then
-        m="[1,50]"
+        m="[1,20]"
     else
         m="[1]"
     fi
