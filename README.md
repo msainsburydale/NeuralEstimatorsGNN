@@ -26,7 +26,7 @@ First, download this repository and navigate to its top-level directory within t
 Before installing the software dependencies, users may wish to setup a [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html) environment, so that the dependencies of this repository do not affect the user's current installation. To create a conda environment, run the following command in terminal:
 
 ```
-conda create -n NeuralEstimatorsGNN -c conda-forge julia=1.9.2 r-base nlopt
+conda create -n NeuralEstimatorsGNN -c conda-forge julia=1.10.1 r-base nlopt
 ```
 
 Then activate the conda environment with:

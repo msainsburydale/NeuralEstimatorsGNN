@@ -33,10 +33,10 @@ function gnnarchitecture(p::Integer; final_activation = identity, expert_statist
 	# Expert summary statistics 
 	if expert_statistics 
 	  S = NeighbourhoodVariogram(h_max, q)
-	  indim = 5q 
+	  indim = 3q 
 	else 
 	  S = nothing
-	  indim = 4q
+	  indim = 2q
 	end
 	
 	# Final layer
