@@ -16,10 +16,8 @@ model = joinpath("GP", "nuFixed")
 include(joinpath(pwd(), "src", model, "model.jl"))
 include(joinpath(pwd(), "src", "architecture.jl"))
 
-path = "intermediates/application"
-if !isdir(path) mkpath(path) end
-
 ## Load the clustered data as a single data frame, and then split by cluster
+path = "intermediates/application"
 clustered_data = RData.load(joinpath(path, "clustered_data2.rds"))
 clustered_data = [filter(:cluster => cluster -> cluster == i, clustered_data) for i in unique(clustered_data[:, :cluster])]
 

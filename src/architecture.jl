@@ -20,7 +20,6 @@ function gnnarchitecture(p::Integer; final_activation = identity, expert_statist
   
 	# Propagation module
 	propagation = GNNChain(
-	  # NB one may also use "GraphSkipConnection" for skip connections
     SpatialGraphConv(1 => 2q,  relu, w = spatialweights(h_max, q), w_out = 2q),
     SpatialGraphConv(2q => 2q, relu, w = spatialweights(h_max, q), w_out = 2q)
    )
@@ -28,19 +27,16 @@ function gnnarchitecture(p::Integer; final_activation = identity, expert_statist
 	# Readout module
 	readout = GlobalPool(mean)
 
-  # Global features 
-  globalfeatures = SpatialGraphConv(1 => 2q, relu, w = spatialweights(h_max, q), w_out = 2q, glob = true)
-
 	# Summary network
-	ψ = GNNSummary(propagation, readout, globalfeatures)
+	ψ = GNNSummary(propagation, readout)
 	
 	# Expert summary statistics 
 	if expert_statistics 
 	  S = NeighbourhoodVariogram(h_max, q)
-	  in = 5q 
+	  indim = 5q 
 	else 
 	  S = nothing
-	  in = 4q
+	  indim = 4q
 	end
 	
 	# Final layer
@@ -52,7 +48,7 @@ function gnnarchitecture(p::Integer; final_activation = identity, expert_statist
 
 	# Mapping module
 	ϕ = Chain(
-	  Dense(in => 128, relu), 
+	  Dense(indim => 128, relu), 
 	  Dense(128 => 128, relu),
 	  final_layer
 	)
@@ -63,7 +59,7 @@ end
 function spatialweights(h_max, q)
   Parallel(
     vcat, 
-    IndicatorWeights(0.15, q),
+    KernelWeights(0.15, q),
     Chain(
     			Dense(1 => 128, sigmoid),
 					Dense(128 => q, sigmoid)

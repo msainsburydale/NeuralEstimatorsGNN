@@ -1372,7 +1372,7 @@ version = "1.2.0"
 
 [[deps.NeuralEstimators]]
 deps = ["AlgebraOfGraphics", "BSON", "CSV", "CUDA", "CairoMakie", "ChainRulesCore", "Clustering", "ColorSchemes", "DataFrames", "Distances", "Distributions", "Flux", "Folds", "Functors", "GaussianRandomFields", "GraphNeuralNetworks", "Graphs", "InvertedIndices", "LinearAlgebra", "NamedArrays", "NearestNeighbors", "Optim", "Parameters", "Random", "RecursiveArrayTools", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "Suppressor", "Test", "Zygote", "cuDNN"]
-git-tree-sha1 = "08b765e942c1fb63d757d739ebc2bb7945b190f8"
+git-tree-sha1 = "2be599bd00463563397da6cbc53ef02357de3b48"
 repo-rev = "GNN"
 repo-url = "https://github.com/msainsburydale/NeuralEstimators.jl"
 uuid = "38f6df31-6b4a-4144-b2af-7ace2da57606"
