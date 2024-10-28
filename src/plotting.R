@@ -149,7 +149,8 @@ risklabel <- expression(r[Omega](hat(theta)("·")))
 
 
 ggsv <- function(filename, plot, ...) {
-  for (device in c("pdf", "png")) {
+  # for (device in c("pdf", "png")) {
+  for (device in c("pdf")) {
     ggsave(plot, file = paste0(filename, ".", device), device = device, ...)
   }
 }

@@ -18,6 +18,7 @@ using GraphNeuralNetworks
 using BenchmarkTools
 using DataFrames
 using CSV
+using CUDA
 
 include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/architecture.jl"))
@@ -52,7 +53,12 @@ train(pointestimator, θ_train, θ_val, simulate, m = 1, savepath = joinpath(pat
 # ---- Marginal posterior quantile estimator ----
 
 v = gnnarchitecture(p; final_activation = identity)
-Flux.loadparams!(v, loadbestweights(joinpath(path, "pointestimator"))) # pretrain with point estimator
+
+# pretrain with point estimator
+loadpath  = joinpath(path, "pointestimator", "best_network.bson")
+@load loadpath model_state
+Flux.loadmodel!(v, model_state)
+
 Ω = ξ.Ω
 a = [minimum.(values(Ω))...]
 b = [maximum.(values(Ω))...]

@@ -17,6 +17,7 @@ using BenchmarkTools
 using DataFrames
 using GraphNeuralNetworks
 using CSV
+using CUDA
 
 include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/$model/ML.jl"))
@@ -70,9 +71,17 @@ end
 for k ∈ K_seq
   @info "Training the estimators with K = $k..."
   if k != K_seq[1]
-    Flux.loadparams!(gnn1,  loadbestweights(joinpath(path, "GNN1_K$(k-K_seq.step)")))
-    Flux.loadparams!(gnn2,  loadbestweights(joinpath(path, "GNN2_K$(k-K_seq.step)")))
-    Flux.loadparams!(gnn3,  loadbestweights(joinpath(path, "GNN3_K$(k-K_seq.step)")))
+    loadpath = joinpath(path, "GNN1_K$(k-K_seq.step)", "best_network.bson")
+    @load loadpath model_state
+    Flux.loadmodel!(gnn1, model_state)
+
+    loadpath = joinpath(path, "GNN2_K$(k-K_seq.step)", "best_network.bson")
+    @load loadpath model_state
+    Flux.loadmodel!(gnn2, model_state)
+
+    loadpath = joinpath(path, "GNN3_K$(k-K_seq.step)", "best_network.bson")
+    @load loadpath model_state
+    Flux.loadmodel!(gnn3, model_state)
   end
   indices = 1:k
   train(gnn1, subsetandsimulate(θ₁_train, θ₁_val, indices, m)..., savepath = joinpath(path, "GNN1_K$k"), epochs = epochs)
@@ -90,9 +99,19 @@ Z_test = simulate(θ_test, m)
 assessments = []
 for k ∈ K_seq
   @info "Assessing the estimators trained with K = $k..."
-  Flux.loadparams!(gnn1,  loadbestweights(joinpath(path, "GNN1_K$k")))
-  Flux.loadparams!(gnn2,  loadbestweights(joinpath(path, "GNN2_K$k")))
-  Flux.loadparams!(gnn3,  loadbestweights(joinpath(path, "GNN3_K$k")))
+  
+  loadpath = joinpath(path, "GNN1_K$k", "best_network.bson")
+  @load loadpath model_state
+  Flux.loadmodel!(gnn1, model_state)
+
+  loadpath = joinpath(path, "GNN2_K$k", "best_network.bson")
+  @load loadpath model_state
+  Flux.loadmodel!(gnn2, model_state)
+
+  loadpath = joinpath(path, "GNN3_K$k", "best_network.bson")
+  @load loadpath model_state
+  Flux.loadmodel!(gnn3, model_state)
+
   assessment = assess(
   		[gnn1, gnn2, gnn3], θ_test, Z_test;
   		estimator_names = ["Sfixed", "Srandom_uniform", "Srandom_cluster"],

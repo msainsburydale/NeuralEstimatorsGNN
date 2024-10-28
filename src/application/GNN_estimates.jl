@@ -1,4 +1,5 @@
 using CSV
+using CUDA
 using DataFrames
 using Folds
 using LinearAlgebra
@@ -9,6 +10,7 @@ using RData
 using Statistics: mean
 using StatsBase: sample
 using SparseArrays
+
 
 ## ---- Load the data ----
 
@@ -36,8 +38,14 @@ b = [maximum.(values(Ω))...]
 g = Compress(a, b)
 intervalestimator = IntervalEstimator(v, g)
 
-Flux.loadparams!(pointestimator,    loadbestweights(joinpath(path, "pointestimator")))
-Flux.loadparams!(intervalestimator, loadbestweights(joinpath(path, "intervalestimator")))
+loadpath  = joinpath(path, "pointestimator", "best_network.bson")
+@load loadpath model_state
+Flux.loadmodel!(pointestimator, model_state)
+
+loadpath  = joinpath(path, "intervalestimator", "best_network.bson")
+@load loadpath model_state
+Flux.loadmodel!(intervalestimator, model_state)
+
 
 ## ---- Estimate ----
 

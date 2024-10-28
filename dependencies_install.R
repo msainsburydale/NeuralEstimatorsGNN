@@ -38,18 +38,11 @@ install_dependencies <- function(install_exact_versions) {
   ## These packages are treated individually because they are not available on
   ## CRAN, so we need to specify their repos.
 
-  if(!("ngme2" %in% rownames(installed.packages())))
-    devtools::install_github("davidbolin/ngme2", ref = "devel")
-
   if(!("dggrids" %in% rownames(installed.packages())))
     devtools::install_github("andrewzm/dggrids", ref = "master")
 
-  if(!("NeuralEstimators" %in% rownames(installed.packages())))
-    devtools::install_github("msainsburydale/NeuralEstimators", ref = "main")
-
-  ## Remove this from the search list so that the script does not
-  ## attempt to re-install them
-  pkg_versions <- pkg_versions[!(names(pkg_versions) %in% c("ngme2", "dggrids", "NeuralEstimators"))]
+  ## Remove non-CRAN packages from search list so that the script does not attempt to install them
+  pkg_versions <- pkg_versions[!(names(pkg_versions) %in% c("dggrids"))]
 
   # ---- CRAN packages ----
 
@@ -83,6 +76,10 @@ install_dependencies <- function(install_exact_versions) {
                                 dependencies = TRUE)
     }
   }
+
+
+
+
 }
 
 

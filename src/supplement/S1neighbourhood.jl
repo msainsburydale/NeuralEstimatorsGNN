@@ -24,8 +24,9 @@ using BenchmarkTools
 using DataFrames
 using GraphNeuralNetworks
 using CSV
+using CUDA
 
-path = "intermediates/supplement/neighbours"
+path = joinpath("intermediates", "supplement", "neighbours")
 if !isdir(path) mkpath(path) end
 
 # Helper functions for this script, with the same API as adjacencymatrix()
@@ -157,8 +158,9 @@ for n ∈ n_test
   	@info "Assessing the estimator with k=$k"
   	for maxmin ∈ [true, false]
   	  gnn = gnnarchitecture(p)
-  		loadpath = joinpath(path, "$(maxmin ? "maxmin" : "knearest")_k$k")
-  		Flux.loadparams!(gnn, loadbestweights(loadpath))
+  		loadpath = joinpath(path, "$(maxmin ? "maxmin" : "knearest")_k$k", "best_network.bson")
+		@load loadpath model_state
+		Flux.loadmodel!(gnn, model_state)
     
   		θ_test = modifyneighbourhood(θ_test, k; maxmin = maxmin)
   		θ_single = modifyneighbourhood(θ_single, k; maxmin = maxmin)
@@ -187,10 +189,11 @@ for n ∈ n_test
   	end
   end
 	for r ∈ all_r
-	 @info "Assessing the estimator with r=$r"
-	 gnn = gnnarchitecture(p)
-		loadpath = joinpath(path, "fixedradius_r$r")
-		Flux.loadparams!(gnn, loadbestweights(loadpath))
+		@info "Assessing the estimator with r=$r"
+		gnn = gnnarchitecture(p)
+		loadpath = joinpath(path, "fixedradius_r$r", "best_network.bson")
+		@load loadpath model_state
+		Flux.loadmodel!(gnn, model_state)
   
 		θ_test = modifyneighbourhood(θ_test, r)
 		θ_single = modifyneighbourhood(θ_single, r)
@@ -220,8 +223,9 @@ for n ∈ n_test
 		for k ∈ all_k
 			@info "Assessing the estimator with r=$r and k=$k"
 			gnn = gnnarchitecture(p)
-			loadpath = joinpath(path, "fixedradiusmaxk_r$(r)_k$(k)")
-			Flux.loadparams!(gnn, loadbestweights(loadpath))
+			loadpath = joinpath(path, "fixedradiusmaxk_r$(r)_k$(k)", "best_network.bson")
+			@load loadpath model_state
+			Flux.loadmodel!(gnn, model_state)
 		
 			θ_test = modifyneighbourhood(θ_test, r, k)
 			θ_single = modifyneighbourhood(θ_single, r, k)

@@ -26,17 +26,19 @@ m = let expr = Meta.parse(parsed_args["m"])
 end
 
 # Example command-line arguments:
-#model = "GP/nuSigmaFixed"
-#quick=false
-#skip_training = false
-#m=[1]
+# model = "GP/nuSigmaFixed"
+# quick=false
+# skip_training = false
+# m=[1]
 
 M = maximum(m)
 using NeuralEstimators
 using NeuralEstimatorsGNN
 using NamedArrays
 using BenchmarkTools
+using BSON: @load
 using CSV
+using CUDA
 using DataFrames
 using Distances
 using GraphNeuralNetworks
@@ -88,7 +90,9 @@ if !skip_training
 end
 
 # Load the trained estimator
-Flux.loadparams!(pointestimator,  loadbestweights(joinpath(path, "runs_GNN_m$M")))
+loadpath  = joinpath(path, "runs_GNN_m$M", "best_network.bson")
+@load loadpath model_state
+Flux.loadmodel!(pointestimator, model_state)
 
 
 # ---- Run-time assessment ----
@@ -314,7 +318,9 @@ if !skip_training
 	  )
 end
 
-Flux.loadparams!(intervalestimator, loadbestweights(joinpath(path, "runs_GNN_CI_m$M")))
+loadpath  = joinpath(path, "runs_GNN_CI_m$M", "best_network.bson")
+@load loadpath model_state
+Flux.loadmodel!(intervalestimator, model_state)
 
 # Assessment
 seed!(2023)

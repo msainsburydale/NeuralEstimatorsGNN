@@ -34,7 +34,8 @@ else
     exit 1
 fi
 
-for model in GP/nuSigmaFixed GP/nuFixed Schlather 
+# for model in GP/nuSigmaFixed GP/nuFixed Schlather 
+for model in Schlather GP/nuFixed  
 do
 
     echo ""

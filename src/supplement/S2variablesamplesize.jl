@@ -21,6 +21,7 @@ using BenchmarkTools
 using DataFrames
 using GraphNeuralNetworks
 using CSV
+using CUDA
 
 include(joinpath(pwd(), "src/$model/model.jl"))
 include(joinpath(pwd(), "src/$model/ML.jl"))
@@ -73,9 +74,17 @@ train(gnn3, θ_train, θ_val, simulate, m = m, savepath = path * "/runs_GNN3", e
 
 # ---- Load the trained estimators ----
 
-Flux.loadparams!(gnn1,  loadbestweights(path * "/runs_GNN1"))
-Flux.loadparams!(gnn2,  loadbestweights(path * "/runs_GNN2"))
-Flux.loadparams!(gnn3,  loadbestweights(path * "/runs_GNN3"))
+loadpath  = joinpath(path, "runs_GNN1", "best_network.bson")
+@load loadpath model_state
+Flux.loadmodel!(gnn1, model_state)
+
+loadpath  = joinpath(path, "runs_GNN2", "best_network.bson")
+@load loadpath model_state
+Flux.loadmodel!(gnn2, model_state)
+
+loadpath  = joinpath(path, "runs_GNN3", "best_network.bson")
+@load loadpath model_state
+Flux.loadmodel!(gnn3, model_state)
 
 # ---- Assess the estimators ----
 
