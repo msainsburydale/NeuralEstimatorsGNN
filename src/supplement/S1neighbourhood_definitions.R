@@ -4,9 +4,6 @@ library("ggplot2")
 library("egg")
 source("src/plotting.R")
 
-#TODO clean this script
-#TODO remove dependency on Julia package NearestNeighbors (don't want this in the Project dependency list and its not really needed)
-
 ## ---- GpGp functions that will be written in Julia ----
 
 ordermaxmin = function(locs){

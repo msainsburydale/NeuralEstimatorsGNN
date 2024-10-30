@@ -77,9 +77,6 @@ install_dependencies <- function(install_exact_versions) {
     }
   }
 
-
-
-
 }
 
 

@@ -21,6 +21,7 @@ m = 1
 using NeuralEstimators
 using NeuralEstimatorsGNN
 using BenchmarkTools
+using BSON: @load
 using DataFrames
 using GraphNeuralNetworks
 using CSV
@@ -44,41 +45,6 @@ include(joinpath(pwd(), "src", "architecture.jl"))
 p = ξ.p # number of parameters in the statistical model
 cluster_process = true
 
-function gnnarchitecture(
-	p::Integer;
-	nₕ = [128, 128, 128, 128],    # number of channels in each propagation layer
-	aggr = mean,                  # neighbourhood aggregation function
-	final_activation = identity
-	)
-
-	if isa(nₕ, Integer) nₕ = [nₕ] end
-	nlayers = length(nₕ)              # number of propagation layers
-	w_channels = [16, fill(1, nlayers-1)...]   # number of channels for weight function w(⋅)
-	in=[1, nₕ[1:end-1]...]            # input dimensions of propagation features
-
-	# Propagation module
-	propagation_layers = map(1:nlayers) do l
-		SpatialGraphConv(in[l] => nₕ[l], relu, w_scalar = true, w_exponential_decay = true, aggr = aggr, w_channels = w_channels[l])
-	end
-	propagation = GNNChain(propagation_layers...)
-
-	# Readout module
-	readout = GlobalPool(mean)
-	nᵣ = nₕ[end] # dimension of readout vector
-
-	# Summary network
-	ψ = GNNSummary(propagation, readout)
-
-	# Mapping module
-	ϕ = Chain(
-	  Dense(nᵣ => 128, relu), 
-	  Dense(nᵣ => 128, relu), 
-	  Dense(128 => p, final_activation)
-	  )
-
-	return DeepSet(ψ, ϕ)
-end
-
 
 # ---- Sample training parameter vectors ----
 
@@ -96,7 +62,7 @@ seed!(1)
 # ---- Training ----
 
 epochs_per_Z_refresh = 3
-epochs = quick ? 2 : 50
+epochs = quick ? 2 : 15
 stopping_epochs = epochs   # "turn off" early stopping entirely by setting equal to epochs
 
 all_k = [3, 5, 10, 15, 20, 25, 30] 

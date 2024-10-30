@@ -16,6 +16,7 @@ using NeuralEstimators
 using NeuralEstimatorsGNN
 using GraphNeuralNetworks
 using BenchmarkTools
+using BSON: @load
 using DataFrames
 using CSV
 using CUDA

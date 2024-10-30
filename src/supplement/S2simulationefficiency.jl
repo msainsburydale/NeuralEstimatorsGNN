@@ -14,6 +14,7 @@ m=1
 using NeuralEstimators
 using NeuralEstimatorsGNN
 using BenchmarkTools
+using BSON: @load
 using DataFrames
 using GraphNeuralNetworks
 using CSV

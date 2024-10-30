@@ -29,13 +29,13 @@ scale_factors = RData.load(joinpath(path, "scale_factors.rds")).data
 function nll(θ, Z, D, prior = nothing)
 
 	# Constrain the estimates to be valid
-  if isnothing(prior)
- 	  θ = exp.(θ)
- 	else
-	  θ = scaledlogistic.(θ, prior)
-  end
+	if isnothing(prior)
+		θ = exp.(θ)
+		else
+		θ = scaledlogistic.(θ, prior)
+	end
 
-  # Extract parameters
+    # Extract parameters
 	τ = θ[1]
 	ρ = θ[2]
 	σ = θ[3]
@@ -43,7 +43,7 @@ function nll(θ, Z, D, prior = nothing)
 	ν = one(eltype(θ)) # smoothness fixed to 1
 
 	# Covariance matrix (exploit symmetry to minimise number of computations)
-  Σ = matern.(UpperTriangular(D), ρ, ν, σ²)
+    Σ = matern.(UpperTriangular(D), ρ, ν, σ²)
 	Σ[diagind(Σ)] .+= τ^2
 
 	# Log-likelihood function

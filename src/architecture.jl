@@ -20,7 +20,7 @@ function gnnarchitecture(p::Integer; final_activation = identity, expert_statist
   
 	# Propagation module
 	propagation = GNNChain(
-    SpatialGraphConv(1 => 2q,  relu, w = spatialweights(h_max, q), w_out = 2q),
+    SpatialGraphConv(1 => 2q, relu, w = spatialweights(h_max, q), w_out = 2q),
     SpatialGraphConv(2q => 2q, relu, w = spatialweights(h_max, q), w_out = 2q)
    )
 

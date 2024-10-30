@@ -148,8 +148,8 @@ sigma_ci <- ggpubr::ggarrange(sigma_lower, sigma_upper, align = "hv", nrow = 1, 
 
 limits <- GNN_estimates %>% filter(parameter %in% c("τ_lower", "τ_upper")) %>% summarise(range(estimate))
 limits <- limits[[1]]
-tau_lower <- plot_estimates(cells, estimates_tau, "τ_lower", limits) + labs(title = expression(hat(sigma)[epsilon] *": lower bound"), fill = "")
-tau_upper <- plot_estimates(cells, estimates_tau, "τ_upper", limits) + labs(title = expression(hat(sigma)[epsilon] *": upper bound"), fill = "")
+tau_lower <- plot_estimates(cells, GNN_estimates, "τ_lower", limits) + labs(title = expression(hat(sigma)[epsilon] *": lower bound"), fill = "")
+tau_upper <- plot_estimates(cells, GNN_estimates, "τ_upper", limits) + labs(title = expression(hat(sigma)[epsilon] *": upper bound"), fill = "")
 tau_ci <- ggpubr::ggarrange(tau_lower, tau_upper, align = "hv", nrow = 1, legend = "right", common.legend = T)
 
 fig <- ggpubr::ggarrange(rho_ci, sigma_ci, tau_ci, ncol = 1)
