@@ -62,11 +62,12 @@ seed!(1)
 # ---- Training ----
 
 epochs_per_Z_refresh = 3
-epochs = quick ? 2 : 15
+epochs = quick ? 2 : 30
 stopping_epochs = epochs   # "turn off" early stopping entirely by setting equal to epochs
 
 all_k = [3, 5, 10, 15, 20, 25, 30] 
 all_r = [0.025, 0.0375, 0.05, 0.075, 0.1, 0.125, 0.15]
+fixed_r = [0.15]
 
 for r ∈ all_r
   	@info "Training GNN with disc of fixed radius r=$r"
@@ -94,7 +95,7 @@ for k ∈ all_k
 	end
 end
 
-for r ∈ [0.15]
+for r ∈ fixed_r
     for k ∈ all_k
     	@info "Training GNN with disc of fixed radius r=$r and maximum number of neighbours k=$k"
     	savepath = joinpath(path, "fixedradiusmaxk_r$(r)_k$(k)")
@@ -185,7 +186,7 @@ for n ∈ n_test
 	 assessment.df[:, :inference_time] .= t
 	 push!(assessments, assessment)
 	end
-	for r ∈ [0.15] # TODO error prone, define a variable for this
+	for r ∈ fixed_r 
 		for k ∈ all_k
 			@info "Assessing the estimator with r=$r and k=$k"
 			gnn = gnnarchitecture(p)

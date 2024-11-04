@@ -34,10 +34,7 @@ if !isdir(path) mkpath(path) end
 # In this experiment, we are assessing the simulation efficiency of the
 # estimators. To do this, we will train and assess a series of estimators
 # using an increasing number of data sets, up to a maximum of K.
-K = 50000
-if quick
-	K = K ÷ 25
-end
+K = quick ? 6000: 30000
 K_seq = 2000:2000:K
 
 seed!(1)

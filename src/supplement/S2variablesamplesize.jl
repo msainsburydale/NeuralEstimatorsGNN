@@ -32,8 +32,8 @@ path = "intermediates/supplement/variablesamplesize"
 if !isdir(path) mkpath(path) end
 
 # Size of the training and test sets
-K_train = quick ? 1000 : 15000
-K_test  = quick ? 100 : 1500
+K_train = quick ? 1000 : 5000
+K_test  = quick ? 100 : 1000
 J = 3 # number of simulated data sets for each parameter configuration
 
 p = ξ.p

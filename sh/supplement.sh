@@ -20,15 +20,15 @@ fi
 echo ""
 echo "##### Starting supplementary experiment S1: neighbourhood selection #####"
 echo ""
-#julia --threads=auto --project=. src/supplement/S1neighbourhood.jl $quick
-#Rscript src/supplement/S1neighbourhood.R
+julia --threads=auto --project=. src/supplement/S1neighbourhood.jl $quick
+Rscript src/supplement/S1neighbourhood.R
 
 echo ""
 echo "##### Starting supplementary experiment S2: prior measure for S and variable number of spatial locations #####"
 echo ""
-#julia --threads=auto --project=. src/supplement/S2variablesamplesize.jl $quick
+julia --threads=auto --project=. src/supplement/S2variablesamplesize.jl $quick
 echo ""
 echo "##### Starting supplementary experiment S2: prior measure for S and simulation efficiency #####"
 echo ""
-julia --threads=auto --project=. src/supplement/S2simulationefficiency.jl $quick #TODO add @info to tell the user what is happening
+julia --threads=auto --project=. src/supplement/S2simulationefficiency.jl $quick 
 Rscript src/supplement/S2.R

@@ -134,7 +134,7 @@ figures <- lapply(unique(df$k), function(K) {
   # ---- Marginal sampling distributions ----
 
   box <- lapply(sets, function(st) {
-    plotdistribution(filter(df, set == st), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1, return_list = TRUE)
+    plotdistribution(filter(df, set == st), type = "box", parameter_labels = parameter_labels, estimator_labels = estimator_labels, truth_line_size = 1, return_list = TRUE, truth_colour = "red")
   })
   p <- length(unique(df$parameter))
   box_split <- lapply(1:p, function(i) {
